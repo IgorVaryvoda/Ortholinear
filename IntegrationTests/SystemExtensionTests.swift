@@ -24,6 +24,10 @@ final class SystemExtensionTests: XCTestCase {
         app.buttons["preset-bigLetters"].tap()
         app.sliders["Key height"].adjust(toNormalizedSliderPosition: 1)
         app.buttons["Done"].tap()
+        // XCUITest's slider endpoint can round short of 1.0. Compare the extension
+        // with the actual saved preview geometry, while requiring a customized size.
+        let previewKeyHeight = app.buttons["key-ф"].frame.height
+        XCTAssertGreaterThan(previewKeyHeight, 80)
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         settings.launch()
         if !settings.buttons["AddNewKeyboard"].waitForExistence(timeout: 2) {
@@ -65,7 +69,7 @@ final class SystemExtensionTests: XCTestCase {
         loaded.name = "System keyboard loaded"
         loaded.lifetime = .keepAlways
         add(loaded)
-        XCTAssertEqual(ukrainianKey.frame.height, 91, accuracy: 1, "Extension must read the app's saved 88 pt height plus 3 pt gutter")
+        XCTAssertEqual(ukrainianKey.frame.height, previewKeyHeight, accuracy: 1, "Extension must read the same saved key height as the app preview")
         XCTAssertFalse(surface.buttons["key-."].exists)
         XCTAssertFalse(surface.buttons["key-,"].exists)
         XCTAssertFalse(surface.buttons["key-ґ"].exists)
@@ -93,6 +97,19 @@ final class SystemExtensionTests: XCTestCase {
         surface.buttons["key-г"].tap()
         XCTAssertEqual(editor.value as? String, "фігґҐг")
         surface.buttons["key-Switch to English"].tap()
+        let numbers = surface.buttons["key-Numbers"]
+        let leftEdge = numbers.frame.minX
+        numbers.tap()
+        XCTAssertEqual(surface.buttons["key-Letters"].frame.minX, leftEdge, accuracy: 1)
+        let symbolPoint = surface.buttons["key-1"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).screenPoint
+        surface.buttons["key-Letters"].tap()
+        let symbol = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: symbolPoint.x, dy: symbolPoint.y))
+        numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.6, thenDragTo: symbol)
+        XCTAssertEqual(editor.value as? String, "фігґҐг1")
+        XCTAssertTrue(numbers.exists, "A symbol slide must restore letters in the installed extension")
+        surface.buttons["key-a"].tap()
+        XCTAssertEqual(editor.value as? String, "фігґҐг1a")
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Installed keyboard extension"
         attachment.lifetime = .keepAlways

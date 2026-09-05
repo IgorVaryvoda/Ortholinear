@@ -53,6 +53,55 @@ final class KeyboardUITests: XCTestCase {
     }
 
     @MainActor
+    func testSymbolSlideAndCancellation() throws {
+        let app = launchApp()
+        let editor = app.textViews["preview-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        app.buttons["key-Switch to English"].tap()
+        let numbers = app.buttons["key-Numbers"]
+        let origin = numbers.frame
+        // Read coordinates from the real number layout before starting the gesture.
+        numbers.tap()
+        let one = app.buttons["key-1"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).screenPoint
+        let seven = app.buttons["key-7"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).screenPoint
+        XCTAssertEqual(app.buttons["key-Letters"].frame.minX, origin.minX, accuracy: 1)
+        app.buttons["key-More symbols"].tap()
+        XCTAssertEqual(app.buttons["key-Letters"].frame.minX, origin.minX, accuracy: 1)
+        app.buttons["key-Letters"].tap()
+        numbers.press(forDuration: 0.6)
+        XCTAssertTrue(numbers.exists)
+        XCTAssertEqual(editor.value as? String, "")
+
+        // Convert targets to app coordinates so they remain valid on the letter page.
+        let first = app.coordinate(withNormalizedOffset: .zero).withOffset(
+            CGVector(dx: one.x, dy: one.y))
+        let last = app.coordinate(withNormalizedOffset: .zero).withOffset(
+            CGVector(dx: seven.x, dy: seven.y))
+        numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.6, thenDragTo: first)
+        XCTAssertEqual(editor.value as? String, "1")
+        XCTAssertTrue(numbers.exists)
+        app.buttons["key-a"].tap()
+        numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: last)
+        XCTAssertEqual(editor.value as? String, "1a7")
+        XCTAssertTrue(numbers.exists)
+
+        let outside = app.coordinate(withNormalizedOffset: .zero).withOffset(
+            CGVector(dx: origin.midX, dy: origin.maxY + 25))
+        numbers.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.6, thenDragTo: outside)
+        XCTAssertEqual(editor.value as? String, "1a7")
+        XCTAssertTrue(numbers.exists)
+        // A normal tap still latches numbers for typing several symbols.
+        numbers.tap()
+        app.buttons["key-1"].tap()
+        app.buttons["key-2"].tap()
+        XCTAssertTrue(app.buttons["key-Letters"].exists)
+        XCTAssertEqual(editor.value as? String, "1a712")
+    }
+
+    @MainActor
     func testGeometryAndSetup() throws {
         let app = launchApp()
         tapMainButton("customize-keyboard", in: app)
@@ -130,7 +179,10 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertEqual(app.buttons["key-Shift"].frame.maxX, app.buttons["key-я"].frame.minX, accuracy: 1)
 
         tapMainButton("customize-keyboard", in: app)
-        app.switches["show-punctuation"].coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        // SwiftUI may expose either the whole toggle row or just its switch.
+        // A fixed inset from the trailing edge hits the thumb in both cases.
+        app.switches["show-punctuation"].coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+            .withOffset(CGVector(dx: -25, dy: 0)).tap()
         XCTAssertEqual(app.switches["show-punctuation"].value as? String, "1")
         app.buttons["Done"].tap()
         XCTAssertTrue(app.buttons["key-."].exists)
@@ -140,7 +192,8 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertTrue(app.buttons["key-."].waitForExistence(timeout: 5))
         tapMainButton("customize-keyboard", in: app)
         app.buttons["preset-bigLetters"].tap()
-        app.switches["show-apostrophe"].coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        app.switches["show-apostrophe"].coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+            .withOffset(CGVector(dx: -25, dy: 0)).tap()
         XCTAssertEqual(app.switches["show-apostrophe"].value as? String, "0")
         app.buttons["Done"].tap()
         XCTAssertFalse(app.buttons["key-'"].exists)

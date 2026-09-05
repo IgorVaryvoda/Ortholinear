@@ -9,6 +9,8 @@ The simulator verifies layout and interaction. Signing and installation have als
 - Hold delete, slide away, release outside, switch apps, and rotate during the hold. Confirm repeating stops immediately.
 - Double-tap shift; type several letters; unlock. Single shift should affect one letter, including Ukrainian ґ/ї/і/є.
 - Hold punctuation and select each ribbon option; release outside to cancel.
+- Hold 123, slide across symbols, and release: insert only the selected symbol and return to letters. Check quick slides, outside cancellation, a stationary hold, and pausing over #+=. Verify normal taps keep numbers open.
+- Check immediate feedback on all controls, including globe and header dismissal, with Reduce Motion on and off.
 - Swipe space in both directions in text containing emoji and Ukrainian; verify insertion at the resulting cursor. Test document boundaries and selections.
 - Exercise numeric, email, URL, return-action, empty/disabled return, and multiline fields. Verify selection replacement and backspace across emoji.
 - Verify native globe tap/hold where required, and the system-provided globe on Face ID devices. Switch away and back.

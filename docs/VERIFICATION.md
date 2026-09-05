@@ -1,3 +1,15 @@
+# V0.3.1 verification — September 6, 2026
+
+Version 0.3.1 (10) adds stable key feedback, a far-left 123 / ABC switch, and hold/slide symbol entry that returns to letters.
+
+- All 17 core tests pass, including page-switch placement across languages, pages, Shift placements, and globe configurations.
+- All seven preview scenarios pass across `Keyboard-preview-release.xcresult` and `Keyboard-customization-release-v2.xcresult`. This includes long holds, quick slides, cancellation outside the keyboard, latched number entry, settings persistence, landscape, delete repeat, cursor movement, punctuation holds, and caps lock. The settings test now targets the switch thumb consistently when SwiftUI exposes either the row or the switch as its accessibility frame.
+- `Keyboard-system-interactions-v3.xcresult` passes the installed-extension test, including shared settings, Ukrainian/English typing, г/ґ/Ґ holds, far-left page switching, symbol selection, and return to letter typing. Its settings assertion compares against the actual saved preview size because XCUITest's slider can stop short of its requested endpoint.
+- Signed Release archive succeeds at `build/keyboard-interactions-app-store/Ortholinear.xcarchive`. App and extension both report 0.3.1 (10), and `RequestsOpenAccess=false` remains in the extension.
+- Physical-device installation and App Store submission are tracked in [APP-STORE.md](APP-STORE.md). The archive was prepared while the paired iPhone's connection was unavailable.
+
+Environment: Xcode 26.6, iOS 26.5 simulator, iPhone 17 Pro. Results and signed artifacts are local and ignored by Git.
+
 # V0.3 verification — September 5, 2026
 
 Version 0.3.0 (9) puts Delete immediately after M / Ю, removes the Ukrainian letter-page apostrophe, and adds configurable punctuation spacing.

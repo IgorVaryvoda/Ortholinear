@@ -28,7 +28,7 @@ The checked-in Xcode project is ready to open. `project.yml` is the source for r
 xcodegen generate
 ```
 
-## V0.3 behavior
+## V0.3.1 behavior
 
 - Ukrainian and English with equal-width letters within each row, including the complete Ukrainian alphabet. English has an optional apostrophe; Ukrainian keeps it on the numbers page.
 - Tap г for г; hold it for ґ. With Shift, hold Г for Ґ. There is no separate ґ key.
@@ -39,7 +39,9 @@ xcodegen generate
 - Optional automatic spacing after . , ! ? : ; …, enabled by default. Consecutive punctuation stays together, manual Space does not double the gap, and numeric continuations such as 3.14 work. URL and email fields use literal punctuation.
 - UA / EN toggle, one-shot shift, double-tap caps lock.
 - Backspace deletes immediately; hold for 420 ms to repeat every 75 ms.
-- Space, return, two number/symbol pages, keyboard dismissal.
+- Space, return, two number/symbol pages, keyboard dismissal. The 123 / ABC switch always stays at the far left of the control row.
+- Tap 123 to stay on numbers. Hold or slide from 123 onto a symbol and release to type it, then return to letters. Pause over #+= to reach the second symbols page. Releasing outside or holding and releasing in place cancels.
+- Immediate pressed-key feedback and a short release fade, including globe and header dismissal. Key frames stay fixed during feedback; Reduce Motion uses a brief static highlight.
 - Native globe interaction when `needsInputModeSwitchKey` is true, including Apple's keyboard picker on hold. On Face ID devices, iOS may supply the globe below the extension instead.
 - Hold punctuation for 420 ms, slide into the alternatives at the top of the keyboard, and release on an alternative. Release outside the keyboard to cancel. Available on period, comma, apostrophe, quote, hyphen, and question mark. Without the header, alternatives temporarily overlay the first row.
 - Swipe horizontally on space: 12 points per cursor step; no space inserted after a cursor drag.
@@ -73,7 +75,7 @@ xcodebuild -project Ortholinear.xcodeproj -scheme Ortholinear \
   -derivedDataPath build test
 ```
 
-Core tests cover the complete Ukrainian alphabet, presets and preference migration, Shift placement, action-key sizes, exhaustive sampled hit coverage across 320–1024 pt widths, visible-gap mode, and shift/caps transitions. UI tests exercise actual touch delivery in the preview, customization persistence, language switching, symbols, return, delete hold, cursor drag, punctuation hold, caps lock, onboarding, and landscape layout.
+Core tests cover the complete Ukrainian alphabet, presets and preference migration, Shift and page-switch placement, action-key sizes, exhaustive sampled hit coverage across 320–1024 pt widths, visible-gap mode, and shift/caps transitions. UI tests exercise actual touch delivery in the preview, customization persistence, language switching, symbols, hold/quick symbol slides and cancellation, return, delete hold, cursor drag, punctuation hold, caps lock, onboarding, and landscape layout.
 
 For the separate system-extension integration test, use an English-language disposable simulator and turn off **Simulator → I/O → Keyboard → Connect Hardware Keyboard** so the software keyboard is visible:
 

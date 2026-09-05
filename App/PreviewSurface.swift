@@ -64,6 +64,20 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        // Deliver presses immediately so a quick symbol slide belongs to the keyboard,
+        // instead of becoming a scroll before UIScrollView's touch delay expires.
+        var ancestor = superview
+        while let view = ancestor {
+            if let scrollView = view as? UIScrollView {
+                scrollView.delaysContentTouches = false
+                break
+            }
+            ancestor = view.superview
+        }
+    }
+
     func apply(_ preferences: KeyboardPreferences) {
         if keyboard.preferences.defaultLanguage != preferences.defaultLanguage { state.language = preferences.defaultLanguage }
         keyboard.preferences = preferences

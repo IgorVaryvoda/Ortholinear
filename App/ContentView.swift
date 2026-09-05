@@ -56,7 +56,7 @@ struct ContentView: View {
                         .frame(height: 100 + preferences.keyboardHeight)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.primary.opacity(0.08)))
-                    Text("Punctuation lives under 123. Slide on space to move the cursor. Double-tap shift for caps lock.")
+                    Text("Hold 123, slide to a symbol, and release to type it. Slide on space to move the cursor. Double-tap shift for caps lock.")
                         .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
                 }
 
@@ -88,7 +88,7 @@ struct ContentView: View {
                     Link("Support", destination: URL(string: "https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md")!)
                 }
                 .font(.system(size: 13, weight: .medium))
-                Text("BUILT FOR YOUR HANDS.  /  V0.3")
+                Text("BUILT FOR YOUR HANDS.  /  V0.3.1")
                     .font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(1.5)
                     .foregroundStyle(.tertiary).padding(.bottom, 20)
             }

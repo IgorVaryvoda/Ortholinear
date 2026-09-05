@@ -186,6 +186,27 @@ final class KeyboardCoreTests: XCTestCase {
         XCTAssertEqual(p.validated.letterSize, 28)
     }
 
+    func testPageSwitchIsAlwaysFarLeft() {
+        for language in KeyboardLanguage.allCases {
+            for page in [KeyboardPage.letters, .numbers, .symbols] {
+                for placement in ShiftPlacement.allCases {
+                    for globe in [false, true] {
+                        var state = InputState()
+                        state.language = language
+                        state.page = page
+                        let preferences = KeyboardPreferences(shiftPlacement: placement)
+                        let rows = KeyboardLayout.rows(state: state, needsGlobe: globe, preferences: preferences)
+                        XCTAssertEqual(rows[3].first?.action, .page)
+                        XCTAssertEqual(rows.flatMap { $0 }.filter { $0.action == .page }.count, 1)
+                        let cells = KeyboardGeometry.cells(width: 393, state: state, preferences: preferences, needsGlobe: globe)
+                        let pageKey = cells.first { $0.key.action == .page }!
+                        XCTAssertEqual(pageKey.hitFrame.minX, cells.map(\.hitFrame.minX).min())
+                    }
+                }
+            }
+        }
+    }
+
     func testShiftIsImmediatelyBeforeZOrYaAndActionsAreLarge() {
         for language in KeyboardLanguage.allCases {
             var state = InputState(); state.language = language

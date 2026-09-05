@@ -84,13 +84,12 @@ enum KeyboardLayout {
            let lastLetter = result[2].firstIndex(where: { $0.action == .text(state.language == .english ? "m" : "ю") }) {
             result[2].insert(Key(action: .backspace, weight: preferences.validated.actionKeyWidth), at: lastLetter + 1)
         }
-        var controls: [Key] = []
+        var controls: [Key] = [Key(action: .page, weight: 1.35)]
         if state.page == .letters && preferences.shiftPlacement == .beforeLastRow {
             result[2].insert(Key(action: .shift, weight: 0.8), at: 0)
         } else {
             controls.append(Key(action: .shift, weight: 1.25))
         }
-        controls.append(Key(action: .page, weight: 1.35))
         if needsGlobe { controls.append(Key(action: .globe)) }
         controls += [Key(action: .language, weight: 1.25), Key(action: .space, weight: 3.8),
                      Key(action: .enter, weight: preferences.validated.actionKeyWidth)]

@@ -5,7 +5,7 @@
 - Primary language: English (U.S.)
 - Bundle ID: com.varyvoda.Ortholinear
 - SKU: ortholinear-ios
-- Version: 0.3.0 (9)
+- Version: 0.3.1 (10)
 - Primary category: Utilities
 - Secondary category: Productivity
 - Support URL: https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md
@@ -37,6 +37,8 @@ UKRAINIAN + ENGLISH
 • Switch languages with one tap.
 • Type the full Ukrainian alphabet; hold г for ґ and Г for Ґ.
 • Access numbers, symbols, and punctuation alternatives.
+• Hold 123, slide to a symbol, and release to type it and return to letters.
+• Keep 123 / ABC at the far left, with clear feedback on keyboard controls.
 • Slide on Space to move the cursor.
 • Double-tap Shift for caps lock and hold Delete to repeat.
 
@@ -56,7 +58,17 @@ No account or sign-in is required. Launch the containing app to use the interact
 
 The extension does not request Full Access (RequestsOpenAccess=false). The app writes geometry and typing preferences into its App Group; the keyboard only reads them. No network requests, microphone recording, or typed-text collection. For ґ, hold г; for Ґ, enable Shift and hold Г. Delete follows M / Ю; Ukrainian has no letter-page apostrophe. Automatic punctuation spacing is enabled by default and configurable. URL and email fields use literal punctuation.
 
+## Version 0.3.1 changes
+
+- Clear pressed-key feedback and stable release fades, including globe and dismiss controls.
+- The 123 / ABC switch stays at the far left on every page.
+- Hold or slide from 123 to type one symbol and return to letters. Release outside to cancel; pause over #+= to reach more symbols.
+- Faster touch delivery in the in-app preview.
+
 ## Submission status
+
+Version **0.3.1 (10)** is prepared to replace the pending submission below. Its signed archive is `build/keyboard-interactions-app-store/Ortholinear.xcarchive`.
+
 
 Version **0.3.0 (9)** was submitted to App Review on September 5, 2026. App Store Connect confirms **Waiting for Review** and **1 Item Submitted**. Automatic release after approval is enabled.
 
