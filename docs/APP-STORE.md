@@ -58,13 +58,16 @@ The extension does not request Full Access (RequestsOpenAccess=false). The app w
 
 ## Submission status
 
-App Store Connect record 6808996711 has version 0.3.0 prepared. Build 9 moves Delete after M / Ю, removes the Ukrainian apostrophe key, and adds configurable automatic punctuation spacing. The signed archive and App Store upload succeeded. Final build selection and review submission are in progress. Free pricing, availability in 175 regions, age/content/privacy declarations, and review contact details are saved. Do not describe the app as available until Apple approves and releases it.
+Version **0.3.0 (9)** was submitted to App Review on September 5, 2026. App Store Connect confirms **Waiting for Review** and **1 Item Submitted**. Automatic release after approval is enabled.
+
+The selected build moves Delete after M / Ю, removes the Ukrainian apostrophe key, and adds configurable automatic punctuation spacing. Free pricing, availability in 175 regions, age/content declarations, Data Not Collected privacy declaration, and review contact details are saved. iPhone 6.9-inch and iPad 13-inch screenshots show the final build. The app is not yet publicly available; Apple must approve it first.
+
+Submission ID: `7d0aaaec-0282-4972-8d84-880baf12fca8`. App record: `6808996711`.
 
 ## Prepared artifacts
 
 - `build/final-keyboard-app-store/Ortholinear.xcarchive`: signed Release archive.
-- `build/final-keyboard-app-store/Ortholinear.ipa`: App Store distribution export.
 - [iPhone 6.9-inch screenshot](screenshots/app-store/iphone-home.png): 1320 × 2868.
 - [iPad 13-inch screenshot](screenshots/app-store/ipad-home.png): 2064 × 2752.
 
-The screenshots show the current Release build on fresh simulators. Build artifacts remain local and are ignored by Git. The owner approved free pricing and the app-record User Access setting. The record has been created. App Store Connect: https://appstoreconnect.apple.com/apps/6808996711/distribution/ios/version/inflight
+The screenshots show the current Release build on fresh simulators. Build artifacts remain local and are ignored by Git. The owner approved free pricing and the app-record User Access setting. The release is waiting for review. App Store Connect: https://appstoreconnect.apple.com/apps/6808996711/distribution/ios/version/inflight
