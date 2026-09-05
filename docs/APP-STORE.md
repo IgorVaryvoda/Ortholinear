@@ -56,7 +56,7 @@ The extension does not request Full Access (RequestsOpenAccess=false). The conta
 
 ## Submission status
 
-Signed archive and App Store distribution export succeeded on September 5, 2026. All 13 core tests passed. App Store Connect record 6808996711 was created and version 0.2.1 (3) uploaded successfully on September 5, 2026. Review submission remains pending completion of listing fields, screenshots, privacy, pricing, and review contact details. Do not describe this app as available on the App Store until Apple approves and releases it.
+Signed archive and App Store distribution export succeeded on September 5, 2026. All 13 core tests passed. App Store Connect record 6808996711 was created and version 0.2.1 (3) uploaded successfully on September 5, 2026. The iPhone 6.9-inch and iPad 13-inch screenshots were uploaded and the free price schedule was saved. Review submission remains pending content/age/privacy/encryption declarations, worldwide availability confirmation, review contact details, and final build selection. App Information subtitle/categories were entered but their final save was blocked along with a content-rights declaration. Do not describe this app as available on the App Store until Apple approves and releases it.
 
 ## Prepared artifacts
 
