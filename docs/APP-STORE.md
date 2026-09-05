@@ -67,19 +67,20 @@ The extension does not request Full Access (RequestsOpenAccess=false). The app w
 
 ## Submission status
 
-Version **0.3.1 (10)** is prepared to replace the pending submission below. Its signed archive is `build/keyboard-interactions-app-store/Ortholinear.xcarchive`.
+Version **0.3.1 (10)** was submitted to App Review on September 6, 2026. App Store Connect confirms **Waiting for Review** and **1 Item Submitted**. Automatic release after approval is enabled.
 
+The update adds stable pressed-key feedback, keeps 123 / ABC at the far left, and supports holding/sliding from 123 to type a symbol and return to letters. The description and review notes include these interactions. The previous 0.3.0 (9) submission was withdrawn and replaced.
 
-Version **0.3.0 (9)** was submitted to App Review on September 5, 2026. App Store Connect confirms **Waiting for Review** and **1 Item Submitted**. Automatic release after approval is enabled.
+The signed archive is installed on the paired iPhone 15 Pro, iOS 26.5; CoreDevice reports version 0.3.1 and bundle version 10. Remote launch was declined because the phone was locked. Simulator preview and installed-extension interaction checks pass as detailed in [VERIFICATION.md](VERIFICATION.md).
 
-The selected build moves Delete after M / Ю, removes the Ukrainian apostrophe key, and adds configurable automatic punctuation spacing. Free pricing, availability in 175 regions, age/content declarations, Data Not Collected privacy declaration, and review contact details are saved. iPhone 6.9-inch and iPad 13-inch screenshots show the final build. The app is not yet publicly available; Apple must approve it first.
+Free pricing, availability in 175 regions, age/content declarations, Data Not Collected privacy declaration, existing iPhone/iPad screenshots, and review contact details are retained. The app is not yet publicly available; Apple must approve the submission first.
 
-Submission ID: `7d0aaaec-0282-4972-8d84-880baf12fca8`. App record: `6808996711`.
+Submission ID: `708889e0-8ca1-48e5-a4ac-ed124d76cf71`. App record: `6808996711`. Build ID: `efc45e30-762a-4aa6-9ffd-cf845632e6e8`.
 
 ## Prepared artifacts
 
-- `build/final-keyboard-app-store/Ortholinear.xcarchive`: signed Release archive.
+- `build/keyboard-interactions-app-store/Ortholinear.xcarchive`: signed Release archive for 0.3.1 (10).
 - [iPhone 6.9-inch screenshot](screenshots/app-store/iphone-home.png): 1320 × 2868.
 - [iPad 13-inch screenshot](screenshots/app-store/ipad-home.png): 2064 × 2752.
 
-The screenshots show the current Release build on fresh simulators. Build artifacts remain local and are ignored by Git. The owner approved free pricing and the app-record User Access setting. The release is waiting for review. App Store Connect: https://appstoreconnect.apple.com/apps/6808996711/distribution/ios/version/inflight
+The screenshots show the default letter layout, which is retained in 0.3.1. Build artifacts remain local and are ignored by Git. The owner approved free pricing and the app-record User Access setting. The release is waiting for review. App Store Connect: https://appstoreconnect.apple.com/apps/6808996711/distribution/ios/version/inflight
