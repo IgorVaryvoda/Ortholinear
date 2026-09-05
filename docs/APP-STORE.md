@@ -57,3 +57,12 @@ The extension does not request Full Access (RequestsOpenAccess=false). The conta
 ## Submission status
 
 Signed archive and App Store distribution export succeeded on September 5, 2026. All 13 core tests passed. Publication to App Store Connect is pending app-record creation and completion of required listing fields. Do not describe this app as available on the App Store until Apple approves and releases it.
+
+## Prepared artifacts
+
+- `build/app-store/Ortholinear.xcarchive`: signed Release archive.
+- `build/app-store/Ortholinear.ipa`: App Store distribution export.
+- [iPhone 6.9-inch screenshot](screenshots/app-store/iphone-home.png): 1320 × 2868.
+- [iPad 13-inch screenshot](screenshots/app-store/ipad-home.png): 2064 × 2752.
+
+The screenshots show the current Release build on fresh simulators. Build artifacts remain local and are ignored by Git. App Store pricing is awaiting the owner’s choice. App-record creation is awaiting approval for Apple’s available User Access setting.
