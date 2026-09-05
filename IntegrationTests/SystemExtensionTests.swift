@@ -2,29 +2,6 @@ import XCTest
 
 /// Run separately on a disposable simulator; enables Ortholinear in iOS Settings.
 final class SystemExtensionTests: XCTestCase {
-    /// Seed voice-transcript.json in the simulator App Group with the documented fixture before running this test.
-    @MainActor
-    func testVoiceHandoffInsertsOnceOnExplicitTap() throws {
-        let app = XCUIApplication()
-        app.launch()
-        XCUIDevice.shared.orientation = .portrait
-        tapOnMainPage("system-test", in: app)
-        let editor = app.textViews["system-editor"]
-        editor.tap()
-        let surface = app.otherElements["system-keyboard-surface"]
-        let insert = surface.buttons["key-Insert dictation"]
-        guard insert.waitForExistence(timeout: 5) else { throw XCTSkip("Requires a fresh shared transcript fixture") }
-        XCTAssertEqual(editor.value as? String, "")
-        insert.tap()
-        XCTAssertEqual(editor.value as? String, "Привіт, Ґанно! Voice input.")
-        XCTAssertTrue(surface.buttons["key-Voice input"].waitForExistence(timeout: 5))
-        app.buttons["Done"].tap()
-        tapOnMainPage("system-test", in: app)
-        app.textViews["system-editor"].tap()
-        XCTAssertFalse(surface.buttons["key-Insert dictation"].exists)
-        XCTAssertTrue(surface.buttons["key-Voice input"].exists)
-        app.buttons["Done"].tap()
-    }
     @MainActor
     private func tapOnMainPage(_ identifier: String, in app: XCUIApplication) {
         let button = app.buttons[identifier]
@@ -97,7 +74,9 @@ final class SystemExtensionTests: XCTestCase {
         XCTAssertGreaterThan(surface.buttons["key-Delete"].frame.width, 70)
         XCTAssertEqual(surface.buttons["key-Shift"].frame.minY, surface.buttons["key-я"].frame.minY, accuracy: 1)
         XCTAssertEqual(surface.buttons["key-Shift"].frame.maxX, surface.buttons["key-я"].frame.minX, accuracy: 1)
-        XCTAssertGreaterThan(surface.buttons["key-я"].frame.width, ukrainianKey.frame.width)
+        XCTAssertEqual(surface.buttons["key-Delete"].frame.minY, surface.buttons["key-ю"].frame.minY, accuracy: 1)
+        XCTAssertEqual(surface.buttons["key-Delete"].frame.minX, surface.buttons["key-ю"].frame.maxX, accuracy: 1)
+        XCTAssertFalse(surface.buttons["key-'"].exists)
         ukrainianKey.tap()
         surface.buttons["key-і"].tap()
         surface.buttons["key-Switch to English"].tap()
@@ -121,13 +100,6 @@ final class SystemExtensionTests: XCTestCase {
         app.buttons["Done"].tap()
         tapOnMainPage("customize-keyboard", in: app)
         app.buttons["preset-bigLetters"].tap()
-        app.buttons["Done"].tap()
-        tapOnMainPage("system-test", in: app)
-        app.textViews["system-editor"].tap()
-        let mic = surface.buttons["key-Voice input"]
-        XCTAssertTrue(mic.waitForExistence(timeout: 5), app.debugDescription)
-        mic.tap()
-        XCTAssertTrue(app.navigationBars["Voice input"].waitForExistence(timeout: 8), app.debugDescription)
         app.buttons["Done"].tap()
     }
 }

@@ -2,18 +2,6 @@ import XCTest
 
 final class KeyboardUITests: XCTestCase {
     @MainActor
-    func testVoiceKeyOpensBYOKRecorder() throws {
-        let app = launchApp()
-        XCTAssertFalse(app.buttons["key-Dismiss keyboard"].exists)
-        app.buttons["key-Voice input"].tap()
-        XCTAssertTrue(app.navigationBars["Voice input"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.secureTextFields["groq-api-key"].exists)
-        XCTAssertFalse(app.buttons["save-groq-key"].isEnabled)
-        XCTAssertTrue(app.buttons["start-recording"].exists)
-        app.buttons["Done"].tap()
-        XCTAssertTrue(app.buttons["key-Voice input"].waitForExistence(timeout: 5))
-    }
-    @MainActor
     private func tapMainButton(_ id: String, in app: XCUIApplication) {
         let button = app.buttons[id]
         for _ in 0..<8 {
@@ -117,7 +105,9 @@ final class KeyboardUITests: XCTestCase {
             CGVector(dx: (first.minX + last.maxX) / 2 - 26, dy: first.minY + 17))
         app.buttons["key-."].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             .press(forDuration: 0.6, thenDragTo: target)
-        XCTAssertEqual(editor.value as? String, "АБ…")
+        XCTAssertEqual(editor.value as? String, "АБ… ")
+        app.buttons["key-Space"].tap()
+        XCTAssertEqual(editor.value as? String, "АБ… ")
     }
 
     @MainActor
@@ -132,7 +122,10 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertEqual(app.buttons["key-ф"].frame.height, 75, accuracy: 1)
         XCTAssertEqual(app.buttons["key-Space"].frame.height, 59, accuracy: 1)
         XCTAssertGreaterThan(app.buttons["key-Return"].frame.width, 70)
-        XCTAssertGreaterThan(app.buttons["key-Delete"].frame.width, 70)
+        XCTAssertGreaterThan(app.buttons["key-Delete"].frame.width, 2 * app.buttons["key-ю"].frame.width)
+        XCTAssertEqual(app.buttons["key-Delete"].frame.height, app.buttons["key-ю"].frame.height, accuracy: 1)
+        XCTAssertEqual(app.buttons["key-Delete"].frame.minY, app.buttons["key-ю"].frame.minY, accuracy: 1)
+        XCTAssertEqual(app.buttons["key-Delete"].frame.minX, app.buttons["key-ю"].frame.maxX, accuracy: 1)
         XCTAssertEqual(app.buttons["key-Shift"].frame.minY, app.buttons["key-я"].frame.minY, accuracy: 1)
         XCTAssertEqual(app.buttons["key-Shift"].frame.maxX, app.buttons["key-я"].frame.minX, accuracy: 1)
 
@@ -151,10 +144,14 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertEqual(app.switches["show-apostrophe"].value as? String, "0")
         app.buttons["Done"].tap()
         XCTAssertFalse(app.buttons["key-'"].exists)
-        XCTAssertGreaterThan(app.buttons["key-я"].frame.width, wider)
+        XCTAssertEqual(app.buttons["key-я"].frame.width, wider, accuracy: 1)
+        app.buttons["key-Switch to English"].tap()
+        XCTAssertFalse(app.buttons["key-'"].exists)
         tapMainButton("customize-keyboard", in: app)
         app.buttons["preset-bigLetters"].tap()
         app.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["key-'"].exists)
+        app.buttons["key-Switch to Українська"].tap()
     }
 
     @MainActor

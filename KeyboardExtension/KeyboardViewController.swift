@@ -1,12 +1,11 @@
 import UIKit
-import SwiftUI
 
 final class KeyboardViewController: UIInputViewController {
     private let keyboard = KeyboardView()
     private var heightConstraint: NSLayoutConstraint?
     private var inputState = InputState()
+    private var punctuationSpacing = PunctuationSpacing()
     private var lastKeyboardType: UIKeyboardType?
-    private var voiceHost: UIHostingController<VoiceKeyboardButton>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,21 +24,18 @@ final class KeyboardViewController: UIInputViewController {
         heightConstraint = height
         keyboard.globeButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         keyboard.onAction = { [weak self] in self?.handle($0) }
-        keyboard.onCursor = { [weak self] in self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0) }
+        keyboard.onCursor = { [weak self] in
+            self?.punctuationSpacing.reset()
+            self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0)
+        }
         keyboard.onDismiss = { [weak self] in self?.dismissKeyboard() }
         inputState.language = PreferenceStore.load().defaultLanguage
         keyboard.inputState = inputState
-        let host = UIHostingController(rootView: voiceButton())
-        host.view.backgroundColor = .clear
-        addChild(host)
-        keyboard.addSubview(host.view)
-        host.didMove(toParent: self)
-        keyboard.voiceOverlay = host.view
-        voiceHost = host
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        punctuationSpacing.reset()
         let preferences = PreferenceStore.load()
         if keyboard.preferences.defaultLanguage != preferences.defaultLanguage {
             inputState.language = preferences.defaultLanguage
@@ -48,7 +44,6 @@ final class KeyboardViewController: UIInputViewController {
         heightConstraint?.constant = preferences.keyboardHeight
         lastKeyboardType = nil
         synchronize()
-        refreshVoice()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -103,10 +98,10 @@ final class KeyboardViewController: UIInputViewController {
 
     private func handle(_ action: KeyAction) {
         switch action {
-        case .text(let value): textDocumentProxy.insertText(inputState.consume(value))
-        case .space: textDocumentProxy.insertText(" ")
-        case .backspace: textDocumentProxy.deleteBackward()
-        case .enter: textDocumentProxy.insertText("\n")
+        case .text(let value): insert(inputState.consume(value))
+        case .space: insert(" ")
+        case .backspace: punctuationSpacing.reset(); textDocumentProxy.deleteBackward()
+        case .enter: insert("\n")
         case .shift:
             if inputState.page == .letters { inputState.tapShift(at: Date.timeIntervalSinceReferenceDate) }
             else { inputState.page = inputState.page == .numbers ? .symbols : .numbers }
@@ -116,30 +111,18 @@ final class KeyboardViewController: UIInputViewController {
         case .page: inputState.page = inputState.page == .letters ? .numbers : .letters
         case .globe: advanceToNextInputMode()
         case .dismiss: dismissKeyboard()
-        case .voice: insertDictation()
         }
         primaryLanguage = inputState.language.code
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
         keyboard.inputState = inputState
     }
 
-    private func voiceButton() -> VoiceKeyboardButton {
-        VoiceKeyboardButton(ready: VoiceTranscriptStore.pending() != nil) { [weak self] in self?.insertDictation() }
-    }
-    private func refreshVoice() {
-        keyboard.voiceReady = VoiceTranscriptStore.pending() != nil
-        voiceHost?.rootView = voiceButton()
-    }
-    private func insertDictation() {
-        guard let transcript = VoiceTranscriptStore.pending() else { refreshVoice(); return }
-        do {
-            try VoiceTranscriptStore.markConsumed(transcript)
-            textDocumentProxy.insertText(transcript.text)
-        } catch {
-            let alert = UIAlertController(title: "Could not insert dictation", message: "Please try again.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            present(alert, animated: true)
-        }
-        refreshVoice()
+    private func insert(_ value: String) {
+        // URL/email fields need literal punctuation, never automatic spaces.
+        let literalTypes: [UIKeyboardType] = [.URL, .emailAddress, .webSearch]
+        let enabled = keyboard.preferences.autoSpacePunctuation && !literalTypes.contains(textDocumentProxy.keyboardType ?? .default)
+        let edit = punctuationSpacing.edit(for: value, before: textDocumentProxy.documentContextBeforeInput, enabled: enabled)
+        if edit.deleteBackward { textDocumentProxy.deleteBackward() }
+        if !edit.text.isEmpty { textDocumentProxy.insertText(edit.text) }
     }
 }

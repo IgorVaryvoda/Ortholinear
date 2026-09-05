@@ -3,7 +3,6 @@ import UIKit
 
 extension Notification.Name {
     static let clearKeyboardPreview = Notification.Name("clearKeyboardPreview")
-    static let openVoiceInput = Notification.Name("openVoiceInput")
 }
 
 struct PreviewSurface: UIViewRepresentable {
@@ -17,6 +16,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     let keyboard = KeyboardView()
     private let placeholder = UILabel()
     private var state = InputState()
+    private var punctuationSpacing = PunctuationSpacing()
     private var height: NSLayoutConstraint!
 
     override init(frame: CGRect) {
@@ -57,6 +57,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         keyboard.onCursor = { [weak self] offset in
             guard let self, let selection = self.editor.selectedTextRange,
                   let position = self.editor.position(from: selection.start, offset: offset) else { return }
+            self.punctuationSpacing.reset()
             self.editor.selectedTextRange = self.editor.textRange(from: position, to: position)
         }
         NotificationCenter.default.addObserver(self, selector: #selector(clear), name: .clearKeyboardPreview, object: nil)
@@ -71,6 +72,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
 
     @objc private func clear() {
+        punctuationSpacing.reset()
         editor.text = ""
         placeholder.isHidden = false
     }
@@ -79,22 +81,28 @@ final class PreviewContainer: UIView, UITextViewDelegate {
 
     private func handle(_ action: KeyAction) {
         switch action {
-        case .text(let value): editor.insertText(state.consume(value))
-        case .space: editor.insertText(" ")
-        case .enter: editor.insertText("\n")
-        case .backspace: editor.deleteBackward()
+        case .text(let value): insert(state.consume(value))
+        case .space: insert(" ")
+        case .enter: insert("\n")
+        case .backspace: punctuationSpacing.reset(); editor.deleteBackward()
         case .shift:
             if state.page == .letters { state.tapShift(at: Date.timeIntervalSinceReferenceDate) }
             else { state.page = state.page == .numbers ? .symbols : .numbers }
         case .page: state.page = state.page == .letters ? .numbers : .letters
         case .language: state.language = state.language.next; state.page = .letters
         case .dismiss: editor.resignFirstResponder()
-        case .voice:
-            editor.resignFirstResponder()
-            NotificationCenter.default.post(name: .openVoiceInput, object: nil)
         default: break
         }
         placeholder.isHidden = !editor.text.isEmpty
         keyboard.inputState = state
+    }
+
+    private func insert(_ value: String) {
+        let selection = editor.selectedRange
+        if selection.length > 0 { punctuationSpacing.reset() }
+        let context = (editor.text as NSString).substring(to: selection.location)
+        let edit = punctuationSpacing.edit(for: value, before: context, enabled: keyboard.preferences.autoSpacePunctuation)
+        if edit.deleteBackward { editor.deleteBackward() }
+        if !edit.text.isEmpty { editor.insertText(edit.text) }
     }
 }

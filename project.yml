@@ -10,7 +10,7 @@ settings:
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: 2Z5ZVRKA23
     MARKETING_VERSION: "0.3.0"
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "9"
     ORTHOLINEAR_APP_GROUP: group.com.varyvoda.Ortholinear
     ENABLE_USER_SCRIPT_SANDBOXING: YES
 targets:
@@ -27,11 +27,7 @@ targets:
       path: App/Info.plist
       properties:
         UILaunchScreen: {}
-        NSMicrophoneUsageDescription: Record speech you choose to transcribe with Groq using your own API key.
         ITSAppUsesNonExemptEncryption: false
-        CFBundleURLTypes:
-          - CFBundleURLName: com.varyvoda.Ortholinear.voice
-            CFBundleURLSchemes: [ortholinear]
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         OrtholinearAppGroup: $(ORTHOLINEAR_APP_GROUP)

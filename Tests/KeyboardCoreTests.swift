@@ -15,7 +15,7 @@ final class KeyboardCoreTests: XCTestCase {
         XCTAssertFalse(letters.contains("ґ"))
         XCTAssertEqual(Key(action: .text("г")).alternatives, ["ґ"])
         XCTAssertEqual(letters.count, Set(letters).count)
-        XCTAssertTrue(letters.contains("'"))
+        XCTAssertFalse(letters.contains("'"))
         XCTAssertFalse(letters.contains("."))
         XCTAssertFalse(letters.contains(","))
     }
@@ -25,7 +25,7 @@ final class KeyboardCoreTests: XCTestCase {
             for page in [KeyboardPage.letters, .numbers, .symbols] {
                 var state = InputState(); state.language = language; state.page = page
                 let rows = KeyboardLayout.rows(state: state, needsGlobe: true, preferences: KeyboardPreset.original.preferences)
-                let expected = language == .ukrainian && page == .letters ? [12, 11, 12] : [10, 10, 10]
+                let expected = page == .letters ? (language == .ukrainian ? [12, 11, 12] : [10, 10, 11]) : [10, 10, 10]
                 XCTAssertEqual(rows.prefix(3).map(\.count), expected)
                 XCTAssertTrue(rows.last!.contains { $0.action == .globe })
             }
@@ -100,14 +100,14 @@ final class KeyboardCoreTests: XCTestCase {
     func testRemovedPunctuationGivesWidthToRemainingLetters() {
         var p = KeyboardPreferences()
         let normal = KeyboardGeometry.cells(width: 360, state: InputState(), preferences: p, needsGlobe: false)
-        XCTAssertEqual(normal.first { $0.key.action == .text("я") }!.hitFrame.width, 360 / 10.8, accuracy: 0.001)
+        XCTAssertEqual(normal.first { $0.key.action == .text("я") }!.hitFrame.width, 360 / 12.2, accuracy: 0.001)
         p.showApostrophe = false
         let lettersOnly = KeyboardGeometry.cells(width: 360, state: InputState(), preferences: p, needsGlobe: false)
-        XCTAssertEqual(lettersOnly.first { $0.key.action == .text("я") }!.hitFrame.width, 360 / 9.8, accuracy: 0.001)
+        XCTAssertEqual(lettersOnly.first { $0.key.action == .text("я") }!.hitFrame.width, 360 / 12.2, accuracy: 0.001)
         p.showPunctuation = true
         p.showApostrophe = true
         let originalKeys = KeyboardGeometry.cells(width: 360, state: InputState(), preferences: p, needsGlobe: false)
-        XCTAssertEqual(originalKeys.first { $0.key.action == .text("я") }!.hitFrame.width, 360 / 12.8, accuracy: 0.001)
+        XCTAssertEqual(originalKeys.first { $0.key.action == .text("я") }!.hitFrame.width, 360 / 14.2, accuracy: 0.001)
     }
 
     func testPunctuationChoicesPreserveAllLettersInBothLanguages() {
@@ -125,7 +125,7 @@ final class KeyboardCoreTests: XCTestCase {
                     XCTAssertEqual(Set(available.filter { $0.lowercased() != $0.uppercased() }), Set(alphabet.map(String.init)))
                     XCTAssertEqual(values.contains("."), punctuation)
                     XCTAssertEqual(values.contains(","), punctuation)
-                    XCTAssertEqual(values.contains("'"), apostrophe)
+                    XCTAssertEqual(values.contains("'"), apostrophe && language == .english)
                     XCTAssertEqual(Set(values).count, values.count)
                 }
             }
@@ -147,7 +147,6 @@ final class KeyboardCoreTests: XCTestCase {
         XCTAssertEqual(cells.last!.visualFrame.height, 66)
         XCTAssertEqual(cells[0].hitFrame.minY, 0)
         XCTAssertEqual(cells.last!.hitFrame.maxY, p.keyboardHeight)
-        XCTAssertTrue(cells.contains { $0.key.action == .voice })
         p.showHeader = true
         cells = KeyboardGeometry.cells(width: 390, state: InputState(), preferences: p, needsGlobe: false)
         XCTAssertEqual(cells[0].hitFrame.minY, 38)
@@ -201,11 +200,17 @@ final class KeyboardCoreTests: XCTestCase {
             XCTAssertEqual(shift.hitFrame.maxX, letter.hitFrame.minX, accuracy: 0.001)
             for action in [KeyAction.enter, .backspace] {
                 let cell = cells.first { $0.key.action == action }!
-                XCTAssertGreaterThan(cell.visualFrame.width, 70)
-                XCTAssertEqual(cell.visualFrame.height, 56)
+                XCTAssertGreaterThan(cell.visualFrame.width, 69)
+                XCTAssertEqual(cell.visualFrame.height, action == .backspace ? 72 : 56)
             }
+            let lastLetter = cells.first { $0.key.action == .text(language == .english ? "m" : "ю") }!
+            let delete = cells.first { $0.key.action == .backspace }!
+            XCTAssertEqual(delete.hitFrame.minY, lastLetter.hitFrame.minY)
+            XCTAssertEqual(delete.hitFrame.minX, lastLetter.hitFrame.maxX, accuracy: 0.001)
+            XCTAssertFalse(rows[3].contains { $0.action == .backspace })
             state.page = .numbers
             XCTAssertTrue(KeyboardLayout.rows(state: state, needsGlobe: false)[3].contains { $0.action == .shift })
+            XCTAssertTrue(KeyboardLayout.rows(state: state, needsGlobe: false)[3].contains { $0.action == .backspace })
         }
     }
 }

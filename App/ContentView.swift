@@ -10,7 +10,6 @@ struct ContentView: View {
     @State private var showGeometry = false
     @State private var showSetup = false
     @State private var showSystemTest = false
-    @State private var showVoice = false
     @State private var saveError: String?
 
     var body: some View {
@@ -78,12 +77,10 @@ struct ContentView: View {
                     Divider().padding(.vertical, 17)
                     detailRow("02", title: "Make the space yours.", subtitle: "Size letters and controls separately. Choose which punctuation earns a key.")
                     Divider().padding(.vertical, 17)
-                    detailRow("03", title: "Your words stay yours.", subtitle: "Typing stays on-device. Optional voice input sends recordings to Groq using your own API key.")
+                    detailRow("03", title: "Your words stay yours.", subtitle: "No network access, tracking, or Full Access. Your typing stays on your device.")
                 }
                 .padding(20).background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 14))
 
-                Button { showVoice = true } label: { Label("Voice input · Groq", systemImage: "mic.fill") }
-                    .accessibilityIdentifier("open-voice")
                 Button("Test the installed system keyboard") { showSystemTest = true }
                     .font(.system(size: 13, weight: .medium)).accessibilityIdentifier("system-test")
                 HStack(spacing: 20) {
@@ -102,17 +99,6 @@ struct ContentView: View {
         .sheet(isPresented: $showGeometry) { GeometrySettings(preferences: $preferences) }
         .sheet(isPresented: $showSetup) { SetupView() }
         .sheet(isPresented: $showSystemTest) { SystemKeyboardTest() }
-        .sheet(isPresented: $showVoice) { VoiceInputView() }
-        .onReceive(NotificationCenter.default.publisher(for: .openVoiceInput)) { _ in showVoice = true }
-        .onOpenURL { url in
-            if url.scheme == "ortholinear", url.host == "voice" {
-                let switchingSheet = showGeometry || showSetup || showSystemTest
-                showGeometry = false; showSetup = false; showSystemTest = false
-                if switchingSheet {
-                    Task { try? await Task.sleep(for: .milliseconds(400)); showVoice = true }
-                } else { showVoice = true }
-            }
-        }
         .onChange(of: preferences) { _, value in
             do { try PreferenceStore.save(value) }
             catch { saveError = "The preview was updated, but settings could not be shared with the extension. Check that both targets use the same App Group and signing team." }
@@ -169,7 +155,7 @@ struct GeometrySettings: View {
                 Section {
                     Toggle("Dot, comma and question mark", isOn: $preferences.showPunctuation)
                         .accessibilityIdentifier("show-punctuation")
-                    Toggle("Apostrophe", isOn: $preferences.showApostrophe)
+                    Toggle("English apostrophe", isOn: $preferences.showApostrophe)
                         .accessibilityIdentifier("show-apostrophe")
                 } header: { Text("On the letter rows") } footer: {
                     Text("Punctuation is always available under 123. Removing keys makes the remaining keys wider, with no empty spaces.")
@@ -196,7 +182,7 @@ struct GeometrySettings: View {
                             .accessibilityLabel("Return and Delete width")
                     }
                 } footer: {
-                    Text("Give these two keys more of the control row. Their height follows Control row height.")
+                    Text("Give Return and Delete more width. Delete follows letter-key height on the letter page; Return follows control-row height.")
                 }
                 Section("Spacing") {
                     slider("Column spacing", value: $preferences.columnSpacing, range: 0...8)
@@ -212,7 +198,13 @@ struct GeometrySettings: View {
                     Toggle("Show header strip", isOn: $preferences.showHeader)
                         .accessibilityIdentifier("show-header")
                 } footer: {
-                    Text("Hide the header to leave more room for letters. Voice input stays in the control row.")
+                    Text("Hide the header to leave more room for letters.")
+                }
+                Section("Typing") {
+                    Toggle("Space after punctuation", isOn: $preferences.autoSpacePunctuation)
+                        .accessibilityIdentifier("auto-space-punctuation")
+                    Text("Adds a space after . , ! ? : ; … . Apostrophes stay unchanged. Numbers such as 3.14 keep their punctuation together.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Starting language") {
                     Picker("Language", selection: $preferences.defaultLanguage) {
@@ -257,7 +249,7 @@ struct SetupView: View {
                     Label("Select Ortholinear", systemImage: "3.circle")
                     Label("In any text field, use the globe to switch to Ortholinear", systemImage: "4.circle")
                 } header: { Text("A one-time setup") } footer: {
-                    Text("Ortholinear does not request Full Access. Your keyboard can type and read your geometry settings without network access.")
+                    Text("Ortholinear does not request Full Access. Typing and geometry settings work without network access.")
                 }
                 Section {
                     Button("Open Settings") {
@@ -266,7 +258,7 @@ struct SetupView: View {
                 } footer: { Text("If Settings opens the app page, return to the main Settings list and follow the steps above.") }
                 Section("Where it works") {
                     Text("Use it in apps that allow third-party keyboards. iOS uses its own keyboard for passwords and phone-pad fields. Some apps disable third-party keyboards entirely.")
-                    Text("Typing is exact, without autocorrect or automatic capitalization. The microphone opens optional Groq voice input in Ortholinear.")
+                    Text("There is no autocorrect or automatic capitalization. You can turn automatic spacing after punctuation on or off in customization.")
                 }
             }
             .navigationTitle("Meet your new keyboard")

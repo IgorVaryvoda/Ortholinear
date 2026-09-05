@@ -7,26 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0481D40368ACECCCAC6A2EE8 /* PunctuationSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */; };
 		0FF64F2E44E0CF981D0F55F0 /* OrtholinearApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A444EABA05F1E4609B1364 /* OrtholinearApp.swift */; };
-		14133B0361F028531B7A1C9A /* GroqKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247C04B168A770722747E1E5 /* GroqKeyStore.swift */; };
 		14908B890B2894164D488C49 /* PreferenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F289822E78B8E86444E1DB /* PreferenceStore.swift */; };
 		23A0055C86092F4090020792 /* PreviewSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */; };
 		2822A5F7F1A1E90223FB7626 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF307C0E61A7F0F7CA21AD9 /* KeyboardViewController.swift */; };
 		33D803B70D2BB7CBD7C06303 /* KeyboardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB208E703422E526173E53E8 /* KeyboardUITests.swift */; };
 		37BFB95BF57A4B15CD74B46B /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18883B1E32D31C78BBBC5823 /* KeyboardView.swift */; };
-		52A4062B04ED0CB021F455F4 /* GroqTranscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2E80F7A13DFFCF5001C29E /* GroqTranscription.swift */; };
 		57BA8D1A393E327B0CBABB8B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 86C599F5F1C2F0DED98F1A14 /* PrivacyInfo.xcprivacy */; };
 		76E8A2096472863C92260E8A /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18883B1E32D31C78BBBC5823 /* KeyboardView.swift */; };
 		7BA9D990F92E94ACD2F48097 /* PreferenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F289822E78B8E86444E1DB /* PreferenceStore.swift */; };
-		86E59461F1B62EB2B6898C1C /* VoiceInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A94BA63B87E3BC56B303286C /* VoiceInputView.swift */; };
-		9513F41F9817E0EEB61B5940 /* VoiceTranscriptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9E44EA20111FFF153A1C10E /* VoiceTranscriptStore.swift */; };
-		9BAC968B6F222BA77E98FC87 /* VoiceKeyboardButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6443481C564610EC44BA62B /* VoiceKeyboardButton.swift */; };
-		A5F1D5FD70C989A5DA799B47 /* GroqTranscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2E80F7A13DFFCF5001C29E /* GroqTranscription.swift */; };
 		A704DC24D5E3DC27A5DD953F /* SystemExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9B5E28EDF58B56F10CA68B /* SystemExtensionTests.swift */; };
 		A7CE0545CAB819C8439DE97E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 16E80A036245B0B0E0A8485A /* Assets.xcassets */; };
 		BA6763BE01E9B5A62BA32F28 /* OrtholinearKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B091108B672BF6D4554C7520 /* OrtholinearKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C9C2786CBD707B44AC3D6E12 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BD329D52E74E3AFAF37B4B /* ContentView.swift */; };
-		CDDEDF70A21166E69360BDCB /* VoiceTranscriptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9E44EA20111FFF153A1C10E /* VoiceTranscriptStore.swift */; };
+		D8D3211AB99208B4172A998C /* PunctuationSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */; };
 		E705ACF8C2196888FAB3BF72 /* KeyboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D189638075168513F1DBAF7E /* KeyboardModel.swift */; };
 		EBF2EA0CCCC05DCD8C6468B4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 86C599F5F1C2F0DED98F1A14 /* PrivacyInfo.xcprivacy */; };
 		F271EDA8E76BFF526D990369 /* KeyboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D189638075168513F1DBAF7E /* KeyboardModel.swift */; };
@@ -75,7 +70,6 @@
 		18883B1E32D31C78BBBC5823 /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
 		1F5730C942AD0C8948989808 /* Ortholinear.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ortholinear.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		22E8A3DD0FDD73251A66BDAF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		247C04B168A770722747E1E5 /* GroqKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroqKeyStore.swift; sourceTree = "<group>"; };
 		32F289822E78B8E86444E1DB /* PreferenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceStore.swift; sourceTree = "<group>"; };
 		55D1DDF0D7CE8041A8624AE7 /* OrtholinearUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OrtholinearUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSurface.swift; sourceTree = "<group>"; };
@@ -84,15 +78,12 @@
 		86C599F5F1C2F0DED98F1A14 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		9D1EC3C852136D49D509329A /* Ortholinear.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ortholinear.entitlements; sourceTree = "<group>"; };
 		A816BC4DB8557F655D3F8F36 /* OrtholinearSystemTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OrtholinearSystemTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A94BA63B87E3BC56B303286C /* VoiceInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInputView.swift; sourceTree = "<group>"; };
 		ACF307C0E61A7F0F7CA21AD9 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		B091108B672BF6D4554C7520 /* OrtholinearKeyboard.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OrtholinearKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		B6443481C564610EC44BA62B /* VoiceKeyboardButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceKeyboardButton.swift; sourceTree = "<group>"; };
-		B9E44EA20111FFF153A1C10E /* VoiceTranscriptStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranscriptStore.swift; sourceTree = "<group>"; };
+		D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PunctuationSpacing.swift; sourceTree = "<group>"; };
 		D189638075168513F1DBAF7E /* KeyboardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardModel.swift; sourceTree = "<group>"; };
 		D3243D3CB937E349465A4702 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D8BD329D52E74E3AFAF37B4B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		DE2E80F7A13DFFCF5001C29E /* GroqTranscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroqTranscription.swift; sourceTree = "<group>"; };
 		EF9B5E28EDF58B56F10CA68B /* SystemExtensionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemExtensionTests.swift; sourceTree = "<group>"; };
 		FB208E703422E526173E53E8 /* KeyboardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -130,12 +121,10 @@
 			isa = PBXGroup;
 			children = (
 				D8BD329D52E74E3AFAF37B4B /* ContentView.swift */,
-				247C04B168A770722747E1E5 /* GroqKeyStore.swift */,
 				D3243D3CB937E349465A4702 /* Info.plist */,
 				9D1EC3C852136D49D509329A /* Ortholinear.entitlements */,
 				64A444EABA05F1E4609B1364 /* OrtholinearApp.swift */,
 				5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */,
-				A94BA63B87E3BC56B303286C /* VoiceInputView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -145,7 +134,6 @@
 			children = (
 				18883B1E32D31C78BBBC5823 /* KeyboardView.swift */,
 				32F289822E78B8E86444E1DB /* PreferenceStore.swift */,
-				B9E44EA20111FFF153A1C10E /* VoiceTranscriptStore.swift */,
 			);
 			path = SharedUI;
 			sourceTree = "<group>";
@@ -156,7 +144,6 @@
 				22E8A3DD0FDD73251A66BDAF /* Info.plist */,
 				ACF307C0E61A7F0F7CA21AD9 /* KeyboardViewController.swift */,
 				60DEBA4281CE92140F0EF537 /* OrtholinearKeyboard.entitlements */,
-				B6443481C564610EC44BA62B /* VoiceKeyboardButton.swift */,
 			);
 			path = KeyboardExtension;
 			sourceTree = "<group>";
@@ -164,8 +151,8 @@
 		A7D09BB24BE312F494C200E7 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				DE2E80F7A13DFFCF5001C29E /* GroqTranscription.swift */,
 				D189638075168513F1DBAF7E /* KeyboardModel.swift */,
+				D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -354,15 +341,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				C9C2786CBD707B44AC3D6E12 /* ContentView.swift in Sources */,
-				14133B0361F028531B7A1C9A /* GroqKeyStore.swift in Sources */,
-				A5F1D5FD70C989A5DA799B47 /* GroqTranscription.swift in Sources */,
 				E705ACF8C2196888FAB3BF72 /* KeyboardModel.swift in Sources */,
 				76E8A2096472863C92260E8A /* KeyboardView.swift in Sources */,
 				0FF64F2E44E0CF981D0F55F0 /* OrtholinearApp.swift in Sources */,
 				14908B890B2894164D488C49 /* PreferenceStore.swift in Sources */,
 				23A0055C86092F4090020792 /* PreviewSurface.swift in Sources */,
-				86E59461F1B62EB2B6898C1C /* VoiceInputView.swift in Sources */,
-				CDDEDF70A21166E69360BDCB /* VoiceTranscriptStore.swift in Sources */,
+				0481D40368ACECCCAC6A2EE8 /* PunctuationSpacing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -378,13 +362,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				52A4062B04ED0CB021F455F4 /* GroqTranscription.swift in Sources */,
 				F271EDA8E76BFF526D990369 /* KeyboardModel.swift in Sources */,
 				37BFB95BF57A4B15CD74B46B /* KeyboardView.swift in Sources */,
 				2822A5F7F1A1E90223FB7626 /* KeyboardViewController.swift in Sources */,
 				7BA9D990F92E94ACD2F48097 /* PreferenceStore.swift in Sources */,
-				9BAC968B6F222BA77E98FC87 /* VoiceKeyboardButton.swift in Sources */,
-				9513F41F9817E0EEB61B5940 /* VoiceTranscriptStore.swift in Sources */,
+				D8D3211AB99208B4172A998C /* PunctuationSpacing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -480,7 +462,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 2Z5ZVRKA23;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -647,7 +629,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 2Z5ZVRKA23;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

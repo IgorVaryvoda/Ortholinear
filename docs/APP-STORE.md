@@ -5,7 +5,7 @@
 - Primary language: English (U.S.)
 - Bundle ID: com.varyvoda.Ortholinear
 - SKU: ortholinear-ios
-- Version: 0.3.0 (4)
+- Version: 0.3.0 (9)
 - Primary category: Utilities
 - Secondary category: Productivity
 - Support URL: https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md
@@ -16,7 +16,7 @@
 
 ## Promotional text
 
-Give your letters more room. A private Ukrainian and English keyboard with straight rows, adjustable key sizes, and no Full Access requirement.
+Bigger letters, straight rows, and adjustable geometry. Ukrainian + English, with no tracking or Full Access requirement.
 
 ## Description
 
@@ -27,7 +27,9 @@ Ortholinear is a Ukrainian and English keyboard for iPhone and iPad. Straight ro
 MAKE THE SPACE YOURS
 • Start with Big letters, Balanced, or Original grid.
 • Adjust letter size, key height, control-row height, and spacing.
-• Give Return and Delete more room.
+• Give Return and Delete more room, with Delete immediately after M / Ю.
+• Keep Ukrainian letters free of an apostrophe key.
+• Add a space after punctuation automatically, or turn it off.
 • Choose Shift placement and optional punctuation keys.
 • Extend touch targets into the gaps between keys.
 
@@ -39,10 +41,7 @@ UKRAINIAN + ENGLISH
 • Double-tap Shift for caps lock and hold Delete to repeat.
 
 YOUR WORDS STAY YOURS
-No Full Access. No analytics, ads, app accounts, or typed-text collection. Typing and settings stay on your device. Ortholinear types exactly what you tap, without autocorrect or predictions.
-
-OPTIONAL VOICE INPUT
-Use your own Groq API key with Whisper Turbo. Tap the microphone to open Ortholinear, record, and review the transcription. Choose Use in keyboard, return to your other app, and tap Insert dictation. Audio goes directly to Groq; usage is billed to your Groq account. Your key stays in the app's Keychain. Groq's data controls govern retention. Voice input is optional; all keyboard features work without a key.
+Typing works without Full Access. No analytics, ads, app accounts, or typed-text collection. Typing and settings stay on your device. Ortholinear types exactly what you tap, without autocorrect or predictions.
 
 TRY IT BEFORE ENABLING
 Use the interactive keyboard preview inside the app, customize your layout, then follow the setup guide to enable Ortholinear in iOS Settings.
@@ -55,18 +54,16 @@ Open source under the MIT license.
 
 No account or sign-in is required. Launch the containing app to use the interactive keyboard preview and customize geometry. To enable the system extension: Settings > General > Keyboard > Keyboards > Add New Keyboard > Ortholinear. Then select Ortholinear using the globe in a text field. The containing app includes “Test the installed system keyboard” with host text fields for review.
 
-The extension does not request Full Access (RequestsOpenAccess=false). The containing app writes geometry settings and explicitly shared dictation to its App Group; the extension reads them when reopened. The extension makes no network requests and typed context is never transmitted. For ґ, hold г; for Ґ, enable Shift and hold Г.
-
-Optional voice input uses Groq whisper-large-v3-turbo with a user-provided Groq API key. Tap the microphone to open the containing app, save a Groq key, grant microphone permission and record. Stop and transcribe sends only that recording to Groq. Review the result, choose Use in keyboard, return to the host app, and tap Insert dictation. No API key is bundled. Keyboard functionality is fully available without Groq. Recording and HTTPS requests occur only in the containing app. Groq account data controls govern retention.
+The extension does not request Full Access (RequestsOpenAccess=false). The app writes geometry and typing preferences into its App Group; the keyboard only reads them. No network requests, microphone recording, or typed-text collection. For ґ, hold г; for Ґ, enable Shift and hold Г. Delete follows M / Ю; Ukrainian has no letter-page apostrophe. Automatic punctuation spacing is enabled by default and configurable. URL and email fields use literal punctuation.
 
 ## Submission status
 
-Signed archive and App Store distribution export succeeded on September 5, 2026. All 13 core tests passed. App Store Connect record 6808996711 was created and version 0.2.1 (3) uploaded successfully on September 5, 2026. The iPhone 6.9-inch and iPad 13-inch screenshots were uploaded and the free price schedule was saved. Review submission remains pending content/age/privacy/encryption declarations, worldwide availability confirmation, review contact details, and final build selection. App Information subtitle/categories were entered but their final save was blocked along with a content-rights declaration. Do not describe this app as available on the App Store until Apple approves and releases it.
+App Store Connect record 6808996711 has version 0.3.0 prepared. Build 9 moves Delete after M / Ю, removes the Ukrainian apostrophe key, and adds configurable automatic punctuation spacing. The signed archive and App Store upload succeeded. Final build selection and review submission are in progress. Free pricing, availability in 175 regions, age/content/privacy declarations, and review contact details are saved. Do not describe the app as available until Apple approves and releases it.
 
 ## Prepared artifacts
 
-- `build/app-store/Ortholinear.xcarchive`: signed Release archive.
-- `build/app-store/Ortholinear.ipa`: App Store distribution export.
+- `build/final-keyboard-app-store/Ortholinear.xcarchive`: signed Release archive.
+- `build/final-keyboard-app-store/Ortholinear.ipa`: App Store distribution export.
 - [iPhone 6.9-inch screenshot](screenshots/app-store/iphone-home.png): 1320 × 2868.
 - [iPad 13-inch screenshot](screenshots/app-store/ipad-home.png): 2064 × 2752.
 

@@ -44,7 +44,7 @@ struct InputState: Sendable {
 }
 
 enum KeyAction: Hashable, Sendable {
-    case text(String), shift, backspace, space, enter, language, page, globe, dismiss, voice
+    case text(String), shift, backspace, space, enter, language, page, globe, dismiss
 }
 
 struct Key: Sendable {
@@ -72,7 +72,7 @@ enum KeyboardLayout {
         case .letters:
             let apostrophe = preferences.showApostrophe ? "'" : ""
             strings = state.language == .ukrainian
-                ? ["йцукенгшщзхї", "фівапролджє", "ячсмитьбю" + (preferences.showPunctuation ? ".," : "") + apostrophe]
+                ? ["йцукенгшщзхї", "фівапролджє", "ячсмитьбю" + (preferences.showPunctuation ? ".," : "")]
                 : ["qwertyuiop", "asdfghjkl" + apostrophe, "zxcvbnm" + (preferences.showPunctuation ? ".,?" : "")]
         case .numbers:
             strings = ["1234567890", "-/:;()$&@\"", ".,?!'[]=+%"]
@@ -80,6 +80,10 @@ enum KeyboardLayout {
             strings = ["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'`:;₴…"]
         }
         var result = strings.map { $0.map { Key(action: .text(String($0))) } }
+        if state.page == .letters,
+           let lastLetter = result[2].firstIndex(where: { $0.action == .text(state.language == .english ? "m" : "ю") }) {
+            result[2].insert(Key(action: .backspace, weight: preferences.validated.actionKeyWidth), at: lastLetter + 1)
+        }
         var controls: [Key] = []
         if state.page == .letters && preferences.shiftPlacement == .beforeLastRow {
             result[2].insert(Key(action: .shift, weight: 0.8), at: 0)
@@ -89,9 +93,10 @@ enum KeyboardLayout {
         controls.append(Key(action: .page, weight: 1.35))
         if needsGlobe { controls.append(Key(action: .globe)) }
         controls += [Key(action: .language, weight: 1.25), Key(action: .space, weight: 3.8),
-                     Key(action: .enter, weight: preferences.validated.actionKeyWidth),
-                     Key(action: .backspace, weight: preferences.validated.actionKeyWidth)]
-        controls.append(Key(action: .voice, weight: 0.9))
+                     Key(action: .enter, weight: preferences.validated.actionKeyWidth)]
+        if state.page != .letters {
+            controls.append(Key(action: .backspace, weight: preferences.validated.actionKeyWidth))
+        }
         result.append(controls)
         return result
     }
@@ -111,10 +116,11 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var showPunctuation: Bool = false
     var showApostrophe: Bool = true
     var showHeader: Bool = false
+    var autoSpacePunctuation: Bool = true
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
-        case controlHeight, letterSize, actionKeyWidth, shiftPlacement, showPunctuation, showApostrophe, showHeader
+        case controlHeight, letterSize, actionKeyWidth, shiftPlacement, showPunctuation, showApostrophe, showHeader, autoSpacePunctuation
     }
 
     var validated: Self {
@@ -156,6 +162,7 @@ extension KeyboardPreferences {
         showPunctuation = try c.decodeIfPresent(Bool.self, forKey: .showPunctuation) ?? showPunctuation
         showApostrophe = try c.decodeIfPresent(Bool.self, forKey: .showApostrophe) ?? showApostrophe
         showHeader = try c.decodeIfPresent(Bool.self, forKey: .showHeader) ?? showHeader
+        autoSpacePunctuation = try c.decodeIfPresent(Bool.self, forKey: .autoSpacePunctuation) ?? autoSpacePunctuation
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated
