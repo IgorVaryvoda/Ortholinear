@@ -2,6 +2,18 @@ import XCTest
 
 final class KeyboardUITests: XCTestCase {
     @MainActor
+    func testVoiceKeyOpensBYOKRecorder() throws {
+        let app = launchApp()
+        XCTAssertFalse(app.buttons["key-Dismiss keyboard"].exists)
+        app.buttons["key-Voice input"].tap()
+        XCTAssertTrue(app.navigationBars["Voice input"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.secureTextFields["groq-api-key"].exists)
+        XCTAssertFalse(app.buttons["save-groq-key"].isEnabled)
+        XCTAssertTrue(app.buttons["start-recording"].exists)
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["key-Voice input"].waitForExistence(timeout: 5))
+    }
+    @MainActor
     private func tapMainButton(_ id: String, in app: XCUIApplication) {
         let button = app.buttons[id]
         for _ in 0..<8 {

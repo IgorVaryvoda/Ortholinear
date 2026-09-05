@@ -5,7 +5,7 @@
 - Primary language: English (U.S.)
 - Bundle ID: com.varyvoda.Ortholinear
 - SKU: ortholinear-ios
-- Version: 0.2.1 (3)
+- Version: 0.3.0 (4)
 - Primary category: Utilities
 - Secondary category: Productivity
 - Support URL: https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md
@@ -39,7 +39,10 @@ UKRAINIAN + ENGLISH
 • Double-tap Shift for caps lock and hold Delete to repeat.
 
 YOUR WORDS STAY YOURS
-No Full Access. No analytics, ads, accounts, or typed-text collection. Settings stay on your device. Ortholinear types exactly what you tap: autocorrect, predictions, and dictation are not included.
+No Full Access. No analytics, ads, app accounts, or typed-text collection. Typing and settings stay on your device. Ortholinear types exactly what you tap, without autocorrect or predictions.
+
+OPTIONAL VOICE INPUT
+Use your own Groq API key with Whisper Turbo. Tap the microphone to open Ortholinear, record, and review the transcription. Choose Use in keyboard, return to your other app, and tap Insert dictation. Audio goes directly to Groq; usage is billed to your Groq account. Your key stays in the app's Keychain. Groq's data controls govern retention. Voice input is optional; all keyboard features work without a key.
 
 TRY IT BEFORE ENABLING
 Use the interactive keyboard preview inside the app, customize your layout, then follow the setup guide to enable Ortholinear in iOS Settings.
@@ -52,7 +55,9 @@ Open source under the MIT license.
 
 No account or sign-in is required. Launch the containing app to use the interactive keyboard preview and customize geometry. To enable the system extension: Settings > General > Keyboard > Keyboards > Add New Keyboard > Ortholinear. Then select Ortholinear using the globe in a text field. The containing app includes “Test the installed system keyboard” with host text fields for review.
 
-The extension does not request Full Access (RequestsOpenAccess=false). The containing app writes geometry settings to its App Group; the extension reads them when reopened. There is no network access or collection of typed text. For ґ, hold г; for Ґ, enable Shift and hold Г.
+The extension does not request Full Access (RequestsOpenAccess=false). The containing app writes geometry settings and explicitly shared dictation to its App Group; the extension reads them when reopened. The extension makes no network requests and typed context is never transmitted. For ґ, hold г; for Ґ, enable Shift and hold Г.
+
+Optional voice input uses Groq whisper-large-v3-turbo with a user-provided Groq API key. Tap the microphone to open the containing app, save a Groq key, grant microphone permission and record. Stop and transcribe sends only that recording to Groq. Review the result, choose Use in keyboard, return to the host app, and tap Insert dictation. No API key is bundled. Keyboard functionality is fully available without Groq. Recording and HTTPS requests occur only in the containing app. Groq account data controls govern retention.
 
 ## Submission status
 

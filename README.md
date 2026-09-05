@@ -28,7 +28,7 @@ The checked-in Xcode project is ready to open. `project.yml` is the source for r
 xcodegen generate
 ```
 
-## V0.2 behavior
+## V0.3 behavior
 
 - Ukrainian and English with equal-width letters within each row, including the complete Ukrainian alphabet and optional apostrophe.
 - Tap г for г; hold it for ґ. With Shift, hold Г for Ґ. There is no separate ґ key.
@@ -36,6 +36,7 @@ xcodegen generate
 - Shift sits immediately before Я / Z on the third letter row. Its position is configurable.
 - Substantial Return and Delete keys: 56 pt tall by default, with a dedicated width setting.
 - Big letters, Balanced, and Original grid presets; optional letter-page punctuation and header.
+- Microphone replaces the control-row hide key. Optional Groq Whisper Turbo dictation uses your own API key, saved in the app's Keychain. Record in Ortholinear, review, choose Use in keyboard, then return and tap Insert dictation. A transcript expires for insertion after ten minutes and can be inserted once. iOS prevents extensions from recording, so the containing app handles microphone access and HTTPS requests.
 - UA / EN toggle, one-shot shift, double-tap caps lock.
 - Backspace deletes immediately; hold for 420 ms to repeat every 75 ms.
 - Space, return, two number/symbol pages, keyboard dismissal.
@@ -57,7 +58,7 @@ Other controls occupy a fourth row. Character touch cells have equal widths with
 
 ## Privacy and shared settings
 
-`RequestsOpenAccess` is **false**. There are no networking APIs, analytics SDKs, logging of typed text, dictionaries, or prediction services. Test-drive text lives only in memory. Only geometry and the starting language are persisted.
+`RequestsOpenAccess` is **false**. The extension makes no network requests. The containing app sends recordings to Groq only for optional voice transcription. There are no analytics SDKs, logging of typed text, dictionaries, or prediction services. Test-drive text lives only in memory. Geometry, starting language, the Keychain API key, and an explicitly shared pending transcript are stored locally. See [privacy details](PRIVACY.md) for storage and Groq retention.
 
 The containing app atomically writes `geometry.json` into the App Group. The extension only reads it, on appearance. Apple explicitly permits [read-only access to the containing app's shared container without Full Access](https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard). This is why settings work without giving the keyboard network access. A missing or malformed file falls back to validated defaults.
 

@@ -1,10 +1,12 @@
 import UIKit
+import SwiftUI
 
 final class KeyboardViewController: UIInputViewController {
     private let keyboard = KeyboardView()
     private var heightConstraint: NSLayoutConstraint?
     private var inputState = InputState()
     private var lastKeyboardType: UIKeyboardType?
+    private var voiceHost: UIHostingController<VoiceKeyboardButton>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,6 +29,13 @@ final class KeyboardViewController: UIInputViewController {
         keyboard.onDismiss = { [weak self] in self?.dismissKeyboard() }
         inputState.language = PreferenceStore.load().defaultLanguage
         keyboard.inputState = inputState
+        let host = UIHostingController(rootView: voiceButton())
+        host.view.backgroundColor = .clear
+        addChild(host)
+        keyboard.addSubview(host.view)
+        host.didMove(toParent: self)
+        keyboard.voiceOverlay = host.view
+        voiceHost = host
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -39,6 +48,7 @@ final class KeyboardViewController: UIInputViewController {
         heightConstraint?.constant = preferences.keyboardHeight
         lastKeyboardType = nil
         synchronize()
+        refreshVoice()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -106,9 +116,30 @@ final class KeyboardViewController: UIInputViewController {
         case .page: inputState.page = inputState.page == .letters ? .numbers : .letters
         case .globe: advanceToNextInputMode()
         case .dismiss: dismissKeyboard()
+        case .voice: insertDictation()
         }
         primaryLanguage = inputState.language.code
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
         keyboard.inputState = inputState
+    }
+
+    private func voiceButton() -> VoiceKeyboardButton {
+        VoiceKeyboardButton(ready: VoiceTranscriptStore.pending() != nil) { [weak self] in self?.insertDictation() }
+    }
+    private func refreshVoice() {
+        keyboard.voiceReady = VoiceTranscriptStore.pending() != nil
+        voiceHost?.rootView = voiceButton()
+    }
+    private func insertDictation() {
+        guard let transcript = VoiceTranscriptStore.pending() else { refreshVoice(); return }
+        do {
+            try VoiceTranscriptStore.markConsumed(transcript)
+            textDocumentProxy.insertText(transcript.text)
+        } catch {
+            let alert = UIAlertController(title: "Could not insert dictation", message: "Please try again.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+        }
+        refreshVoice()
     }
 }

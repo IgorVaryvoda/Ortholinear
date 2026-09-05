@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var showGeometry = false
     @State private var showSetup = false
     @State private var showSystemTest = false
+    @State private var showVoice = false
     @State private var saveError: String?
 
     var body: some View {
@@ -37,7 +38,7 @@ struct ContentView: View {
                 }
 
                 HStack(spacing: 8) {
-                    Label("On-device", systemImage: "lock.shield")
+                    Label("Private typing", systemImage: "lock.shield")
                     Text("·")
                     Text("No tracking")
                     Text("·")
@@ -77,10 +78,12 @@ struct ContentView: View {
                     Divider().padding(.vertical, 17)
                     detailRow("02", title: "Make the space yours.", subtitle: "Size letters and controls separately. Choose which punctuation earns a key.")
                     Divider().padding(.vertical, 17)
-                    detailRow("03", title: "Your words stay yours.", subtitle: "No Full Access. No network requests. Nothing you type is stored by Ortholinear.")
+                    detailRow("03", title: "Your words stay yours.", subtitle: "Typing stays on-device. Optional voice input sends recordings to Groq using your own API key.")
                 }
                 .padding(20).background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 14))
 
+                Button { showVoice = true } label: { Label("Voice input · Groq", systemImage: "mic.fill") }
+                    .accessibilityIdentifier("open-voice")
                 Button("Test the installed system keyboard") { showSystemTest = true }
                     .font(.system(size: 13, weight: .medium)).accessibilityIdentifier("system-test")
                 HStack(spacing: 20) {
@@ -88,7 +91,7 @@ struct ContentView: View {
                     Link("Support", destination: URL(string: "https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md")!)
                 }
                 .font(.system(size: 13, weight: .medium))
-                Text("BUILT FOR YOUR HANDS.  /  V0.2")
+                Text("BUILT FOR YOUR HANDS.  /  V0.3")
                     .font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(1.5)
                     .foregroundStyle(.tertiary).padding(.bottom, 20)
             }
@@ -99,6 +102,17 @@ struct ContentView: View {
         .sheet(isPresented: $showGeometry) { GeometrySettings(preferences: $preferences) }
         .sheet(isPresented: $showSetup) { SetupView() }
         .sheet(isPresented: $showSystemTest) { SystemKeyboardTest() }
+        .sheet(isPresented: $showVoice) { VoiceInputView() }
+        .onReceive(NotificationCenter.default.publisher(for: .openVoiceInput)) { _ in showVoice = true }
+        .onOpenURL { url in
+            if url.scheme == "ortholinear", url.host == "voice" {
+                let switchingSheet = showGeometry || showSetup || showSystemTest
+                showGeometry = false; showSetup = false; showSystemTest = false
+                if switchingSheet {
+                    Task { try? await Task.sleep(for: .milliseconds(400)); showVoice = true }
+                } else { showVoice = true }
+            }
+        }
         .onChange(of: preferences) { _, value in
             do { try PreferenceStore.save(value) }
             catch { saveError = "The preview was updated, but settings could not be shared with the extension. Check that both targets use the same App Group and signing team." }
@@ -198,7 +212,7 @@ struct GeometrySettings: View {
                     Toggle("Show header strip", isOn: $preferences.showHeader)
                         .accessibilityIdentifier("show-header")
                 } footer: {
-                    Text("Hide the header to leave more room for letters. The dismiss key moves to the control row.")
+                    Text("Hide the header to leave more room for letters. Voice input stays in the control row.")
                 }
                 Section("Starting language") {
                     Picker("Language", selection: $preferences.defaultLanguage) {
@@ -252,7 +266,7 @@ struct SetupView: View {
                 } footer: { Text("If Settings opens the app page, return to the main Settings list and follow the steps above.") }
                 Section("Where it works") {
                     Text("Use it in apps that allow third-party keyboards. iOS uses its own keyboard for passwords and phone-pad fields. Some apps disable third-party keyboards entirely.")
-                    Text("This first version types exactly what you tap. Autocorrect, suggestions, automatic capitalization, and dictation are not included.")
+                    Text("Typing is exact, without autocorrect or automatic capitalization. The microphone opens optional Groq voice input in Ortholinear.")
                 }
             }
             .navigationTitle("Meet your new keyboard")

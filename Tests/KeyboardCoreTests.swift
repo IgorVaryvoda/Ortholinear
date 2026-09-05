@@ -147,7 +147,7 @@ final class KeyboardCoreTests: XCTestCase {
         XCTAssertEqual(cells.last!.visualFrame.height, 66)
         XCTAssertEqual(cells[0].hitFrame.minY, 0)
         XCTAssertEqual(cells.last!.hitFrame.maxY, p.keyboardHeight)
-        XCTAssertTrue(cells.contains { $0.key.action == .dismiss })
+        XCTAssertTrue(cells.contains { $0.key.action == .voice })
         p.showHeader = true
         cells = KeyboardGeometry.cells(width: 390, state: InputState(), preferences: p, needsGlobe: false)
         XCTAssertEqual(cells[0].hitFrame.minY, 38)

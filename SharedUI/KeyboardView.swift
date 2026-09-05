@@ -17,6 +17,8 @@ final class KeyboardView: UIControl {
     var onAction: ((KeyAction) -> Void)?
     var onCursor: ((Int) -> Void)?
     var onDismiss: (() -> Void)?
+    var voiceOverlay: UIView? { didSet { setNeedsLayout() } }
+    var voiceReady = false { didSet { refresh() } }
     let globeButton = UIButton(type: .custom)
     private let dismissButton = UIButton(type: .custom)
     private(set) var cells: [KeyCell] = []
@@ -69,6 +71,7 @@ final class KeyboardView: UIControl {
         cells = newCells
         globeButton.isHidden = !needsGlobe
         globeButton.frame = cells.first(where: { $0.key.action == .globe })?.hitFrame ?? .zero
+        voiceOverlay?.frame = cells.first(where: { $0.key.action == .voice })?.hitFrame ?? .zero
         dismissButton.frame = CGRect(x: bounds.width - 44, y: 0, width: 44, height: 38)
         dismissButton.isHidden = !preferences.showHeader || popup != nil
         rebuildAccessibility()
@@ -104,6 +107,7 @@ final class KeyboardView: UIControl {
         case .page: return inputState.page == .letters ? "123" : "ABC"
         case .globe: return ""
         case .dismiss: return "⌄"
+        case .voice: return ""
         }
     }
 
@@ -116,12 +120,13 @@ final class KeyboardView: UIControl {
         case .language: return "Switch to \(inputState.language.next.title)"
         case .page: return inputState.page == .letters ? "Numbers" : "Letters"
         case .dismiss: return "Dismiss keyboard"
+        case .voice: return voiceReady ? "Insert dictation" : "Voice input"
         default: return title(action)
         }
     }
 
     private func rebuildAccessibility() {
-        let accessibleCells = cells.filter { $0.key.action != .globe }
+        let accessibleCells = cells.filter { $0.key.action != .globe && !($0.key.action == .voice && voiceOverlay != nil) }
         if accessibleKeys.count != accessibleCells.count {
             accessibleKeys.forEach { $0.removeFromSuperview() }
             accessibleKeys = accessibleCells.map { _ in
@@ -154,6 +159,7 @@ final class KeyboardView: UIControl {
             return element
         }
         if needsGlobe { elements.append(globeButton) }
+        if let voiceOverlay { elements.append(voiceOverlay) }
         if preferences.showHeader { elements.append(dismissButton) }
         accessibilityElements = elements
     }
@@ -174,8 +180,9 @@ final class KeyboardView: UIControl {
             let fill: UIColor = active.contains(index) || selectedShift ? .systemTeal : (isText ? .secondarySystemGroupedBackground : .systemGray4)
             fill.setFill()
             UIBezierPath(roundedRect: cell.visualFrame, cornerRadius: 4).fill()
-            if cell.key.action == .dismiss {
-                let icon = UIImage(systemName: "keyboard.chevron.compact.down")?.withTintColor(.label, renderingMode: .alwaysOriginal)
+            if cell.key.action == .dismiss || cell.key.action == .voice {
+                let symbol = cell.key.action == .voice ? (voiceReady ? "text.badge.plus" : "mic.fill") : "keyboard.chevron.compact.down"
+                let icon = UIImage(systemName: symbol)?.withTintColor(voiceReady && cell.key.action == .voice ? .systemTeal : .label, renderingMode: .alwaysOriginal)
                 icon?.draw(in: CGRect(x: cell.visualFrame.midX - 11, y: cell.visualFrame.midY - 10, width: 22, height: 20))
                 continue
             }

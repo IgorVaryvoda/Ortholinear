@@ -44,7 +44,7 @@ struct InputState: Sendable {
 }
 
 enum KeyAction: Hashable, Sendable {
-    case text(String), shift, backspace, space, enter, language, page, globe, dismiss
+    case text(String), shift, backspace, space, enter, language, page, globe, dismiss, voice
 }
 
 struct Key: Sendable {
@@ -91,7 +91,7 @@ enum KeyboardLayout {
         controls += [Key(action: .language, weight: 1.25), Key(action: .space, weight: 3.8),
                      Key(action: .enter, weight: preferences.validated.actionKeyWidth),
                      Key(action: .backspace, weight: preferences.validated.actionKeyWidth)]
-        if !preferences.showHeader { controls.append(Key(action: .dismiss, weight: 0.9)) }
+        controls.append(Key(action: .voice, weight: 0.9))
         result.append(controls)
         return result
     }

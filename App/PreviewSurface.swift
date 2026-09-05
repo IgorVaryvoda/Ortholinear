@@ -3,6 +3,7 @@ import UIKit
 
 extension Notification.Name {
     static let clearKeyboardPreview = Notification.Name("clearKeyboardPreview")
+    static let openVoiceInput = Notification.Name("openVoiceInput")
 }
 
 struct PreviewSurface: UIViewRepresentable {
@@ -88,6 +89,9 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         case .page: state.page = state.page == .letters ? .numbers : .letters
         case .language: state.language = state.language.next; state.page = .letters
         case .dismiss: editor.resignFirstResponder()
+        case .voice:
+            editor.resignFirstResponder()
+            NotificationCenter.default.post(name: .openVoiceInput, object: nil)
         default: break
         }
         placeholder.isHidden = !editor.text.isEmpty

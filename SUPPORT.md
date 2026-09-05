@@ -13,7 +13,9 @@ Need help with Ortholinear? [Open an issue](https://github.com/IgorVaryvoda/Orth
 - **Settings did not apply:** dismiss and reopen the keyboard after changing geometry in the app.
 - **Missing ґ:** hold г; use Shift and hold Г for Ґ.
 - **No keyboard in a password field:** iOS uses its own keyboard for secure and phone-pad fields. Some apps disallow custom keyboards.
-- **No autocorrect:** Ortholinear types exactly what you tap. Prediction, dictation, and autocorrect are not included.
+- **Voice input:** tap the microphone to open Ortholinear's recorder. Save your own Groq key, record, then Stop and transcribe. Review the text and tap Use in keyboard. Return to your other app and tap Insert dictation. If iOS cannot open the recorder, open Ortholinear → Voice input manually.
+- **Voice privacy:** audio goes directly to Groq; your key stays in the app's Keychain. See the privacy policy below for retention. Typed text stays on-device.
+- **No autocorrect:** Ortholinear types exactly what you tap. Prediction and autocorrect are not included.
 - **Move the cursor:** slide horizontally on the space key.
 
 When reporting a problem, include your iOS version, device model, app version, and steps to reproduce. Remove personal information from screenshots. Never post passwords or private text.

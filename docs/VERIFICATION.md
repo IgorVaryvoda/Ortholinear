@@ -1,4 +1,10 @@
-# V0.2.1 verification — September 5, 2026
+# V0.3 verification — September 5, 2026
+
+Groq BYOK voice input passed 16 core tests, all 7 preview UI tests, the installed-extension typing/voice-launch test, and the explicit-insertion handoff test. The handoff test seeds a synthetic Ukrainian/English transcript in the simulator App Group and verifies no automatic insertion, exact insertion on tap, and no repeat insertion after reopening. The mic opens the containing app through SwiftUI's public URL action without Full Access. The Release archive succeeds.
+
+No live Groq transcription has been run: no Groq API key was provided. Multipart formatting and response/error handling were tested offline. Microphone recording and Groq account authentication still require a device smoke test with a real key. The App Store submission notes explicitly describe BYOK and do not claim a bundled review credential.
+
+Current result bundles: `Voice-preview.xcresult`, `Voice-system-3.xcresult`, and `Voice-handoff.xcresult` in the ignored `build` directory. Earlier version results follow.
 
 The ґ update passed all 13 core tests, the two affected preview tests (typing/Shift and landscape), and the system-extension integration test. The latter verifies tap г, hold г → ґ, Shift + hold Г → Ґ, and subsequent lowercase input. The separate ґ key is absent in all presets; remaining second-row letters expand. Version 0.2.1 (3) was signed and successfully installed on Igor’s iPhone 15 Pro. Results are retained in `build/G-long-press.xcresult`; the Ukrainian screenshot below reflects this update.
 
