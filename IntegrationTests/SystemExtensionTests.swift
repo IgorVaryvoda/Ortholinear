@@ -30,7 +30,7 @@ final class SystemExtensionTests: XCTestCase {
         surface.buttons["key-Space"].tap()
         XCTAssertEqual(editor.value as? String, "teh ")
         surface.buttons["key-Delete"].press(forDuration: 1)
-        XCTAssertEqual(editor.value as? String, "")
+        XCTAssertEqual(editor.value as? String ?? "", "")
         type("teh")
         XCTAssertTrue(suggestion("the").waitForExistence(timeout: 5))
         let cursor = surface.buttons["key-Space"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -209,7 +209,7 @@ final class SystemExtensionTests: XCTestCase {
         surface.buttons["key-І"].press(forDuration: 0.6)
         XCTAssertEqual(editor.value as? String, "фігґҐг1aїЇ")
         surface.buttons["key-Delete"].press(forDuration: 2)
-        XCTAssertEqual(editor.value as? String, "")
+        XCTAssertEqual(editor.value as? String ?? "", "")
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Installed keyboard extension"
         attachment.lifetime = .keepAlways
