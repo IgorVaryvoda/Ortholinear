@@ -99,6 +99,7 @@ final class KeyboardCoreTests: XCTestCase {
     func testVisibleOnlyModeLeavesGapsAndNoTouchesOutside() {
         var p = KeyboardPreset.original.preferences
         p.fillGaps = false
+        p.suggestionsEnabled = false
         let cells = KeyboardGeometry.cells(width: 360, state: InputState(), preferences: p, needsGlobe: false)
         XCTAssertNil(KeyboardGeometry.hit(at: CGPoint(x: 30, y: 60), cells: cells))
         XCTAssertNotNil(KeyboardGeometry.hit(at: CGPoint(x: 15, y: 60), cells: cells))
@@ -188,11 +189,11 @@ final class KeyboardCoreTests: XCTestCase {
         var cells = KeyboardGeometry.cells(width: 390, state: InputState(), preferences: p, needsGlobe: false)
         XCTAssertEqual(cells[0].visualFrame.height, 72)
         XCTAssertEqual(cells.last!.visualFrame.height, 66)
-        XCTAssertEqual(cells[0].hitFrame.minY, 0)
+        XCTAssertEqual(cells[0].hitFrame.minY, 44)
         XCTAssertEqual(cells.last!.hitFrame.maxY, p.keyboardHeight)
         p.showHeader = true
         cells = KeyboardGeometry.cells(width: 390, state: InputState(), preferences: p, needsGlobe: false)
-        XCTAssertEqual(cells[0].hitFrame.minY, 38)
+        XCTAssertEqual(cells[0].hitFrame.minY, 82)
         XCTAssertEqual(p.keyboardHeight, originalHeight + 10 + 38)
         XCTAssertFalse(cells.contains { $0.key.action == .dismiss })
     }

@@ -2,6 +2,75 @@ import XCTest
 
 final class KeyboardUITests: XCTestCase {
     @MainActor
+    func testSuggestionOnlyTypingTeachingAndSettings() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-suggestion-ui-tests"]
+        app.launch()
+        XCUIDevice.shared.orientation = .portrait
+        app.buttons["clear-preview"].tap()
+        if app.buttons["key-Switch to English"].exists { app.buttons["key-Switch to English"].tap() }
+        let editor = app.textViews["preview-editor"]
+        func type(_ word: String) { for letter in word { app.buttons["key-\(letter)"].tap() } }
+        func suggestion(_ word: String) -> XCUIElement { app.buttons.matching(NSPredicate(format: "label == %@", "Use \(word)")).firstMatch }
+        type("teh")
+        XCTAssertTrue(suggestion("the").waitForExistence(timeout: 5), app.debugDescription)
+        app.buttons["key-Space"].tap()
+        XCTAssertEqual(editor.value as? String, "teh ", "Space must never accept a correction")
+        app.buttons["clear-preview"].tap()
+        type("teh")
+        XCTAssertTrue(suggestion("the").waitForExistence(timeout: 5))
+        suggestion("the").tap()
+        XCTAssertEqual(editor.value as? String, "the")
+        app.buttons["clear-preview"].tap()
+        type("hellp")
+        app.buttons["key-Space"].tap()
+        type("world")
+        editor.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 35, dy: 26)).doubleTap()
+        XCTAssertTrue(suggestion("hello").waitForExistence(timeout: 5), app.debugDescription)
+        suggestion("hello").tap()
+        XCTAssertEqual(editor.value as? String, "hello world", "Fix the selected earlier word without changing the rest")
+        app.buttons["clear-preview"].tap()
+        type("zorblify")
+        app.buttons["suggestion-options"].tap()
+        let teach = app.buttons["Teach “zorblify”"]
+        if teach.waitForExistence(timeout: 2) { teach.tap() }
+        else { app.buttons["Forget “zorblify”"].tap(); app.buttons["suggestion-options"].tap(); teach.tap() }
+        app.terminate(); app.launch()
+        if app.buttons["key-Switch to English"].exists { app.buttons["key-Switch to English"].tap() }
+        type("zorblif")
+        XCTAssertTrue(suggestion("zorblify").waitForExistence(timeout: 5), "Taught words must persist")
+        suggestion("zorblify").tap()
+        XCTAssertEqual(editor.value as? String, "zorblify ")
+        app.buttons["key-Delete"].tap()
+        app.buttons["suggestion-options"].tap()
+        XCTAssertTrue(app.buttons["Forget “zorblify”"].waitForExistence(timeout: 3))
+        app.buttons["Forget “zorblify”"].tap()
+        app.buttons["clear-preview"].tap()
+        type("zorblif")
+        XCTAssertFalse(suggestion("zorblify").waitForExistence(timeout: 1))
+        app.buttons["clear-preview"].tap()
+        app.buttons["key-Switch to Українська"].tap()
+        type("привт")
+        XCTAssertTrue(suggestion("привіт").waitForExistence(timeout: 5), app.debugDescription)
+        suggestion("привіт").tap()
+        XCTAssertEqual(editor.value as? String, "привіт")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Tap-only Ukrainian suggestions"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        tapMainButton("customize-keyboard", in: app)
+        XCTAssertTrue(app.buttons["suggestion-settings"].waitForExistence(timeout: 3))
+        app.buttons["suggestion-settings"].tap()
+        let enabled = app.switches["word-suggestions"]
+        XCTAssertTrue(enabled.waitForExistence(timeout: 3))
+        enabled.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5)).withOffset(CGVector(dx: -25, dy: 0)).tap()
+        XCTAssertEqual(enabled.value as? String, "0")
+        enabled.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5)).withOffset(CGVector(dx: -25, dy: 0)).tap()
+        XCTAssertEqual(enabled.value as? String, "1")
+    }
+
+
+    @MainActor
     func testAppearanceThemesAccentsAndPersistence() throws {
         let app = launchApp()
         tapMainButton("customize-keyboard", in: app)

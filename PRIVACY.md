@@ -1,12 +1,16 @@
 # Privacy policy
 
-Effective September 5, 2026.
+Effective September 8, 2026.
 
 Ortholinear is an on-device Ukrainian and English keyboard for iPhone and iPad, maintained by Igor Varyvoda.
 
 ## Your typing
 
-Ortholinear does not collect, retain, or transmit what you type. The keyboard delivers input to the app you are typing in; that app handles your text under its own privacy policy. Text in Ortholinear’s test fields stays in memory and is not saved by Ortholinear.
+Ortholinear does not collect or transmit your typing history. When suggestions are enabled, the keyboard processes the current word and nearby text in memory on your device. This context is discarded; it is not saved as a typing history. The keyboard delivers input to the app you are typing in; that app handles your text under its own privacy policy. Text in Ortholinear’s test fields stays in memory and is not saved by Ortholinear.
+
+## Words you explicitly teach
+
+Only words you choose to teach are saved, up to 200 per language. The system keyboard stores these words in its own local container; the app preview has a separate local word list. The suggestion row’s menu lets you forget individual words or clear the list for the current language. Ortholinear does not automatically learn from your messages or send taught words anywhere.
 
 ## Settings
 

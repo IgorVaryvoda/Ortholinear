@@ -50,8 +50,9 @@ extension Notification.Name {
 
 struct PreviewSurface: UIViewRepresentable {
     let preferences: KeyboardPreferences
+    let isActive: Bool
     func makeUIView(context: Context) -> PreviewContainer { PreviewContainer() }
-    func updateUIView(_ view: PreviewContainer, context: Context) { view.apply(preferences) }
+    func updateUIView(_ view: PreviewContainer, context: Context) { view.apply(preferences, isActive: isActive) }
 }
 
 final class PreviewContainer: UIView, UITextViewDelegate {
@@ -61,6 +62,10 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     private var state = InputState()
     private var punctuationSpacing = PunctuationSpacing()
     private var height: NSLayoutConstraint!
+    private let documentID = UUID()
+    private lazy var suggestions = SuggestionCoordinator(keyboard: keyboard)
+    private var applyingSuggestion = false
+    private var isActive = true
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -95,6 +100,8 @@ final class PreviewContainer: UIView, UITextViewDelegate {
             placeholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -12)
         ])
         keyboard.needsGlobe = false
+        suggestions.snapshot = { [weak self] in self?.suggestionSnapshot() }
+        suggestions.apply = { [weak self] edit, snapshot in self?.applySuggestion(edit, snapshot: snapshot) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
         keyboard.onDismiss = { [weak self] in self?.editor.resignFirstResponder() }
         keyboard.onCursor = { [weak self] offset in
@@ -102,6 +109,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
                   let position = self.editor.position(from: selection.start, offset: offset) else { return }
             self.punctuationSpacing.reset()
             self.editor.selectedTextRange = self.editor.textRange(from: position, to: position)
+            self.suggestions.refresh()
         }
         NotificationCenter.default.addObserver(self, selector: #selector(clear), name: .clearKeyboardPreview, object: nil)
     }
@@ -109,6 +117,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        if window == nil { suggestions.releaseMemory() }
         // Deliver presses immediately so a quick symbol slide belongs to the keyboard,
         // instead of becoming a scroll before UIScrollView's touch delay expires.
         var ancestor = superview
@@ -121,22 +130,58 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         }
     }
 
-    func apply(_ preferences: KeyboardPreferences) {
+    func apply(_ preferences: KeyboardPreferences, isActive: Bool) {
+        self.isActive = isActive
+        if !isActive { suggestions.suspend() }
         if keyboard.preferences.defaultLanguage != preferences.defaultLanguage { state.language = preferences.defaultLanguage }
         keyboard.preferences = preferences
         height.constant = preferences.keyboardHeight
         keyboard.inputState = state
+        if isActive { suggestions.refresh() }
     }
 
     @objc private func clear() {
         punctuationSpacing.reset()
         editor.text = ""
         placeholder.isHidden = false
+        suggestions.refresh(force: true)
     }
 
-    func textViewDidChange(_ textView: UITextView) { placeholder.isHidden = !textView.text.isEmpty }
+    func textViewDidChange(_ textView: UITextView) {
+        placeholder.isHidden = !textView.text.isEmpty
+        if !applyingSuggestion { suggestions.refresh() }
+    }
+    func textViewDidChangeSelection(_ textView: UITextView) {
+        if !applyingSuggestion { punctuationSpacing.reset(); suggestions.refresh() }
+    }
+    private func suggestionSnapshot() -> SuggestionSnapshot? {
+        guard isActive else { return nil }
+        let text = editor.text as NSString
+        let range = editor.selectedRange
+        guard range.location != NSNotFound, NSMaxRange(range) <= text.length else { return nil }
+        return .init(document: documentID, before: text.substring(to: range.location),
+                     after: text.substring(from: NSMaxRange(range)), selection: text.substring(with: range), language: state.language)
+    }
+    private func applySuggestion(_ edit: SuggestionEdit, snapshot: SuggestionSnapshot) {
+        guard suggestionSnapshot() == snapshot, let target = snapshot.target else { return }
+        applyingSuggestion = true
+        defer { applyingSuggestion = false }
+        punctuationSpacing.reset()
+        let prefix = String(snapshot.before.dropLast(target.leftCount))
+        let range = NSRange(location: prefix.utf16.count, length: target.word.utf16.count)
+        guard let start = editor.position(from: editor.beginningOfDocument, offset: range.location),
+              let end = editor.position(from: start, offset: range.length),
+              let selection = editor.textRange(from: start, to: end) else { return }
+        editor.replace(selection, withText: edit.text)
+        if let caret = editor.position(from: editor.beginningOfDocument, offset: range.location + edit.text.utf16.count) {
+            editor.selectedTextRange = editor.textRange(from: caret, to: caret)
+        }
+        placeholder.isHidden = !editor.text.isEmpty
+    }
 
     private func handle(_ action: KeyAction) {
+        applyingSuggestion = true
+        defer { applyingSuggestion = false }
         switch action {
         case .text(let value): insert(state.consume(value))
         case .space: insert(" ")
@@ -152,6 +197,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         }
         placeholder.isHidden = !editor.text.isEmpty
         keyboard.inputState = state
+        if isActive { suggestions.refresh() }
     }
 
     private func insert(_ value: String) {

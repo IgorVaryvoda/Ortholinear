@@ -7,6 +7,8 @@ final class KeyboardViewController: UIInputViewController {
     private var punctuationSpacing = PunctuationSpacing()
     private var lastKeyboardType: UIKeyboardType?
     private var reportedLanguage: KeyboardLanguage?
+    private lazy var suggestions = SuggestionCoordinator(keyboard: keyboard)
+    private var applyingSuggestion = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,14 +26,18 @@ final class KeyboardViewController: UIInputViewController {
         height.isActive = true
         heightConstraint = height
         keyboard.globeButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
+        suggestions.snapshot = { [weak self] in self?.suggestionSnapshot() }
+        suggestions.apply = { [weak self] edit, snapshot in self?.applySuggestion(edit, snapshot: snapshot) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
         keyboard.onCursor = { [weak self] in
             self?.punctuationSpacing.reset()
             self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0)
+            self?.suggestions.refresh()
         }
         keyboard.onDismiss = { [weak self] in self?.dismissKeyboard() }
         inputState.language = PreferenceStore.load().defaultLanguage
         keyboard.inputState = inputState
+        suggestions.refresh()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -49,6 +55,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         keyboard.cancelTouches()
+        suggestions.releaseMemory()
         super.viewWillDisappear(animated)
     }
 
@@ -57,7 +64,44 @@ final class KeyboardViewController: UIInputViewController {
         if keyboard.needsGlobe != needsInputModeSwitchKey { keyboard.needsGlobe = needsInputModeSwitchKey }
     }
 
-    override func textDidChange(_ textInput: (any UITextInput)?) { synchronize() }
+    override func textDidChange(_ textInput: (any UITextInput)?) { if !applyingSuggestion { synchronize() } }
+    override func selectionDidChange(_ textInput: (any UITextInput)?) {
+        guard !applyingSuggestion else { return }
+        suggestions.refresh()
+    }
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        suggestions.releaseMemory()
+    }
+
+    private func suggestionSnapshot() -> SuggestionSnapshot? {
+        guard isViewLoaded, view.window != nil, lastKeyboardType != nil else { return nil }
+        let allowed: [UIKeyboardType] = [.default, .asciiCapable, .twitter]
+        guard allowed.contains(textDocumentProxy.keyboardType ?? .default),
+              textDocumentProxy.isSecureTextEntry != true else { return nil }
+        let before = textDocumentProxy.documentContextBeforeInput
+        let after = textDocumentProxy.documentContextAfterInput
+        let selected = textDocumentProxy.selectedText ?? ""
+        // A completely unavailable context is not a safe replacement target.
+        guard before != nil || after != nil || !selected.isEmpty else { return nil }
+        return .init(document: textDocumentProxy.documentIdentifier, before: before ?? "", after: after ?? "",
+                     selection: selected, language: inputState.language)
+    }
+
+    private func applySuggestion(_ edit: SuggestionEdit, snapshot: SuggestionSnapshot) {
+        guard suggestionSnapshot() == snapshot else { return }
+        applyingSuggestion = true
+        defer { applyingSuggestion = false }
+        punctuationSpacing.reset()
+        if edit.moveRight != 0 {
+            textDocumentProxy.adjustTextPosition(byCharacterOffset: edit.moveRight)
+            // Some hosts don't honor cursor movement. Never delete from the old caret.
+            let expected = snapshot.before + snapshot.after.prefix(edit.moveRight)
+            guard textDocumentProxy.documentContextBeforeInput?.hasSuffix(expected.suffix(24)) == true else { return }
+        }
+        for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
+        textDocumentProxy.insertText(edit.text)
+    }
 
     private func synchronize() {
         guard isViewLoaded else { return }
@@ -82,6 +126,7 @@ final class KeyboardViewController: UIInputViewController {
         keyboard.returnTitle = returnLabel
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
         keyboard.inputState = inputState
+        suggestions.refresh()
     }
 
     private func reportLanguageIfNeeded() {
@@ -125,6 +170,7 @@ final class KeyboardViewController: UIInputViewController {
         reportLanguageIfNeeded()
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
         keyboard.inputState = inputState
+        suggestions.refresh()
     }
 
     private func insert(_ value: String) {

@@ -2,6 +2,73 @@ import XCTest
 
 /// Run separately on a disposable simulator; enables Ortholinear in iOS Settings.
 final class SystemExtensionTests: XCTestCase {
+    /// Uses the already enabled extension; safe to run on the paired iPhone too.
+    @MainActor
+    func testInstalledSuggestionsAreTapOnly() throws {
+        let app = XCUIApplication()
+        app.launch()
+        XCUIDevice.shared.orientation = .portrait
+        tapOnMainPage("system-test", in: app)
+        let editor = app.textViews["system-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        editor.tap()
+        let surface = app.otherElements["system-keyboard-surface"]
+        if !surface.waitForExistence(timeout: 2) {
+            let globe = app.buttons["Next keyboard"]
+            XCTAssertTrue(globe.waitForExistence(timeout: 3), app.debugDescription)
+            globe.press(forDuration: 1)
+            let option = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Ortholinear'")).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
+            option.tap()
+        }
+        XCTAssertTrue(surface.waitForExistence(timeout: 8), app.debugDescription)
+        if surface.buttons["key-Switch to English"].exists { surface.buttons["key-Switch to English"].tap() }
+        func type(_ word: String) { for letter in word { surface.buttons["key-\(letter)"].tap() } }
+        func suggestion(_ word: String) -> XCUIElement { surface.buttons.matching(NSPredicate(format: "label == %@", "Use \(word)")).firstMatch }
+        type("teh")
+        XCTAssertTrue(suggestion("the").waitForExistence(timeout: 5), app.debugDescription)
+        surface.buttons["key-Space"].tap()
+        XCTAssertEqual(editor.value as? String, "teh ")
+        surface.buttons["key-Delete"].press(forDuration: 1)
+        XCTAssertEqual(editor.value as? String, "")
+        type("teh")
+        XCTAssertTrue(suggestion("the").waitForExistence(timeout: 5))
+        let cursor = surface.buttons["key-Space"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        cursor.press(forDuration: 0.1, thenDragTo: cursor.withOffset(CGVector(dx: -15, dy: 0)))
+        XCTAssertTrue(suggestion("the").waitForExistence(timeout: 5))
+        suggestion("the").tap()
+        XCTAssertEqual(editor.value as? String, "the")
+        surface.buttons["key-Delete"].press(forDuration: 1)
+        surface.buttons["key-Switch to Українська"].tap()
+        type("привт")
+        XCTAssertTrue(suggestion("привіт").waitForExistence(timeout: 5))
+        suggestion("привіт").tap()
+        XCTAssertEqual(editor.value as? String, "привіт")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        print("DEVICE_SUGGESTION_METRICS \(surface.otherElements["suggestion-bar"].value ?? "unavailable")")
+        screenshot.name = "Installed suggestion-only keyboard"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        surface.buttons["key-Delete"].press(forDuration: 1)
+        type("зорбліф")
+        surface.buttons["suggestion-options"].tap()
+        let teach = app.buttons["Teach “зорбліф”"]
+        XCTAssertTrue(teach.waitForExistence(timeout: 3), app.debugDescription)
+        teach.tap()
+        app.buttons["Done"].tap()
+        tapOnMainPage("system-test", in: app)
+        editor.tap()
+        if surface.buttons["key-Switch to Українська"].exists { surface.buttons["key-Switch to Українська"].tap() }
+        type("зорблі")
+        XCTAssertTrue(suggestion("зорбліф").waitForExistence(timeout: 5))
+        suggestion("зорбліф").tap()
+        surface.buttons["key-Delete"].tap()
+        surface.buttons["suggestion-options"].tap()
+        app.buttons["Forget “зорбліф”"].tap()
+        app.buttons["Done"].tap()
+    }
+
+
     @MainActor
     private func tapOnMainPage(_ identifier: String, in app: XCUIApplication) {
         let button = app.buttons[identifier]

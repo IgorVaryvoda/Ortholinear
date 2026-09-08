@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.macOS(.v13), .iOS(.v17)],
     products: [.library(name: "OrtholinearCore", targets: ["OrtholinearCore"])],
     targets: [
-        .target(name: "OrtholinearCore", path: "Core"),
+        .target(name: "OrtholinearCore", path: "Core", resources: [.process("SuggestionData")]),
         .testTarget(name: "OrtholinearCoreTests", dependencies: ["OrtholinearCore"], path: "Tests")
     ]
 )

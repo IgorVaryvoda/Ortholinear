@@ -1,3 +1,7 @@
+# V0.4.0 suggestion baseline
+
+See [suggestion verification and benchmarks](SUGGESTIONS-VERIFICATION.md) for the current 0.4.0 (17) development build.
+
 # V0.3.2 verification — September 8, 2026
 
 Version 0.3.2 (16) adds optional ї on long-press і, accelerating held Delete, a persistent settings preview, keyboard themes and accents, and organized settings with a prominent Theme and colors entry.

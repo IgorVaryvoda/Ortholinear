@@ -1,0 +1,58 @@
+{
+  "generator": "Tools/build_suggestion_data.py",
+  "wordfreq": "3.1.1",
+  "spylls": "0.1.7",
+  "sources": {
+    "hunspell-uk_UA_6.8.5.zip": {
+      "url": "https://github.com/brown-uk/dict_uk/releases/download/v6.8.5/hunspell-uk_UA_6.8.5.zip",
+      "sha256": "25563d417d1c114a9fb9cbca1b23a68289f7c2c7e0d622429b42b1ddededa12a"
+    },
+    "wordfreq-NOTICE.txt": {
+      "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/NOTICE.md",
+      "sha256": "d9b104dafe63886af55e7cea7484824e32e12d4e1f57f319923dd643b36d6b15"
+    },
+    "SCOWL-Copyright.txt": {
+      "url": "https://raw.githubusercontent.com/en-wl/wordlist/rel-2020.12.07/scowl/Copyright",
+      "sha256": "283326a422e29c510e2ba6805518c418ce3c35ed1fadc3eec83d2da4f6c5a055"
+    },
+    "VESUM-Hunspell.txt": {
+      "url": "https://raw.githubusercontent.com/brown-uk/dict_uk/v6.8.5/distr/hunspell/README.md",
+      "sha256": "0cc497e9e830ba8bef46196ffda246ae496bb6a6b103aa1dfe7ee32cf5968c02"
+    },
+    "English-EWT-README.txt": {
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.18/README.md",
+      "sha256": "c2dc7edaf5937d18cb3ff142410fde7460e32faa69b2bd0a041abc3f957da281"
+    },
+    "UA-GEC-LICENSE.txt": {
+      "url": "https://raw.githubusercontent.com/grammarly/ua-gec/4757f72f192c4a41e4c8fb1d9690a948f87cf6d6/LICENSE",
+      "sha256": "f5b745ef98087f531e719ee8ca6a96809444573ecc7173c6fa68eaad39b3cc3f"
+    },
+    "UA-GEC-README.txt": {
+      "url": "https://raw.githubusercontent.com/grammarly/ua-gec/4757f72f192c4a41e4c8fb1d9690a948f87cf6d6/README.md",
+      "sha256": "e0aa163c7471ff9e876f5f294252b9e406b2ec832b10a6ded894ea322796e875"
+    },
+    "English-EWT-LICENSE.txt": {
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.18/LICENSE.txt",
+      "sha256": "b3d1b0f4c6ae151f7eb78738f46ebd5ee140f8a7f76501ba26af123140d35ae7"
+    },
+    "en_ewt-train.conllu": {
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.18/en_ewt-ud-train.conllu",
+      "sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
+    },
+    "en_ewt-test.conllu": {
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.18/en_ewt-ud-test.conllu",
+      "sha256": "fa024f43dc5da3c5ac02563bc9bd0e974f46cbb1560823976a8f342a37dc494a"
+    },
+    "ua-gec-4757f72.tar.gz": {
+      "url": "https://codeload.github.com/grammarly/ua-gec/tar.gz/4757f72f192c4a41e4c8fb1d9690a948f87cf6d6",
+      "sha256": "94693ae6a97c87fc327a17bfd088b05f921a0288a62f7ba71b49ee3691290411"
+    }
+  },
+  "assets": {
+    "DictionaryCredits.txt": "b8a53b2f27fcaa8f83363d039a51052b137f77f48b9ee632e90cc19156d80a3c",
+    "en-context.json": "5e292dc06c8e4b2c74f59e07d44c729b8d005fe29a6e2ddce57987c784cab23c",
+    "en.orthlex": "cad149742811e5cf9b1dafb415f271c82ef6f7c10a64b2923b795b483dda9d79",
+    "uk-context.json": "8f6c4d2d4c542f1caaa4c3f302741d00fb2951cf0e387fb485bd02726ebefb7b",
+    "uk.orthlex": "7767ccff108b8a10e3c8959c9d615951471bccec17c19838d6bea45815c0bc9f"
+  }
+}

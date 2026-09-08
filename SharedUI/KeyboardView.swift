@@ -34,6 +34,7 @@ final class KeyboardView: UIControl {
     var onAction: ((KeyAction) -> Void)?
     var onCursor: ((Int) -> Void)?
     var onDismiss: (() -> Void)?
+    let suggestionBar = SuggestionBar()
     let globeButton = FeedbackButton(type: .custom)
     private let dismissButton = FeedbackButton(type: .custom)
     private(set) var cells: [KeyCell] = []
@@ -85,6 +86,7 @@ final class KeyboardView: UIControl {
         dismissButton.highlightChanged = { [weak self] in self?.nativeHighlightChanged(.dismiss) }
         dismissButton.addAction(UIAction { [weak self] _ in self?.onDismiss?() }, for: .touchUpInside)
         addSubview(dismissButton)
+        addSubview(suggestionBar)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -100,6 +102,9 @@ final class KeyboardView: UIControl {
                                        preferences: preferences, needsGlobe: needsGlobe)
         globeButton.isHidden = !needsGlobe
         globeButton.frame = cells.first(where: { $0.key.action == .globe })?.hitFrame ?? .zero
+        suggestionBar.frame = CGRect(x: 0, y: preferences.showHeader ? 38 : 0, width: bounds.width, height: preferences.suggestionHeight)
+        suggestionBar.isHidden = !preferences.suggestionsEnabled || popup != nil
+        suggestionBar.style(palette)
         dismissButton.frame = CGRect(x: bounds.width - 44, y: 0, width: 44, height: 38)
         dismissButton.isHidden = !preferences.showHeader || popup != nil
         globeButton.tintColor = palette.text
@@ -195,6 +200,7 @@ final class KeyboardView: UIControl {
         }
         if needsGlobe { elements.append(globeButton) }
         if preferences.showHeader { elements.append(dismissButton) }
+        if preferences.suggestionsEnabled && popup == nil { elements.insert(suggestionBar, at: 0) }
         accessibilityElements = elements
     }
 

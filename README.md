@@ -1,6 +1,6 @@
 # Ortholinear
 
-A native, private Ukrainian + English keyboard for iPhone and iPad. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party dependencies.
+A native, private Ukrainian + English keyboard for iPhone and iPad. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party runtime code dependencies; bundled language data has separate licenses.
 
 [Support](SUPPORT.md) · [Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
@@ -64,7 +64,7 @@ Other controls occupy a fourth row. Character touch cells have equal widths with
 
 ## Privacy and shared settings
 
-`RequestsOpenAccess` is **false**. The app and extension make no network requests. There are no analytics SDKs, typed-text logging, dictionaries, or prediction services. Preview text lives only in memory. Geometry, typing preferences, and starting language are stored locally. See [privacy details](PRIVACY.md).
+`RequestsOpenAccess` is **false**. The app and extension make no network requests. There are no analytics SDKs, typed-text logging, or network prediction services. Optional suggestions use bundled dictionaries and small local context tables. Preview text lives only in memory. Geometry, typing preferences, and starting language are stored locally. See [privacy details](PRIVACY.md).
 
 The containing app atomically writes `geometry.json` into the App Group. The extension only reads it, on appearance. Apple explicitly permits [read-only access to the containing app's shared container without Full Access](https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard). This is why settings work without giving the keyboard network access. A missing or malformed file falls back to validated defaults.
 
@@ -113,3 +113,13 @@ Autocorrect and suggestions; automatic sentence capitalization; smart quotes and
 iOS replaces custom keyboards in secure/password and phone-pad fields. Host apps can refuse third-party keyboards. These are [system restrictions](https://developer.apple.com/documentation/uikit/configuring-a-custom-keyboard-interface).
 
 Licensed under MIT.
+
+## Suggestion-only typing (0.4.0)
+
+English and Ukrainian suggestions run entirely offline. Three large buttons offer corrections, completions, or next words; text changes only when a suggestion is tapped. Space and punctuation never accept a correction automatically. Place the caret inside a word or select it to see alternatives. URL, email, and numeric fields do not request suggestions.
+
+Open **Keyboard settings → Suggestions → Words and corrections** to toggle the row, next words, and short sentence context. Use **⋯ → Teach** to save a word, or the same menu to forget words. The extension and app preview maintain separate local word lists (up to 200 per language), so teaching works without Full Access. No typing history is collected.
+
+The native Swift engine uses a compact symmetric-delete index, nearby-key ranking, and optional pruned bigram/trigram tables. See [research](docs/SUGGESTIONS-RESEARCH.md) and [verification notes](docs/SUGGESTIONS-VERIFICATION.md) for measured scope and limitations. Dictionary resources have separate attribution/share-alike terms; the application code remains MIT. Full notices ship in the app under **Suggestions → Dictionary credits** and in [DictionaryCredits.txt](Core/SuggestionData/DictionaryCredits.txt).
+
+Regenerate data with `uv venv build/suggestion-tools`, then `uv pip install --python build/suggestion-tools/bin/python wordfreq==3.1.1 spylls==0.1.7`, then `build/suggestion-tools/bin/python Tools/build_suggestion_data.py`. The script downloads pinned public data into ignored build storage, filters common surface forms, creates indexes and context tables, and evaluates next words on a separate test split. Generated assets include license/provenance metadata. Python and the source corpora are not part of the app runtime.

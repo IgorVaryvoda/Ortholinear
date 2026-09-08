@@ -1,5 +1,7 @@
 # Suggestions without automatic replacement
 
+Implementation follow-up: [0.4.0 baseline and measured results](SUGGESTIONS-VERIFICATION.md). The original proposal below is retained as research history.
+
 Research date: September 8, 2026. This is a proposal for a future release; 0.3.2 (16) has already been submitted to App Review. No suggestion engine or dictionary has been added to the app. Device latency, memory, and suggestion quality have not yet been benchmarked.
 
 ## Recommendation

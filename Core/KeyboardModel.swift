@@ -108,7 +108,7 @@ enum KeyboardLayout {
 }
 
 struct KeyboardPreferences: Codable, Equatable, Sendable {
-    let schemaVersion = 2
+    let schemaVersion = 3
     var keyHeight: Double = 72
     var columnSpacing: Double = 2
     var rowSpacing: Double = 3
@@ -127,11 +127,16 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var accent: KeyboardAccent = .theme
     var showLongPressHints: Bool = true
 
+    var suggestionsEnabled: Bool = true
+    var nextWordSuggestions: Bool = true
+    var contextualSuggestions: Bool = true
+
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
         case controlHeight, letterSize, actionKeyWidth, shiftPlacement, showPunctuation, showApostrophe, showHeader, autoSpacePunctuation
         case yiOnLongPress
         case theme, accent, showLongPressHints
+        case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
     }
 
     var validated: Self {
@@ -144,7 +149,8 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         result.rowSpacing = rowSpacing.isFinite ? min(12, max(0, rowSpacing)) : 3
         return result
     }
-    var headerHeight: Double { showHeader ? KeyboardGeometry.ribbonHeight : 0 }
+    var suggestionHeight: Double { suggestionsEnabled ? 44 : 0 }
+    var headerHeight: Double { suggestionHeight + (showHeader ? KeyboardGeometry.ribbonHeight : 0) }
     var keyboardHeight: Double {
         let p = validated
         return p.headerHeight + 3 * (p.keyHeight + p.rowSpacing) + p.controlHeight + p.rowSpacing
@@ -153,9 +159,11 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     mutating func apply(_ preset: KeyboardPreset) {
         let language = defaultLanguage
         let appearance = (theme, accent, showLongPressHints)
+        let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
         self = preset.preferences
         defaultLanguage = language
         (theme, accent, showLongPressHints) = appearance
+        (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
     }
 }
 
@@ -180,6 +188,9 @@ extension KeyboardPreferences {
         theme = try c.decodeIfPresent(KeyboardTheme.self, forKey: .theme) ?? theme
         accent = try c.decodeIfPresent(KeyboardAccent.self, forKey: .accent) ?? accent
         showLongPressHints = try c.decodeIfPresent(Bool.self, forKey: .showLongPressHints) ?? showLongPressHints
+        suggestionsEnabled = try c.decodeIfPresent(Bool.self, forKey: .suggestionsEnabled) ?? suggestionsEnabled
+        nextWordSuggestions = try c.decodeIfPresent(Bool.self, forKey: .nextWordSuggestions) ?? nextWordSuggestions
+        contextualSuggestions = try c.decodeIfPresent(Bool.self, forKey: .contextualSuggestions) ?? contextualSuggestions
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated

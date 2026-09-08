@@ -42,7 +42,7 @@ struct ContentView: View {
                     Text("·")
                     Text("No tracking")
                     Text("·")
-                    Text("No autocorrect")
+                    Text("Tap-only suggestions")
                 }
                 .font(.system(size: 11, weight: .medium)).foregroundStyle(accent)
 
@@ -53,7 +53,7 @@ struct ContentView: View {
                         Button("Clear") { NotificationCenter.default.post(name: .clearKeyboardPreview, object: nil) }
                             .font(.system(size: 12, weight: .medium)).accessibilityIdentifier("clear-preview")
                     }
-                    PreviewSurface(preferences: preferences)
+                    PreviewSurface(preferences: preferences, isActive: !showGeometry && !showSetup && !showSystemTest)
                         .frame(height: 100 + preferences.keyboardHeight)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.primary.opacity(0.08)))
@@ -97,7 +97,7 @@ struct ContentView: View {
                     Link("Support", destination: URL(string: "https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md")!)
                 }
                 .font(.system(size: 13, weight: .medium))
-                Text("BUILT FOR YOUR HANDS.  /  V0.3.2")
+                Text("BUILT FOR YOUR HANDS.  /  V0.4.0")
                     .font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(1.5)
                     .foregroundStyle(.tertiary).padding(.bottom, 20)
             }
@@ -142,14 +142,23 @@ private struct GridMark: View {
 }
 
 struct GeometrySettings: View {
-    @Binding var preferences: KeyboardPreferences
+    @State private var preferences: KeyboardPreferences
+    private let commit: (KeyboardPreferences) -> Void
+    @State private var saveError = false
+
+    init(preferences: Binding<KeyboardPreferences>) {
+        _preferences = State(initialValue: preferences.wrappedValue)
+        commit = { preferences.wrappedValue = $0 }
+    }
     @Environment(\.dismiss) private var dismiss
 
     @State private var previewLanguage: KeyboardLanguage = .ukrainian
     @State private var showAppearance = false
+    private enum SettingsPage: Hashable { case suggestions }
+    @State private var navigationPath: [SettingsPage] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             GeometryReader { geometry in
                 if geometry.size.width > geometry.size.height {
                     HStack(spacing: 0) {
@@ -168,8 +177,18 @@ struct GeometrySettings: View {
             .navigationTitle("Keyboard settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .navigationDestination(for: SettingsPage.self) { _ in SuggestionSettings(preferences: $preferences) }
             .sheet(isPresented: $showAppearance) { AppearanceSettings(preferences: $preferences) }
-        }.tint(accent)
+        }
+        .tint(accent)
+        .onChange(of: preferences) { _, value in
+            do { try PreferenceStore.save(value) }
+            catch { saveError = true }
+        }
+        .onDisappear { commit(preferences) }
+        .alert("Settings weren’t saved", isPresented: $saveError) {
+            Button("OK", role: .cancel) { }
+        } message: { Text("Please reopen settings and try again.") }
     }
 
     private func livePreview(maxHeight: CGFloat) -> some View {
@@ -214,6 +233,17 @@ struct GeometrySettings: View {
                     }.padding(.vertical, 4)
                 }
                 .accessibilityIdentifier("theme-settings")
+            }
+            Section("Suggestions") {
+                NavigationLink(value: SettingsPage.suggestions) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Words and corrections")
+                            Text(preferences.suggestionsEnabled ? "On-device · changes only when tapped" : "Suggestions are off")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "text.bubble") }
+                }.accessibilityIdentifier("suggestion-settings")
             }
             Section {
                 HStack(spacing: 6) {
@@ -303,6 +333,9 @@ struct GeometrySettings: View {
             candidate.theme = preferences.theme
             candidate.accent = preferences.accent
             candidate.showLongPressHints = preferences.showLongPressHints
+            candidate.suggestionsEnabled = preferences.suggestionsEnabled
+            candidate.nextWordSuggestions = preferences.nextWordSuggestions
+            candidate.contextualSuggestions = preferences.contextualSuggestions
             return candidate == preferences
         }
     }
@@ -339,7 +372,7 @@ struct SetupView: View {
                 } footer: { Text("If Settings opens the app page, return to the main Settings list and follow the steps above.") }
                 Section("Where it works") {
                     Text("Use it in apps that allow third-party keyboards. iOS uses its own keyboard for passwords and phone-pad fields. Some apps disable third-party keyboards entirely.")
-                    Text("There is no autocorrect or automatic capitalization. You can turn automatic spacing after punctuation on or off in customization.")
+                    Text("Suggestions change a word only when you tap one. There is no automatic capitalization. Word suggestions and punctuation spacing can be turned off in settings.")
                 }
             }
             .navigationTitle("Meet your new keyboard")
