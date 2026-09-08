@@ -71,7 +71,7 @@ Version 0.3.2: Open Settings > Appearance > Theme and colors for seven themes, a
 - Persistent live preview in customization, with size and spacing sliders, UA/EN switching, and landscape layout.
 - Softer key styling, consistent control icons, optional long-press hints, seven themes including Tokyo Night/Catppuccin Mocha/Nord, and six accent choices.
 - Clearly labeled Settings entry and a first-position Theme and colors row; controls grouped into layout, letters, and typing.
-- Version 0.3.2 (16) is installed on the paired iPhone and passes the final installed-extension checks. Submission is in progress; status below records the last confirmed App Store submission.
+- Version 0.3.2 (16) is installed and launched on the paired iPhone, passes the final installed-extension checks, and is Waiting for Review.
 
 ## Version 0.3.1 changes
 
@@ -82,22 +82,20 @@ Version 0.3.2: Open Settings > Appearance > Theme and colors for seven themes, a
 
 ## Submission status
 
-On September 8, 2026, the description was saved in App Store Connect with the opening “Big fingers deserve room to type,” explicitly positioning the keyboard for bigger fingers and more generous touch targets. The saved text was verified after reloading the page. The existing 0.3.1 review submission remains in place.
+Version **0.3.2 (16)** was uploaded and submitted to App Review on September 8, 2026. App Store Connect confirms **Waiting for Review** and **1 Item Submitted**. Automatic release after approval is enabled. The previous pending 0.3.1 (10) submission was withdrawn and replaced.
 
-Version **0.3.1 (10)** was submitted to App Review on September 6, 2026. App Store Connect confirms **Waiting for Review** and **1 Item Submitted**. Automatic release after approval is enabled.
+The saved description opens with “Big fingers deserve room to type,” explicitly positioning the keyboard for bigger fingers and more generous touch targets. The description and review notes also cover themes, live settings preview, optional ї on long-press і, and accelerating held Delete. Build 16 passed Xcode’s App Store validation and upload.
 
-The update adds stable pressed-key feedback, keeps 123 / ABC at the far left, and supports holding/sliding from 123 to type a symbol and return to letters. The description and review notes include these interactions. The previous 0.3.0 (9) submission was withdrawn and replaced.
-
-On September 6, the signed 0.3.1 (10) archive was installed on the paired iPhone 15 Pro, iOS 26.5; remote launch was declined because the phone was locked. On September 8, the local 0.3.2 (11) Release build replaced it and launched successfully. Simulator preview and installed-extension interaction checks pass as detailed in [VERIFICATION.md](VERIFICATION.md).
+The archived 0.3.2 (16) app was installed and launched successfully on the paired iPhone 15 Pro, iOS 26.5. Source changes are pushed to main in commit `48ac1d4`. Simulator preview and installed-extension interaction checks pass as detailed in [VERIFICATION.md](VERIFICATION.md).
 
 Free pricing, availability in 175 regions, age/content declarations, Data Not Collected privacy declaration, existing iPhone/iPad screenshots, and review contact details are retained. The app is not yet publicly available; Apple must approve the submission first.
 
-Submission ID: `708889e0-8ca1-48e5-a4ac-ed124d76cf71`. App record: `6808996711`. Build ID: `efc45e30-762a-4aa6-9ffd-cf845632e6e8`.
+Submission ID: `a80c159e-87c5-4b25-93c3-5bcf7acafc5b`. App record: `6808996711`. Build ID: `70eef33b-e8e8-40ed-b693-274ae26f0be9`.
 
 ## Prepared artifacts
 
-- `build/keyboard-interactions-app-store/Ortholinear.xcarchive`: signed Release archive for 0.3.1 (10).
+- `build/keyboard-032-release16/Ortholinear.xcarchive`: signed Release archive for 0.3.2 (16).
 - [iPhone 6.9-inch screenshot](screenshots/app-store/iphone-home.png): 1320 × 2868.
 - [iPad 13-inch screenshot](screenshots/app-store/ipad-home.png): 2064 × 2752.
 
-The screenshots show the default letter layout, which is retained in 0.3.1. Build artifacts remain local and are ignored by Git. The owner approved free pricing and the app-record User Access setting. The release is waiting for review. App Store Connect: https://appstoreconnect.apple.com/apps/6808996711/distribution/ios/version/inflight
+The screenshots show the default letter layout, with the same default letter arrangement retained in 0.3.2. Build artifacts remain local and are ignored by Git. The owner approved free pricing and the app-record User Access setting. The release is waiting for review. App Store Connect: https://appstoreconnect.apple.com/apps/6808996711/distribution/ios/version/inflight
