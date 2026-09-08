@@ -6,6 +6,7 @@ final class KeyboardViewController: UIInputViewController {
     private var inputState = InputState()
     private var punctuationSpacing = PunctuationSpacing()
     private var lastKeyboardType: UIKeyboardType?
+    private var reportedLanguage: KeyboardLanguage?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -76,11 +77,20 @@ final class KeyboardViewController: UIInputViewController {
             default: inputState.page = .letters
             }
         }
-        primaryLanguage = inputState.language.code
+        reportLanguageIfNeeded()
         keyboard.needsGlobe = needsInputModeSwitchKey
         keyboard.returnTitle = returnLabel
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
         keyboard.inputState = inputState
+    }
+
+    private func reportLanguageIfNeeded() {
+        // The proxy can echo an older/normalized primaryLanguage while host updates
+        // are in flight. Track what we sent, so text callbacks cannot feed back
+        // another language notification for an unchanged keyboard language.
+        guard reportedLanguage != inputState.language else { return }
+        reportedLanguage = inputState.language
+        primaryLanguage = inputState.language.code
     }
 
     private var returnLabel: String {
@@ -112,7 +122,7 @@ final class KeyboardViewController: UIInputViewController {
         case .globe: advanceToNextInputMode()
         case .dismiss: dismissKeyboard()
         }
-        primaryLanguage = inputState.language.code
+        reportLanguageIfNeeded()
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
         keyboard.inputState = inputState
     }

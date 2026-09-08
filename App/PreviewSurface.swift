@@ -1,6 +1,49 @@
 import SwiftUI
 import UIKit
 
+/// Uses the same renderer as the extension, fitted into a persistent settings panel.
+struct SettingsKeyboardPreview: UIViewRepresentable {
+    let preferences: KeyboardPreferences
+    let language: KeyboardLanguage
+
+    func makeUIView(context: Context) -> SettingsPreviewContainer { SettingsPreviewContainer() }
+
+    func updateUIView(_ view: SettingsPreviewContainer, context: Context) {
+        view.keyboard.preferences = preferences
+        view.keyboard.inputState.language = language
+        view.accessibilityValue = "\(language.badge), theme \(preferences.theme.title), accent \(preferences.accent.title), key height \(Int(preferences.keyHeight)), column spacing \(Int(preferences.columnSpacing)), row spacing \(Int(preferences.rowSpacing))"
+        view.setNeedsLayout()
+    }
+}
+
+final class SettingsPreviewContainer: UIView {
+    let keyboard = KeyboardView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        keyboard.needsGlobe = false
+        keyboard.isUserInteractionEnabled = false
+        keyboard.accessibilityElementsHidden = true
+        addSubview(keyboard)
+        isAccessibilityElement = true
+        accessibilityLabel = "Live keyboard preview"
+        accessibilityIdentifier = "settings-keyboard-preview"
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let height = keyboard.preferences.keyboardHeight
+        let scale = min(1, bounds.height / height)
+        guard scale > 0 else { return }
+        keyboard.transform = .identity
+        keyboard.bounds = CGRect(x: 0, y: 0, width: bounds.width, height: height)
+        keyboard.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        keyboard.transform = CGAffineTransform(scaleX: scale, y: scale)
+    }
+}
+
 extension Notification.Name {
     static let clearKeyboardPreview = Notification.Name("clearKeyboardPreview")
 }

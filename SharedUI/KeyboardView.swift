@@ -20,7 +20,7 @@ final class KeyboardView: UIControl {
     var inputState = InputState() {
         didSet {
             if oldValue.page != inputState.page || oldValue.language != inputState.language { cancelTouches() }
-            refresh()
+            if oldValue.page != inputState.page || oldValue.language != inputState.language || oldValue.shift != inputState.shift { refresh() }
         }
     }
     var preferences = KeyboardPreferences() {
@@ -29,8 +29,8 @@ final class KeyboardView: UIControl {
     var needsGlobe = true {
         didSet { if oldValue != needsGlobe { cancelTouches(); setNeedsLayout() } }
     }
-    var returnTitle = "return" { didSet { refresh() } }
-    var returnEnabled = true { didSet { refresh() } }
+    var returnTitle = "return" { didSet { if oldValue != returnTitle { refresh() } } }
+    var returnEnabled = true { didSet { if oldValue != returnEnabled { refresh() } } }
     var onAction: ((KeyAction) -> Void)?
     var onCursor: ((Int) -> Void)?
     var onDismiss: (() -> Void)?
@@ -55,6 +55,7 @@ final class KeyboardView: UIControl {
         var cell: Int
         let original: KeyAction
         let start: CGPoint
+        var began = ProcessInfo.processInfo.systemUptime
         var cursorSteps = 0
         var cursorMode = false
         var timer: Timer?
@@ -66,18 +67,19 @@ final class KeyboardView: UIControl {
         isAccessibilityElement = false
         isOpaque = true
         backgroundColor = .systemGray5
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: KeyboardView, _: UITraitCollection) in
+        registerForTraitChanges([UITraitUserInterfaceStyle.self, UITraitAccessibilityContrast.self]) { (view: KeyboardView, _: UITraitCollection) in
+            view.setNeedsLayout()
             view.setNeedsDisplay()
         }
         accessibilityIdentifier = "keyboard-surface"
         globeButton.setImage(UIImage(systemName: "globe"), for: .normal)
-        globeButton.tintColor = .label
+        globeButton.tintColor = palette.text
         globeButton.accessibilityLabel = "Next keyboard"
         globeButton.accessibilityIdentifier = "key-globe"
         globeButton.highlightChanged = { [weak self] in self?.nativeHighlightChanged(.globe) }
         addSubview(globeButton)
         dismissButton.setImage(UIImage(systemName: "keyboard.chevron.compact.down"), for: .normal)
-        dismissButton.tintColor = .secondaryLabel
+        dismissButton.tintColor = palette.secondary
         dismissButton.accessibilityLabel = "Dismiss keyboard"
         dismissButton.accessibilityIdentifier = "key-header-dismiss"
         dismissButton.highlightChanged = { [weak self] in self?.nativeHighlightChanged(.dismiss) }
@@ -100,6 +102,10 @@ final class KeyboardView: UIControl {
         globeButton.frame = cells.first(where: { $0.key.action == .globe })?.hitFrame ?? .zero
         dismissButton.frame = CGRect(x: bounds.width - 44, y: 0, width: 44, height: 38)
         dismissButton.isHidden = !preferences.showHeader || popup != nil
+        globeButton.tintColor = palette.text
+        dismissButton.tintColor = palette.secondary
+        backgroundColor = palette.background
+        accessibilityValue = "\(preferences.theme.title), \(preferences.accent.title)"
         rebuildAccessibility()
         setNeedsDisplay()
     }
@@ -231,38 +237,53 @@ final class KeyboardView: UIControl {
         return max(0, 1 - elapsed / 0.14)
     }
 
+    private var palette: KeyboardPalette {
+        KeyboardPalette(colors: .resolve(theme: preferences.theme, accent: preferences.accent,
+                                         systemDark: traitCollection.userInterfaceStyle == .dark,
+                                         increasedContrast: traitCollection.accessibilityContrast == .high))
+    }
+
     override func draw(_ rect: CGRect) {
-        backgroundColor?.setFill()
+        let palette = palette
+        palette.background.setFill()
         UIRectFill(bounds)
         var active = Set(sessions.values.map(\.cell))
         if globeButton.isHighlighted, let index = cells.firstIndex(where: { $0.key.action == .globe }) {
             active.insert(index)
         }
         for (index, cell) in cells.enumerated() {
+            let action = cell.key.action
             let isText: Bool
-            if case .text = cell.key.action { isText = true } else { isText = cell.key.action == .space }
-            let selectedShift = cell.key.action == .shift && displayState.page == .letters && inputState.shift != .off
-            let fill: UIColor = active.contains(index) || selectedShift ? .systemTeal : (isText ? .secondarySystemGroupedBackground : .systemGray4)
-            fill.setFill()
-            UIBezierPath(roundedRect: cell.visualFrame, cornerRadius: 4).fill()
-            UIColor.systemTeal.withAlphaComponent(feedbackOpacity(for: cell.key.action)).setFill()
-            UIBezierPath(roundedRect: cell.visualFrame, cornerRadius: 4).fill()
-            if cell.key.action == .dismiss {
-                let icon = UIImage(systemName: "keyboard.chevron.compact.down")?.withTintColor(.label, renderingMode: .alwaysOriginal)
-                icon?.draw(in: CGRect(x: cell.visualFrame.midX - 11, y: cell.visualFrame.midY - 10, width: 22, height: 20))
-                continue
+            if case .text = action { isText = true } else { isText = action == .space }
+            let selectedShift = action == .shift && displayState.page == .letters && inputState.shift != .off
+            let pressed = active.contains(index) || selectedShift
+            let frame = cell.visualFrame.insetBy(dx: 0.25, dy: 0.25)
+            let radius = min(8, frame.width / 4)
+            let path = UIBezierPath(roundedRect: frame, cornerRadius: radius)
+            (isText ? palette.key : palette.control).setFill()
+            path.fill()
+            let highlight = pressed ? 1 : feedbackOpacity(for: action)
+            palette.accent.withAlphaComponent(highlight * palette.highlightOpacity).setFill()
+            path.fill()
+            (pressed ? palette.accent : palette.border).setStroke()
+            path.lineWidth = pressed ? max(1, palette.borderWidth) : palette.borderWidth
+            path.stroke()
+
+            let color = action == .enter && !returnEnabled ? palette.secondary.withAlphaComponent(0.5) : palette.text
+            if drawControl(action, in: frame, color: color) { continue }
+            let label = action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(action)
+            var size: CGFloat = label.count > 2 ? 13 : 19
+            if case .text = action {
+                size = min(preferences.validated.letterSize, max(14, frame.width - 3))
             }
-            let label = cell.key.action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(cell.key.action)
-            let small = label.count > 2
-            let textColor: UIColor = cell.key.action == .enter && !returnEnabled ? .tertiaryLabel : .label
-            var size: CGFloat = small ? 13 : 21
-            if cell.key.action == .enter { size = min(17, max(13, cell.visualFrame.width / 4.4)) }
-            if cell.key.action == .backspace { size = 26 }
-            if case .text = cell.key.action {
-                size = min(preferences.validated.letterSize, max(14, cell.visualFrame.width - 3))
+            drawText(label, in: frame, font: .systemFont(ofSize: size,
+                     weight: isText ? .regular : .medium), color: color)
+            if preferences.showLongPressHints, case .text(let letter) = action,
+               letter == "г" || letter == "і", let hint = cell.key.alternatives.first {
+                let hintFrame = CGRect(x: frame.maxX - 13, y: frame.minY + 3, width: 10, height: 12)
+                drawText(title(.text(hint)), in: hintFrame,
+                         font: .systemFont(ofSize: 10, weight: .medium), color: palette.secondary)
             }
-            drawText(label, in: cell.visualFrame, font: .systemFont(ofSize: size,
-                     weight: isText ? .regular : .medium), color: textColor)
         }
         if let popup {
             let width = min(bounds.width - 12, CGFloat(popup.values.count) * 52)
@@ -270,17 +291,60 @@ final class KeyboardView: UIControl {
             for (index, value) in popup.values.enumerated() {
                 let frame = CGRect(x: origin + CGFloat(index) * width / CGFloat(popup.values.count),
                                    y: 2, width: width / CGFloat(popup.values.count), height: 34)
-                (index == popup.selected ? UIColor.systemTeal : UIColor.secondarySystemGroupedBackground).setFill()
-                UIBezierPath(roundedRect: frame.insetBy(dx: 1, dy: 0), cornerRadius: 5).fill()
-                drawText(title(.text(value)), in: frame, font: .systemFont(ofSize: 22), color: .label)
+                let path = UIBezierPath(roundedRect: frame.insetBy(dx: 1, dy: 0), cornerRadius: 8)
+                palette.key.setFill(); path.fill()
+                if index == popup.selected {
+                    palette.accent.withAlphaComponent(palette.highlightOpacity).setFill(); path.fill()
+                }
+                (index == popup.selected ? palette.accent : palette.border).setStroke()
+                path.lineWidth = max(1, palette.borderWidth); path.stroke()
+                drawText(title(.text(value)), in: frame, font: .systemFont(ofSize: 22), color: palette.text)
             }
         } else if preferences.showHeader {
-            UIColor.systemTeal.withAlphaComponent(dismissButton.isHighlighted ? 1 : feedbackOpacity(for: .dismiss)).setFill()
-            UIBezierPath(roundedRect: dismissButton.frame.insetBy(dx: 2, dy: 2), cornerRadius: 4).fill()
+            palette.accent.withAlphaComponent((dismissButton.isHighlighted ? 1 : feedbackOpacity(for: .dismiss)) * palette.highlightOpacity).setFill()
+            UIBezierPath(roundedRect: dismissButton.frame.insetBy(dx: 2, dy: 2), cornerRadius: 8).fill()
             let text = sessions.values.contains(where: \.cursorMode) ? "Slide to move cursor" : "\(inputState.language.badge)  ·  ORTHOLINEAR"
             drawText(text, in: CGRect(x: 10, y: 0, width: bounds.width - 64, height: 38),
-                     font: .monospacedSystemFont(ofSize: 10, weight: .medium), color: .secondaryLabel, alignment: .left)
+                     font: .monospacedSystemFont(ofSize: 10, weight: .medium), color: palette.secondary, alignment: .left)
         }
+    }
+
+    private func drawControl(_ action: KeyAction, in frame: CGRect, color: UIColor) -> Bool {
+        switch action {
+        case .shift where displayState.page == .letters:
+            let name = inputState.shift == .locked ? "capslock.fill" : (inputState.shift == .once ? "shift.fill" : "shift")
+            drawSymbol(name, in: frame, size: 21, color: color)
+        case .backspace:
+            drawSymbol("delete.left", in: frame, size: 23, color: color)
+        case .enter:
+            if returnTitle == "return" {
+                drawSymbol("return", in: frame, size: 23, color: color)
+            } else {
+                let name = returnTitle == "search" ? "magnifyingglass" : (returnTitle == "send" ? "paperplane" : (returnTitle == "done" ? "checkmark" : "arrow.right"))
+                drawSymbol(name, in: frame.offsetBy(dx: 0, dy: -7), size: 17, color: color)
+                drawText(returnTitle, in: CGRect(x: frame.minX + 2, y: frame.midY + 5, width: frame.width - 4, height: 13),
+                         font: .systemFont(ofSize: 11, weight: .medium), color: color)
+            }
+        case .language:
+            drawSymbol("arrow.left.arrow.right", in: frame.offsetBy(dx: 0, dy: -8), size: 16, color: color)
+            drawText(displayState.language.next.badge,
+                     in: CGRect(x: frame.minX, y: frame.midY + 5, width: frame.width, height: 13),
+                     font: .systemFont(ofSize: 10, weight: .semibold), color: color)
+        case .dismiss:
+            drawSymbol("keyboard.chevron.compact.down", in: frame, size: 21, color: color)
+        case .globe: break // Native button keeps Apple's tap-and-hold behavior.
+        default: return false
+        }
+        return true
+    }
+
+    private func drawSymbol(_ name: String, in frame: CGRect, size: CGFloat, color: UIColor) {
+        let configuration = UIImage.SymbolConfiguration(pointSize: size, weight: .medium)
+        guard let image = UIImage(systemName: name, withConfiguration: configuration)?.withTintColor(color, renderingMode: .alwaysOriginal) else { return }
+        let scale = min(1, (frame.width - 6) / image.size.width, (frame.height - 6) / image.size.height)
+        let width = image.size.width * scale
+        let height = image.size.height * scale
+        image.draw(in: CGRect(x: frame.midX - width / 2, y: frame.midY - height / 2, width: width, height: height))
     }
 
     private func drawText(_ string: String, in frame: CGRect, font: UIFont, color: UIColor,
@@ -314,7 +378,8 @@ final class KeyboardView: UIControl {
             sessions[id] = TouchSession(cell: index, original: key.action, start: point)
             if key.action == .backspace { emit(.backspace) }
             if key.action == .backspace || !key.alternatives.isEmpty {
-                let timer = Timer(timeInterval: 0.42, repeats: false) { [weak self] _ in
+                let delay = key.action == .backspace ? DeleteRepeat.initialDelay : 0.42
+                let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
                     MainActor.assumeIsolated { self?.beginHold(id: id, key: key) }
                 }
                 sessions[id]?.timer = timer
@@ -327,20 +392,26 @@ final class KeyboardView: UIControl {
     private func beginHold(id: ObjectIdentifier, key: Key) {
         guard sessions[id] != nil else { return }
         if key.action == .backspace {
-            emit(.backspace)
-            let timer = Timer(timeInterval: 0.075, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self, self.sessions[id] != nil else { return }
-                    self.emit(.backspace)
-                }
-            }
-            sessions[id]?.timer = timer
-            RunLoop.main.add(timer, forMode: .common)
+            repeatDelete(id: id)
         } else if popup == nil {
             popup = (id, key.alternatives, 0)
             dismissButton.isHidden = true
             setNeedsDisplay()
         }
+    }
+
+    private func repeatDelete(id: ObjectIdentifier) {
+        guard let session = sessions[id], session.original == .backspace,
+              cells.indices.contains(session.cell), cells[session.cell].key.action == .backspace else { return }
+        emit(.backspace)
+        // Emitting can synchronously dismiss or reconfigure the keyboard.
+        guard sessions[id] != nil else { return }
+        let elapsed = ProcessInfo.processInfo.systemUptime - session.began
+        let timer = Timer(timeInterval: DeleteRepeat.interval(heldFor: elapsed), repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.repeatDelete(id: id) }
+        }
+        sessions[id]?.timer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {

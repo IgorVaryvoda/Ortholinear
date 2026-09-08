@@ -50,6 +50,7 @@ enum KeyAction: Hashable, Sendable {
 struct Key: Sendable {
     let action: KeyAction
     var weight: Double = 1
+    var letterAlternatives: [String] = []
     var alternatives: [String] {
         guard case .text(let value) = action else { return [] }
         switch value {
@@ -60,7 +61,7 @@ struct Key: Sendable {
         case "-": return ["-", "–", "—", "_"]
         case "\"": return ["\"", "«", "»", "“", "”"]
         case "?": return ["?", "!", "¿"]
-        default: return []
+        default: return letterAlternatives
         }
     }
 }
@@ -72,14 +73,19 @@ enum KeyboardLayout {
         case .letters:
             let apostrophe = preferences.showApostrophe ? "'" : ""
             strings = state.language == .ukrainian
-                ? ["йцукенгшщзхї", "фівапролджє", "ячсмитьбю" + (preferences.showPunctuation ? ".," : "")]
+                ? ["йцукенгшщзх" + (preferences.yiOnLongPress ? "" : "ї"), "фівапролджє", "ячсмитьбю" + (preferences.showPunctuation ? ".," : "")]
                 : ["qwertyuiop", "asdfghjkl" + apostrophe, "zxcvbnm" + (preferences.showPunctuation ? ".,?" : "")]
         case .numbers:
             strings = ["1234567890", "-/:;()$&@\"", ".,?!'[]=+%"]
         case .symbols:
             strings = ["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'`:;₴…"]
         }
-        var result = strings.map { $0.map { Key(action: .text(String($0))) } }
+        var result = strings.map { row in
+            row.map { character in
+                Key(action: .text(String(character)),
+                    letterAlternatives: character == "і" && preferences.yiOnLongPress ? ["ї"] : [])
+            }
+        }
         if state.page == .letters,
            let lastLetter = result[2].firstIndex(where: { $0.action == .text(state.language == .english ? "m" : "ю") }) {
             result[2].insert(Key(action: .backspace, weight: preferences.validated.actionKeyWidth), at: lastLetter + 1)
@@ -116,10 +122,16 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var showApostrophe: Bool = true
     var showHeader: Bool = false
     var autoSpacePunctuation: Bool = true
+    var yiOnLongPress: Bool = false
+    var theme: KeyboardTheme = .system
+    var accent: KeyboardAccent = .theme
+    var showLongPressHints: Bool = true
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
         case controlHeight, letterSize, actionKeyWidth, shiftPlacement, showPunctuation, showApostrophe, showHeader, autoSpacePunctuation
+        case yiOnLongPress
+        case theme, accent, showLongPressHints
     }
 
     var validated: Self {
@@ -140,8 +152,10 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
 
     mutating func apply(_ preset: KeyboardPreset) {
         let language = defaultLanguage
+        let appearance = (theme, accent, showLongPressHints)
         self = preset.preferences
         defaultLanguage = language
+        (theme, accent, showLongPressHints) = appearance
     }
 }
 
@@ -162,6 +176,10 @@ extension KeyboardPreferences {
         showApostrophe = try c.decodeIfPresent(Bool.self, forKey: .showApostrophe) ?? showApostrophe
         showHeader = try c.decodeIfPresent(Bool.self, forKey: .showHeader) ?? showHeader
         autoSpacePunctuation = try c.decodeIfPresent(Bool.self, forKey: .autoSpacePunctuation) ?? autoSpacePunctuation
+        yiOnLongPress = try c.decodeIfPresent(Bool.self, forKey: .yiOnLongPress) ?? yiOnLongPress
+        theme = try c.decodeIfPresent(KeyboardTheme.self, forKey: .theme) ?? theme
+        accent = try c.decodeIfPresent(KeyboardAccent.self, forKey: .accent) ?? accent
+        showLongPressHints = try c.decodeIfPresent(Bool.self, forKey: .showLongPressHints) ?? showLongPressHints
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated

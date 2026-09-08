@@ -20,27 +20,31 @@ Bigger letters, straight rows, and adjustable geometry. Ukrainian + English, wit
 
 ## Description
 
-Room for bigger letters.
+Big fingers deserve room to type.
+
+Standard keys feel cramped under your thumbs? Ortholinear is built for bigger fingers, with wider keys, larger letters, and adjustable spacing. Give your hands more generous touch targets and a layout that fits the way you type.
 
 Ortholinear is a Ukrainian and English keyboard for iPhone and iPad. Straight rows and equal-width letter cells make the most of the available space. Choose a preset or adjust the keyboard to suit your hands.
 
 MAKE THE SPACE YOURS
 • Start with Big letters, Balanced, or Original grid.
-• Adjust letter size, key height, control-row height, and spacing.
+• Adjust letter size, key height, control-row height, and spacing with a live preview.
 • Give Return and Delete more room, with Delete immediately after M / Ю.
 • Keep Ukrainian letters free of an apostrophe key.
 • Add a space after punctuation automatically, or turn it off.
 • Choose Shift placement and optional punctuation keys.
 • Extend touch targets into the gaps between keys.
+• Choose Warm Light, Soft Dark, High Contrast, Tokyo Night, Catppuccin Mocha, Nord, or Automatic themes, plus your own accent color.
 
 UKRAINIAN + ENGLISH
 • Switch languages with one tap.
 • Type the full Ukrainian alphabet; hold г for ґ and Г for Ґ.
+• Optionally move ї to long-press і for a wider top row, with small hints to help you find held letters.
 • Access numbers, symbols, and punctuation alternatives.
 • Hold 123, slide to a symbol, and release to type it and return to letters.
 • Keep 123 / ABC at the far left, with clear feedback on keyboard controls.
 • Slide on Space to move the cursor.
-• Double-tap Shift for caps lock and hold Delete to repeat.
+• Double-tap Shift for caps lock. Hold Delete to erase gradually faster.
 
 YOUR WORDS STAY YOURS
 Typing works without Full Access. No analytics, ads, app accounts, or typed-text collection. Typing and settings stay on your device. Ortholinear types exactly what you tap, without autocorrect or predictions.
@@ -58,6 +62,17 @@ No account or sign-in is required. Launch the containing app to use the interact
 
 The extension does not request Full Access (RequestsOpenAccess=false). The app writes geometry and typing preferences into its App Group; the keyboard only reads them. No network requests, microphone recording, or typed-text collection. For ґ, hold г; for Ґ, enable Shift and hold Г. Delete follows M / Ю; Ukrainian has no letter-page apostrophe. Automatic punctuation spacing is enabled by default and configurable. URL and email fields use literal punctuation.
 
+Version 0.3.2: Open Settings > Appearance > Theme and colors for seven themes, accent colors, and long-press hints. Settings groups layout, letter, and typing controls, with a live keyboard preview while adjusting size or spacing. In Letters > Optional keys, enable ї on long-press і to remove the dedicated ї key; Shift + hold І produces Ї. Holding Delete gradually accelerates; releasing or sliding away stops it. Hold 123 and slide onto a symbol to insert it and return to letters.
+
+## Version 0.3.2 changes
+
+- Optional ї on long-press і, including Shift + hold І for Ї; removing the dedicated ї key widens the top row.
+- Held Delete gradually accelerates, with immediate cancellation on release or slide-away.
+- Persistent live preview in customization, with size and spacing sliders, UA/EN switching, and landscape layout.
+- Softer key styling, consistent control icons, optional long-press hints, seven themes including Tokyo Night/Catppuccin Mocha/Nord, and six accent choices.
+- Clearly labeled Settings entry and a first-position Theme and colors row; controls grouped into layout, letters, and typing.
+- Version 0.3.2 (16) is installed on the paired iPhone and passes the final installed-extension checks. Submission is in progress; status below records the last confirmed App Store submission.
+
 ## Version 0.3.1 changes
 
 - Clear pressed-key feedback and stable release fades, including globe and dismiss controls.
@@ -67,11 +82,13 @@ The extension does not request Full Access (RequestsOpenAccess=false). The app w
 
 ## Submission status
 
+On September 8, 2026, the description was saved in App Store Connect with the opening “Big fingers deserve room to type,” explicitly positioning the keyboard for bigger fingers and more generous touch targets. The saved text was verified after reloading the page. The existing 0.3.1 review submission remains in place.
+
 Version **0.3.1 (10)** was submitted to App Review on September 6, 2026. App Store Connect confirms **Waiting for Review** and **1 Item Submitted**. Automatic release after approval is enabled.
 
 The update adds stable pressed-key feedback, keeps 123 / ABC at the far left, and supports holding/sliding from 123 to type a symbol and return to letters. The description and review notes include these interactions. The previous 0.3.0 (9) submission was withdrawn and replaced.
 
-The signed archive is installed on the paired iPhone 15 Pro, iOS 26.5; CoreDevice reports version 0.3.1 and bundle version 10. Remote launch was declined because the phone was locked. Simulator preview and installed-extension interaction checks pass as detailed in [VERIFICATION.md](VERIFICATION.md).
+On September 6, the signed 0.3.1 (10) archive was installed on the paired iPhone 15 Pro, iOS 26.5; remote launch was declined because the phone was locked. On September 8, the local 0.3.2 (11) Release build replaced it and launched successfully. Simulator preview and installed-extension interaction checks pass as detailed in [VERIFICATION.md](VERIFICATION.md).
 
 Free pricing, availability in 175 regions, age/content declarations, Data Not Collected privacy declaration, existing iPhone/iPad screenshots, and review contact details are retained. The app is not yet publicly available; Apple must approve the submission first.
 

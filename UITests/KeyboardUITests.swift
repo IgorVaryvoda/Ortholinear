@@ -2,6 +2,203 @@ import XCTest
 
 final class KeyboardUITests: XCTestCase {
     @MainActor
+    func testAppearanceThemesAccentsAndPersistence() throws {
+        let app = launchApp()
+        tapMainButton("customize-keyboard", in: app)
+        let themes = app.buttons["theme-settings"]
+        XCTAssertTrue(themes.isHittable, "Themes should be visible as soon as settings opens")
+        XCTAssertTrue(app.otherElements["settings-keyboard-preview"].waitForExistence(timeout: 5))
+        let settingsScreenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        settingsScreenshot.name = "Organized keyboard settings"
+        settingsScreenshot.lifetime = .keepAlways
+        add(settingsScreenshot)
+        themes.tap()
+        XCTAssertTrue(app.buttons["theme-system"].waitForExistence(timeout: 5))
+        app.buttons["appearance-done"].tap()
+        let yi = app.switches["yi-on-long-press"]
+        revealSetting(yi, in: app)
+        if yi.value as? String == "0" {
+            yi.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5)).withOffset(CGVector(dx: -25, dy: 0)).tap()
+        }
+        app.buttons["choose-theme"].tap()
+        let form = app.collectionViews["appearance-controls"]
+        func reveal(_ element: XCUIElement, down fallback: Bool = true) {
+            for _ in 0..<18 {
+                let top = app.navigationBars["Make it yours"].frame.maxY + 10
+                if element.exists && element.frame.minY > top && element.frame.maxY < form.frame.maxY - 10 { return }
+                let down = element.exists ? element.frame.midY > (top + form.frame.maxY) / 2 : fallback
+                form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.8 : 0.5))
+                    .press(forDuration: 0.05, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.5 : 0.8)))
+            }
+            XCTFail("Appearance control is offscreen: \(element)")
+        }
+        let preview = app.otherElements.matching(identifier: "settings-keyboard-preview").firstMatch
+        let hints = app.switches["show-long-press-hints"]
+        reveal(hints)
+        if hints.value as? String == "0" {
+            hints.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5)).withOffset(CGVector(dx: -25, dy: 0)).tap()
+        }
+        reveal(app.buttons["theme-light"], down: false)
+        for (id, title) in [("light", "Warm Light"), ("dark", "Soft Dark"), ("tokyoNight", "Tokyo Night"),
+                            ("catppuccin", "Catppuccin Mocha"), ("nord", "Nord"), ("highContrast", "High Contrast")] {
+            let theme = app.buttons["theme-\(id)"]
+            reveal(theme, down: id != "highContrast")
+            theme.tap()
+            XCTAssertTrue((preview.value as? String ?? "").contains("theme \(title)"))
+            let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            screenshot.name = "Keyboard theme — \(title)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+        }
+        reveal(app.buttons["theme-tokyoNight"])
+        app.buttons["theme-tokyoNight"].tap()
+        reveal(app.buttons["accent-rose"])
+        app.buttons["accent-rose"].tap()
+        XCTAssertTrue((preview.value as? String ?? "").contains("accent Rose"))
+        reveal(hints)
+        hints.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5)).withOffset(CGVector(dx: -25, dy: 0)).tap()
+        XCTAssertEqual(hints.value as? String, "0")
+        app.buttons["appearance-done"].tap()
+        app.buttons["Done"].tap()
+        app.terminate(); app.launch()
+        tapMainButton("customize-keyboard", in: app)
+        app.buttons["theme-settings"].tap()
+        XCTAssertTrue((preview.value as? String ?? "").contains("theme Tokyo Night, accent Rose"))
+        reveal(hints)
+        XCTAssertEqual(hints.value as? String, "0")
+        hints.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5)).withOffset(CGVector(dx: -25, dy: 0)).tap()
+        reveal(app.buttons["accent-theme"], down: false)
+        app.buttons["accent-theme"].tap()
+        reveal(app.buttons["theme-system"], down: false)
+        app.buttons["theme-system"].tap()
+        app.buttons["appearance-done"].tap()
+        revealSetting(app.buttons["preset-bigLetters"], in: app, scrollingDown: false)
+        app.buttons["preset-bigLetters"].tap()
+        app.buttons["Done"].tap()
+    }
+
+    @MainActor
+    func testLiveSettingsPreviewTracksSpacingAndLanguage() throws {
+        let app = launchApp()
+        tapMainButton("customize-keyboard", in: app)
+        app.buttons["preset-bigLetters"].tap()
+        let preview = app.otherElements["settings-keyboard-preview"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 5))
+        let originalFrame = preview.frame
+        let rowSpacing = app.sliders["Row spacing"]
+        revealSetting(app.sliders["Column spacing"], in: app)
+        app.sliders["Column spacing"].adjust(toNormalizedSliderPosition: 0.85)
+        revealSetting(rowSpacing, in: app)
+        rowSpacing.adjust(toNormalizedSliderPosition: 0.8)
+        XCTAssertFalse((preview.value as? String ?? "").contains("column spacing 2,"))
+        XCTAssertFalse((preview.value as? String ?? "").hasSuffix("row spacing 3"))
+        XCTAssertEqual(preview.frame.maxY, originalFrame.maxY, accuracy: 1)
+        XCTAssertTrue(app.frame.contains(preview.frame))
+        let portrait = XCTAttachment(screenshot: app.screenshot())
+        portrait.name = "Live spacing preview — portrait"
+        portrait.lifetime = .keepAlways
+        add(portrait)
+        app.segmentedControls["preview-language"].buttons["EN"].tap()
+        XCTAssertTrue((preview.value as? String ?? "").hasPrefix("EN"))
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in app.frame.width > app.frame.height }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
+        XCTAssertTrue(app.frame.contains(preview.frame))
+        app.segmentedControls["preview-language"].buttons["UA"].tap()
+        let horizontal = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        horizontal.name = "Live spacing preview — landscape"
+        horizontal.lifetime = .keepAlways
+        add(horizontal)
+        XCUIDevice.shared.orientation = .portrait
+        app.segmentedControls["preview-language"].buttons["EN"].tap()
+        app.buttons["Done"].tap()
+        tapMainButton("customize-keyboard", in: app)
+        app.buttons["preset-bigLetters"].tap()
+        app.buttons["Done"].tap()
+    }
+
+    @MainActor
+    func testOptionalYiLongPressPersistsAndCanBeDisabled() throws {
+        let app = launchApp()
+        tapMainButton("customize-keyboard", in: app)
+        app.buttons["preset-bigLetters"].tap()
+        let toggle = app.switches["yi-on-long-press"]
+        revealSetting(toggle, in: app)
+        XCTAssertEqual(toggle.value as? String, "0")
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+            .withOffset(CGVector(dx: -25, dy: 0)).tap()
+        app.buttons["Done"].tap()
+        XCTAssertFalse(app.buttons["key-ї"].exists)
+        let editor = app.textViews["preview-editor"]
+        app.buttons["key-і"].tap()
+        app.buttons["key-і"].press(forDuration: 0.6)
+        app.buttons["key-Shift"].tap()
+        app.buttons["key-І"].press(forDuration: 0.6)
+        app.buttons["key-і"].tap()
+        XCTAssertEqual(editor.value as? String, "іїЇі")
+        let key = app.buttons["key-і"]
+        let surface = app.otherElements["keyboard-surface"]
+        key.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.6, thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1)).withOffset(CGVector(dx: 0, dy: 20)))
+        XCTAssertEqual(editor.value as? String, "іїЇі")
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["key-і"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["key-ї"].exists)
+        tapMainButton("customize-keyboard", in: app)
+        revealSetting(toggle, in: app)
+        XCTAssertEqual(toggle.value as? String, "1")
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+            .withOffset(CGVector(dx: -25, dy: 0)).tap()
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["key-ї"].exists)
+    }
+
+    @MainActor
+    func testDeleteAccelerationAndReleaseCancellation() throws {
+        let app = launchApp()
+        let editor = app.textViews["preview-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        for _ in 0..<50 { app.buttons["key-а"].tap() }
+        let delete = app.buttons["key-Delete"]
+        delete.press(forDuration: 1)
+        let remaining = (editor.value as? String ?? "").count
+        let shortDeleted = 50 - remaining
+        XCTAssertGreaterThan(shortDeleted, 1)
+        delete.press(forDuration: 3)
+        let afterLong = (editor.value as? String ?? "").count
+        XCTAssertGreaterThan(remaining - afterLong, shortDeleted * 3)
+        XCTAssertGreaterThan(afterLong, 0)
+        let released = editor.value as? String
+        let changed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in editor.value as? String != released }, object: nil)
+        changed.isInverted = true
+        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 0.5), .completed)
+        let surface = app.otherElements["keyboard-surface"]
+        delete.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.6, thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 1)).withOffset(CGVector(dx: 0, dy: 20)), withVelocity: .fast, thenHoldForDuration: 0.7)
+        let afterSlide = editor.value as? String
+        XCTAssertFalse(afterSlide?.isEmpty ?? true)
+        let changedAfterSlide = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in editor.value as? String != afterSlide }, object: nil)
+        changedAfterSlide.isInverted = true
+        XCTAssertEqual(XCTWaiter.wait(for: [changedAfterSlide], timeout: 0.5), .completed)
+        delete.tap()
+        XCTAssertEqual((editor.value as? String ?? "").count, (afterSlide ?? "").count - 1)
+    }
+
+    @MainActor
+    private func revealSetting(_ element: XCUIElement, in app: XCUIApplication, scrollingDown: Bool = true) {
+        let form = app.collectionViews["geometry-controls"]
+        for _ in 0..<16 {
+            let top = max(form.frame.minY, app.navigationBars["Keyboard settings"].frame.maxY) + 20
+            if element.exists && element.frame.midY > top && element.frame.midY < form.frame.maxY - 20 { return }
+            let down = element.exists ? element.frame.midY > form.frame.midY : scrollingDown
+            form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.8 : 0.5))
+                .press(forDuration: 0.05, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.5 : 0.8)))
+        }
+        XCTFail("Could not scroll setting into view: \(element)")
+    }
+
+    @MainActor
     private func tapMainButton(_ id: String, in app: XCUIApplication) {
         let button = app.buttons[id]
         for _ in 0..<8 {
@@ -105,11 +302,15 @@ final class KeyboardUITests: XCTestCase {
     func testGeometryAndSetup() throws {
         let app = launchApp()
         tapMainButton("customize-keyboard", in: app)
-        XCTAssertTrue(app.navigationBars["Your geometry"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Keyboard settings"].waitForExistence(timeout: 5))
         app.buttons["preset-original"].tap()
+        revealSetting(app.switches["show-punctuation"], in: app)
         XCTAssertEqual(app.switches["show-punctuation"].value as? String, "1")
+        revealSetting(app.sliders["Key height"], in: app, scrollingDown: false)
         app.sliders["Key height"].adjust(toNormalizedSliderPosition: 0.7)
+        revealSetting(app.buttons["preset-bigLetters"], in: app, scrollingDown: false)
         app.buttons["preset-bigLetters"].tap()
+        revealSetting(app.switches["show-punctuation"], in: app)
         XCTAssertEqual(app.switches["show-punctuation"].value as? String, "0")
         app.buttons["Done"].tap()
         tapMainButton("enable-keyboard", in: app)

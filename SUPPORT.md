@@ -12,6 +12,10 @@ Need help with Ortholinear? [Open an issue](https://github.com/IgorVaryvoda/Orth
 
 - **Settings did not apply:** dismiss and reopen the keyboard after changing geometry in the app.
 - **Missing ґ:** hold г; use Shift and hold Г for Ґ.
+- **ї on long-press:** turn on Customize → ї on long-press і. Tap і normally or hold it for ї; Shift + hold І types Ї.
+- **Themes and colors:** open **Settings → Appearance → Theme and colors**. Choose Tokyo Night, Catppuccin Mocha, Nord, or one of the light/dark options; accent colors and long-press hints are on the same screen.
+- **Live adjustments:** the preview stays visible while you move size and spacing sliders.
+- **Faster deletion:** hold Delete to accelerate; release or slide away to stop.
 - **No keyboard in a password field:** iOS uses its own keyboard for secure and phone-pad fields. Some apps disallow custom keyboards.
 - **Punctuation spacing:** automatic spacing is on by default. Change it under Customize → Typing → Space after punctuation. Apostrophes, URLs, and email fields stay literal.
 - **No autocorrect:** Ortholinear types exactly what you tap. Prediction and autocorrect are not included.

@@ -3,6 +3,49 @@ import CoreGraphics
 @testable import OrtholinearCore
 
 final class KeyboardCoreTests: XCTestCase {
+    func testOptionalYiLongPressPreservesAlphabetAndWidensFirstRow() throws {
+        let defaults = KeyboardPreferences()
+        var preferences = defaults
+        preferences.yiOnLongPress = true
+        let rows = KeyboardLayout.rows(state: InputState(), needsGlobe: false, preferences: preferences)
+        XCTAssertEqual(rows[0].count, 11)
+        let keys = rows.flatMap { $0 }
+        XCTAssertFalse(keys.contains { $0.action == .text("ї") })
+        XCTAssertEqual(keys.first { $0.action == .text("і") }?.alternatives, ["ї"])
+        let available = keys.flatMap { key -> [String] in
+            if case .text(let value) = key.action { return [value] + key.alternatives }
+            return []
+        }
+        XCTAssertEqual(Set(available), Set("абвгґдеєжзиіїйклмнопрстуфхцчшщьюя".map(String.init)))
+        let normal = KeyboardGeometry.cells(width: 393, state: InputState(), preferences: defaults, needsGlobe: false)
+        let compact = KeyboardGeometry.cells(width: 393, state: InputState(), preferences: preferences, needsGlobe: false)
+        XCTAssertGreaterThan(compact[0].hitFrame.width, normal[0].hitFrame.width)
+        XCTAssertEqual(try JSONDecoder().decode(KeyboardPreferences.self, from: JSONEncoder().encode(preferences)), preferences)
+        XCTAssertFalse(try JSONDecoder().decode(KeyboardPreferences.self, from: Data(#"{"schemaVersion":2,"keyHeight":65}"#.utf8)).yiOnLongPress)
+        var state = InputState()
+        state.shift = .once
+        XCTAssertEqual(state.consume("ї"), "Ї")
+        XCTAssertEqual(state.shift, .off)
+        state.language = .english
+        XCTAssertEqual(KeyboardLayout.rows(state: state, needsGlobe: false, preferences: preferences).map { $0.map(\.action) },
+                       KeyboardLayout.rows(state: state, needsGlobe: false, preferences: defaults).map { $0.map(\.action) })
+    }
+
+    func testDeleteRepeatAcceleratesAndCapsAtSafeInterval() {
+        XCTAssertEqual(DeleteRepeat.initialDelay, 0.42)
+        XCTAssertEqual(DeleteRepeat.interval(heldFor: 0), 0.12, accuracy: 0.001)
+        var previous = DeleteRepeat.interval(heldFor: 0)
+        for elapsed in stride(from: 0.5, through: 10.0, by: 0.1) {
+            let interval = DeleteRepeat.interval(heldFor: elapsed)
+            XCTAssertLessThanOrEqual(interval, previous)
+            XCTAssertGreaterThanOrEqual(interval, 0.0249)
+            previous = interval
+        }
+        XCTAssertLessThan(DeleteRepeat.interval(heldFor: 3), DeleteRepeat.interval(heldFor: 1))
+        XCTAssertEqual(DeleteRepeat.interval(heldFor: 60), 0.025, accuracy: 0.001)
+        XCTAssertEqual(DeleteRepeat.interval(heldFor: 0), 0.12, accuracy: 0.001, "A new hold starts slowly again")
+    }
+
     func testDefaultUkrainianHasEveryLetterWithoutDotOrComma() {
         let rows = KeyboardLayout.rows(state: InputState(), needsGlobe: false).prefix(3)
         XCTAssertEqual(rows.map(\.count), [12, 11, 11])

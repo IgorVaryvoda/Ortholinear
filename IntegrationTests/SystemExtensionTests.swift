@@ -22,7 +22,27 @@ final class SystemExtensionTests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         tapOnMainPage("customize-keyboard", in: app)
         app.buttons["preset-bigLetters"].tap()
-        app.sliders["Key height"].adjust(toNormalizedSliderPosition: 1)
+        let form = app.collectionViews["geometry-controls"]
+        func reveal(_ element: XCUIElement, down fallback: Bool = true) {
+            for _ in 0..<30 {
+                let top = app.navigationBars["Keyboard settings"].frame.maxY + 10
+                if element.exists && element.frame.minY > top && element.frame.maxY < form.frame.maxY - 10 { return }
+                let down = element.exists ? element.frame.midY > (top + form.frame.maxY) / 2 : fallback
+                form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.8 : 0.5))
+                    .press(forDuration: 0.05, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.5 : 0.8)))
+            }
+            XCTFail("Setting is offscreen: \(element)")
+        }
+        let yi = app.switches["yi-on-long-press"]
+        reveal(yi)
+        yi.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+            .withOffset(CGVector(dx: -25, dy: 0)).tap()
+        let keyHeight = app.sliders["Key height"]
+        reveal(keyHeight, down: false)
+        keyHeight.adjust(toNormalizedSliderPosition: 1)
+        app.buttons["choose-theme"].tap()
+        app.buttons["theme-tokyoNight"].tap()
+        app.buttons["appearance-done"].tap()
         app.buttons["Done"].tap()
         // XCUITest's slider endpoint can round short of 1.0. Compare the extension
         // with the actual saved preview geometry, while requiring a customized size.
@@ -51,6 +71,10 @@ final class SystemExtensionTests: XCTestCase {
         app.activate()
         tapOnMainPage("system-test", in: app)
         let editor = app.textViews["system-editor"]
+        if !editor.waitForExistence(timeout: 5) {
+            // The first tap can finish scrolling after returning from Settings.
+            tapOnMainPage("system-test", in: app)
+        }
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
         editor.tap()
         let surface = app.otherElements["system-keyboard-surface"]
@@ -69,6 +93,7 @@ final class SystemExtensionTests: XCTestCase {
         loaded.name = "System keyboard loaded"
         loaded.lifetime = .keepAlways
         add(loaded)
+        XCTAssertTrue((surface.value as? String ?? "").contains("Tokyo Night"), "The extension must load the saved theme")
         XCTAssertEqual(ukrainianKey.frame.height, previewKeyHeight, accuracy: 1, "Extension must read the same saved key height as the app preview")
         XCTAssertFalse(surface.buttons["key-."].exists)
         XCTAssertFalse(surface.buttons["key-,"].exists)
@@ -110,13 +135,23 @@ final class SystemExtensionTests: XCTestCase {
         XCTAssertTrue(numbers.exists, "A symbol slide must restore letters in the installed extension")
         surface.buttons["key-a"].tap()
         XCTAssertEqual(editor.value as? String, "фігґҐг1a")
+        surface.buttons["key-Switch to Українська"].tap()
+        XCTAssertFalse(surface.buttons["key-ї"].exists)
+        surface.buttons["key-і"].press(forDuration: 0.6)
+        surface.buttons["key-Shift"].tap()
+        surface.buttons["key-І"].press(forDuration: 0.6)
+        XCTAssertEqual(editor.value as? String, "фігґҐг1aїЇ")
+        surface.buttons["key-Delete"].press(forDuration: 2)
+        XCTAssertEqual(editor.value as? String, "")
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Installed keyboard extension"
         attachment.lifetime = .keepAlways
         add(attachment)
+        // Verify the host remains responsive after held Delete reaches empty text.
+        surface.buttons["key-а"].tap()
+        XCTAssertEqual(editor.value as? String, "а")
         app.buttons["Done"].tap()
-        tapOnMainPage("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
-        app.buttons["Done"].tap()
+        XCTAssertFalse(editor.exists)
+        // This disposable simulator retains the enabled keyboard and test preferences.
     }
 }

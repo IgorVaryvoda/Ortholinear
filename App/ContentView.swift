@@ -23,7 +23,8 @@ struct ContentView: View {
                         .padding(.horizontal, 10).padding(.vertical, 7)
                         .overlay(Capsule().stroke(.primary.opacity(0.18)))
                     Button { showGeometry = true } label: {
-                        Image(systemName: "slider.horizontal.3").frame(width: 36, height: 40)
+                        Label("Settings", systemImage: "slider.horizontal.3")
+                            .font(.system(size: 12, weight: .semibold)).frame(minHeight: 40)
                     }.accessibilityLabel("Customize keyboard").accessibilityIdentifier("customize-keyboard")
                 }
                 .padding(.top, 12)
@@ -60,16 +61,24 @@ struct ContentView: View {
                         .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
                 }
 
-                HStack(spacing: 10) {
+                VStack(spacing: 10) {
                     Button { showSetup = true } label: {
                         HStack { Text("Enable keyboard"); Spacer(); Image(systemName: "arrow.up.right") }
                             .font(.system(size: 14, weight: .semibold)).padding(17)
                             .foregroundStyle(.white).background(accent, in: RoundedRectangle(cornerRadius: 12))
                     }.accessibilityIdentifier("enable-keyboard")
                     Button { showGeometry = true } label: {
-                        Image(systemName: "slider.horizontal.3").font(.system(size: 21)).frame(width: 52, height: 52)
+                        HStack(spacing: 12) {
+                            Image(systemName: "slider.horizontal.3").font(.title3)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Keyboard settings").font(.system(size: 15, weight: .semibold))
+                                Text("Themes, layout and typing").font(.system(size: 12)).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+                        }.padding(17).frame(maxWidth: .infinity)
                             .background(.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-                    }.accessibilityLabel("Adjust geometry").accessibilityIdentifier("adjust-geometry")
+                    }.accessibilityLabel("Keyboard settings, themes, layout and typing").accessibilityIdentifier("adjust-geometry")
                 }
 
                 VStack(spacing: 0) {
@@ -88,7 +97,7 @@ struct ContentView: View {
                     Link("Support", destination: URL(string: "https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md")!)
                 }
                 .font(.system(size: 13, weight: .medium))
-                Text("BUILT FOR YOUR HANDS.  /  V0.3.1")
+                Text("BUILT FOR YOUR HANDS.  /  V0.3.2")
                     .font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(1.5)
                     .foregroundStyle(.tertiary).padding(.bottom, 20)
             }
@@ -136,103 +145,175 @@ struct GeometrySettings: View {
     @Binding var preferences: KeyboardPreferences
     @Environment(\.dismiss) private var dismiss
 
+    @State private var previewLanguage: KeyboardLanguage = .ukrainian
+    @State private var showAppearance = false
+
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    HStack(spacing: 6) {
-                        ForEach(KeyboardPreset.allCases) { preset in
-                            Button(preset.title) { preferences.apply(preset) }
-                                .font(.system(size: 12, weight: .semibold))
-                                .frame(maxWidth: .infinity, minHeight: 36)
-                                .buttonStyle(.bordered)
-                                .accessibilityIdentifier("preset-\(preset.rawValue)")
-                        }
+            GeometryReader { geometry in
+                if geometry.size.width > geometry.size.height {
+                    HStack(spacing: 0) {
+                        controls.frame(maxWidth: .infinity)
+                        livePreview(maxHeight: geometry.size.height - 60)
+                            .frame(maxWidth: .infinity)
                     }
-                    Text(activePreset?.detail ?? "Your custom geometry")
-                        .font(.caption).foregroundStyle(.secondary)
-                } header: { Text("Start with a preset") }
-                Section {
-                    Toggle("Dot, comma and question mark", isOn: $preferences.showPunctuation)
-                        .accessibilityIdentifier("show-punctuation")
-                    Toggle("English apostrophe", isOn: $preferences.showApostrophe)
-                        .accessibilityIdentifier("show-apostrophe")
-                } header: { Text("On the letter rows") } footer: {
-                    Text("Punctuation is always available under 123. Removing keys makes the remaining keys wider, with no empty spaces.")
+                } else {
+                    VStack(spacing: 0) {
+                        controls
+                        livePreview(maxHeight: geometry.size.height * 0.45)
+                    }
                 }
-                Section("Shift position") {
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .navigationTitle("Keyboard settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .sheet(isPresented: $showAppearance) { AppearanceSettings(preferences: $preferences) }
+        }.tint(accent)
+    }
+
+    private func livePreview(maxHeight: CGFloat) -> some View {
+        VStack(spacing: 10) {
+            HStack {
+                Label("Live preview", systemImage: "keyboard")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Button { showAppearance = true } label: {
+                    Image(systemName: "paintpalette").frame(width: 34, height: 34)
+                }
+                .accessibilityLabel("Choose keyboard theme")
+                .accessibilityIdentifier("choose-theme")
+                Picker("Preview language", selection: $previewLanguage) {
+                    ForEach(KeyboardLanguage.allCases, id: \.self) { Text($0.badge).tag($0) }
+                }
+                .pickerStyle(.segmented).frame(width: 112)
+                .accessibilityIdentifier("preview-language")
+            }.padding(.horizontal, 16)
+            SettingsKeyboardPreview(preferences: preferences, language: previewLanguage)
+                .frame(height: maxHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 8)
+        }
+        .padding(.top, 12).padding(.bottom, 8)
+        .background(.regularMaterial)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    private var controls: some View {
+        Form {
+            Section("Appearance") {
+                Button { showAppearance = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "paintpalette.fill").font(.title3)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Theme and colors").font(.body.weight(.medium))
+                            Text("\(preferences.theme.title) · \(preferences.accent.title)").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    }.padding(.vertical, 4)
+                }
+                .accessibilityIdentifier("theme-settings")
+            }
+            Section {
+                HStack(spacing: 6) {
+                    ForEach(KeyboardPreset.allCases) { preset in
+                        Button(preset.title) { preferences.apply(preset) }
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(maxWidth: .infinity, minHeight: 36)
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("preset-\(preset.rawValue)")
+                    }
+                }
+                Text(activePreset?.detail ?? "Your custom geometry")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: { Label("Layout · Presets", systemImage: "square.grid.3x3") }
+            Section {
+                slider("Key height", value: $preferences.keyHeight, range: 36...88)
+                slider("Control row height", value: $preferences.controlHeight, range: 36...72)
+                slider("Letter size", value: $preferences.letterSize, range: 18...36)
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text("Return and Delete width")
+                        Spacer()
+                        Text(preferences.actionKeyWidth, format: .number.precision(.fractionLength(1)))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                    }
+                    Slider(value: $preferences.actionKeyWidth, in: 1.25...3.5, step: 0.05)
+                        .accessibilityLabel("Return and Delete width")
+                }
+            } header: { Label("Layout · Size", systemImage: "textformat.size") } footer: {
+                Text("Size letters and controls separately. The preview updates as you drag.")
+            }
+            Section {
+                slider("Column spacing", value: $preferences.columnSpacing, range: 0...8)
+                slider("Row spacing", value: $preferences.rowSpacing, range: 0...12)
+                Toggle("Fill gaps between keys", isOn: $preferences.fillGaps)
+                    .accessibilityIdentifier("fill-gaps")
+            } header: { Label("Layout · Spacing", systemImage: "arrow.left.and.right") } footer: {
+                Text("Fill gaps keeps the visual spacing while extending touch targets to meet. Turn it off to make only the visible keys respond.")
+            }
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Shift position")
                     Picker("Shift position", selection: $preferences.shiftPlacement) {
                         ForEach(ShiftPlacement.allCases, id: \.self) { Text($0.title).tag($0) }
                     }.pickerStyle(.segmented)
                 }
-                Section("Sizes") {
-                    slider("Key height", value: $preferences.keyHeight, range: 36...88)
-                    slider("Control row height", value: $preferences.controlHeight, range: 36...72)
-                    slider("Letter size", value: $preferences.letterSize, range: 18...36)
-                }
-                Section {
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text("Return and Delete width")
-                            Spacer()
-                            Text(preferences.actionKeyWidth, format: .number.precision(.fractionLength(1)))
-                                .monospacedDigit().foregroundStyle(.secondary)
-                        }
-                        Slider(value: $preferences.actionKeyWidth, in: 1.25...3.5, step: 0.05)
-                            .accessibilityLabel("Return and Delete width")
-                    }
-                } footer: {
-                    Text("Give Return and Delete more width. Delete follows letter-key height on the letter page; Return follows control-row height.")
-                }
-                Section("Spacing") {
-                    slider("Column spacing", value: $preferences.columnSpacing, range: 0...8)
-                    slider("Row spacing", value: $preferences.rowSpacing, range: 0...12)
-                }
-                Section {
-                    Toggle("Fill gaps between keys", isOn: $preferences.fillGaps)
-                        .accessibilityIdentifier("fill-gaps")
-                } footer: {
-                    Text("Keep the visual spacing while extending touch targets to meet. Turn this off to make only the visible key rectangles respond.")
-                }
-                Section {
-                    Toggle("Show header strip", isOn: $preferences.showHeader)
-                        .accessibilityIdentifier("show-header")
-                } footer: {
-                    Text("Hide the header to leave more room for letters.")
-                }
-                Section("Typing") {
-                    Toggle("Space after punctuation", isOn: $preferences.autoSpacePunctuation)
-                        .accessibilityIdentifier("auto-space-punctuation")
-                    Text("Adds a space after . , ! ? : ; … . Apostrophes stay unchanged. Numbers such as 3.14 keep their punctuation together.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Starting language") {
+                Toggle("Show header strip", isOn: $preferences.showHeader)
+                    .accessibilityIdentifier("show-header")
+            } header: { Label("Layout · Controls", systemImage: "rectangle.bottomthird.inset.filled") } footer: {
+                Text("Hide the header to leave more room for letters.")
+            }
+            Section {
+                Toggle("Dot, comma and question mark", isOn: $preferences.showPunctuation)
+                    .accessibilityIdentifier("show-punctuation")
+                Toggle("English apostrophe", isOn: $preferences.showApostrophe)
+                    .accessibilityIdentifier("show-apostrophe")
+                Toggle("ї on long-press і", isOn: $preferences.yiOnLongPress)
+                    .accessibilityIdentifier("yi-on-long-press")
+            } header: { Label("Letters · Optional keys", systemImage: "character.cursor.ibeam") } footer: {
+                Text("Fewer keys means wider letters. Punctuation stays available under 123. Moving ї to long-press і removes its separate key; hold І with Shift for Ї.")
+            }
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Starting language")
                     Picker("Language", selection: $preferences.defaultLanguage) {
                         ForEach(KeyboardLanguage.allCases, id: \.self) { Text($0.title).tag($0) }
                     }.pickerStyle(.segmented)
                 }
-                Section {
-                    Button("Reset to defaults") { preferences = KeyboardPreferences() }
-                } footer: {
-                    Text("Settings save on this device. Dismiss and reopen the system keyboard to apply changes. The UA / EN key switches languages as you type.")
-                }
+                Toggle("Space after punctuation", isOn: $preferences.autoSpacePunctuation)
+                    .accessibilityIdentifier("auto-space-punctuation")
+            } header: { Label("Typing", systemImage: "keyboard") } footer: {
+                Text("The UA / EN key switches languages as you type. Automatic spacing adds a space after punctuation; apostrophes and numbers such as 3.14 stay together. Hold Delete to gradually delete faster.")
             }
-            .navigationTitle("Your geometry")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-        }.tint(accent)
+            Section {
+                Button("Reset to defaults") { preferences = KeyboardPreferences() }
+            } footer: {
+                Text("Settings save on this device. Dismiss and reopen the system keyboard to apply changes. The UA / EN key switches languages as you type.")
+            }
+        }
+        .accessibilityIdentifier("geometry-controls")
     }
 
     private var activePreset: KeyboardPreset? {
         KeyboardPreset.allCases.first { preset in
             var candidate = preset.preferences
             candidate.defaultLanguage = preferences.defaultLanguage
+            candidate.theme = preferences.theme
+            candidate.accent = preferences.accent
+            candidate.showLongPressHints = preferences.showLongPressHints
             return candidate == preferences
         }
     }
 
     private func slider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
         VStack(alignment: .leading) {
-            HStack { Text(title); Spacer(); Text("\(Int(value.wrappedValue)) pt").monospacedDigit().foregroundStyle(.secondary) }
+            HStack { Text(title); Spacer(); Text("\(Int(value.wrappedValue)) pt")
+                    .font(.subheadline.monospacedDigit().weight(.medium))
+                    .foregroundStyle(accent)
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(accent.opacity(0.08), in: Capsule()) }
             Slider(value: value, in: range, step: 1).accessibilityLabel(title)
         }.padding(.vertical, 4)
     }

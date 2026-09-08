@@ -6,7 +6,10 @@ The simulator verifies layout and interaction. Signing and installation have als
 - Enable Ortholinear in Settings with no Full Access. Type Ukrainian, English, numbers, and punctuation in Notes, Safari, Messages, and the app's system test fields.
 - Change presets, letter and control-row heights, letter size, Return/Delete width, Shift position, punctuation, apostrophe, header, spacing, gap-filling and starting language in the containing app. Dismiss and reopen the extension; verify every setting applies. Confirm settings survive terminating both processes.
 - Exercise each usable edge and gutter; rapidly alternate two thumbs; slide from one key to another before release.
-- Hold delete, slide away, release outside, switch apps, and rotate during the hold. Confirm repeating stops immediately.
+- Hold Delete for progressively longer periods; verify it starts precisely, speeds up smoothly, and resets to the slow rate on each new hold. Slide away, release outside, switch apps, and rotate during the hold. Confirm repeating stops immediately.
+- Enable ї on long-press і. Confirm ї disappears from the top row, a tap types і, a hold types ї, and Shift + hold І types Ї. Turn the option off to restore the separate ї key.
+- Choose every theme from Settings → Appearance → Theme and colors. Verify theme/accent persistence in the actual extension, long-press hints, light/dark Automatic behavior, High Contrast, and Reduce Motion.
+- Adjust size and row/column spacing sliders while watching the persistent preview; verify the controls stay in place as the keyboard changes. Switch UA/EN and rotate to landscape.
 - Double-tap shift; type several letters; unlock. Single shift should affect one letter, including Ukrainian ґ/ї/і/є.
 - Hold punctuation and select each ribbon option; release outside to cancel.
 - Hold 123, slide across symbols, and release: insert only the selected symbol and return to letters. Check quick slides, outside cancellation, a stationary hold, and pausing over #+=. Verify normal taps keep numbers open.

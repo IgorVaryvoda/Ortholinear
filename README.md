@@ -28,9 +28,13 @@ The checked-in Xcode project is ready to open. `project.yml` is the source for r
 xcodegen generate
 ```
 
-## V0.3.1 behavior
+## V0.3.2 behavior
 
 - Ukrainian and English with equal-width letters within each row, including the complete Ukrainian alphabet. English has an optional apostrophe; Ukrainian keeps it on the numbers page.
+- Turn on **ї on long-press і** in customization to remove the separate ї key and widen the top row. Tap і for і; hold for ї, or hold І with Shift for Ї. The option is off by default.
+- Customization keeps a live keyboard preview visible as you adjust size and spacing sliders, with UA/EN switching and a side-by-side layout in landscape.
+- Open **Settings → Appearance → Theme and colors** to choose Automatic, Warm Light, Soft Dark, High Contrast, Tokyo Night, Catppuccin Mocha, or Nord. Keep the theme accent or choose teal, blue, purple, rose, or amber. Theme and accent settings persist and are shared with the extension.
+- Softer key corners, subtle borders, a calm tinted press state, and consistent Shift/Delete/Return/language icons. Optional small ґ/ї hints reveal long-press letters. Theme changes preserve key geometry.
 - Tap г for г; hold it for ґ. With Shift, hold Г for Ґ. There is no separate ґ key.
 - Larger default letters: 72 pt keys, 28 pt labels, no header, and no period or comma on the letter page. The remaining letters expand across the row.
 - Shift sits immediately before Я / Z on the third letter row. Its position is configurable.
@@ -38,7 +42,7 @@ xcodegen generate
 - Big letters, Balanced, and Original grid presets; optional letter-page punctuation and header.
 - Optional automatic spacing after . , ! ? : ; …, enabled by default. Consecutive punctuation stays together, manual Space does not double the gap, and numeric continuations such as 3.14 work. URL and email fields use literal punctuation.
 - UA / EN toggle, one-shot shift, double-tap caps lock.
-- Backspace deletes immediately; hold for 420 ms to repeat every 75 ms.
+- Backspace deletes immediately; after a 420 ms hold, character deletion gradually accelerates from one every 120 ms to one every 25 ms over four seconds. Releasing, sliding off Delete, or dismissing the keyboard stops repetition. Each new hold starts slowly.
 - Space, return, two number/symbol pages, keyboard dismissal. The 123 / ABC switch always stays at the far left of the control row.
 - Tap 123 to stay on numbers. Hold or slide from 123 onto a symbol and release to type it, then return to letters. Pause over #+= to reach the second symbols page. Releasing outside or holding and releasing in place cancels.
 - Immediate pressed-key feedback and a short release fade, including globe and header dismissal. Key frames stay fixed during feedback; Reduce Motion uses a brief static highlight.
@@ -85,7 +89,7 @@ xcodebuild -project Ortholinear.xcodeproj -scheme OrtholinearSystemTests \
   -derivedDataPath build test
 ```
 
-This test enables Ortholinear in Settings, selects it with the system globe picker, types into a real host field, and verifies that the extension reads a changed key height from the app's shared container. It resets geometry to defaults afterward and leaves the extension enabled on that simulator.
+This test enables Ortholinear in Settings, selects it with the system globe picker, types into a real host field, and verifies that the extension reads a changed key height from the app's shared container. It leaves the extension enabled and retains its test preferences on that disposable simulator.
 
 See [device checks](docs/DEVICE-CHECKS.md) for the remaining checks before distribution.
 

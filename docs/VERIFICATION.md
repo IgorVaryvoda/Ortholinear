@@ -1,3 +1,16 @@
+# V0.3.2 verification — September 8, 2026
+
+Version 0.3.2 (16) adds optional ї on long-press і, accelerating held Delete, a persistent settings preview, keyboard themes and accents, and organized settings with a prominent Theme and colors entry.
+
+- All 22 core tests pass (`keyboard-032-core-release.log`), including optional-letter layout and migration, capped delete acceleration, appearance persistence, and normal/pressed text and hint contrast across every theme and accent.
+- Ten preview scenarios pass in `Keyboard-032-isolated-preview.xcresult`, including Ukrainian long-press case handling and cancellation, deletion acceleration and cancellation, live spacing preview, landscape, and existing typing interactions.
+- Final settings checks pass in `Keyboard-organized-settings.xcresult`: themes are visible on opening Settings, all six explicit themes render, accent and hint preferences persist after relaunch, presets and setup work, and spacing changes update a stationary preview in portrait and landscape. Theme appearance screenshots are retained in the result bundle.
+- Installed-extension testing exposed a language-update feedback loop after held Delete. Sampling showed repeated host/extension text-state synchronization. The controller now tracks the last reported language and sets primaryLanguage only when that language changes, avoiding asynchronous proxy echoes, and the renderer skips unchanged state refreshes. The final installed-extension run passes in `Keyboard-032-language-loop-fix-v3.xcresult`, including shared theme/height, language switching, uppercase alternatives, symbol slides, deletion to empty, subsequent typing, and host dismissal. Final renderer typing and symbol-slide regressions also pass in `Keyboard-032-final-renderer.xcresult`.
+- Signed Release archive succeeds at `build/keyboard-032-release16/Ortholinear.xcarchive`; app and extension both report 0.3.2 (16). The archived app installed successfully on the paired iPhone 15 Pro, recorded in `build/keyboard-032-release16-install.json`. Remote launch was declined because the phone was locked.
+- App Store description now explicitly describes bigger fingers and generous touch targets. Distribution status is recorded in [APP-STORE.md](APP-STORE.md).
+
+Environment: Xcode 26.6, iOS 26.5, dedicated iPhone 17 Pro simulators for preview and installed-extension checks. Build artifacts and result bundles are local and ignored by Git. Physical-device typing, iPad floating-keyboard behavior, and memory profiling remain manual checks.
+
 # V0.3.1 verification — September 6, 2026
 
 Version 0.3.1 (10) adds stable key feedback, a far-left 123 / ABC switch, and hold/slide symbol entry that returns to letters.
