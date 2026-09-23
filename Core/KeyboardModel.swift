@@ -2,11 +2,90 @@ import Foundation
 import CoreGraphics
 
 enum KeyboardLanguage: String, Codable, CaseIterable, Sendable {
-    case ukrainian, english
-    var title: String { self == .ukrainian ? "Українська" : "English" }
-    var badge: String { self == .ukrainian ? "UA" : "EN" }
-    var code: String { self == .ukrainian ? "uk-UA" : "en-US" }
-    var next: Self { self == .ukrainian ? .english : .ukrainian }
+    case ukrainian, english, polish, german, french, spanish
+    var title: String {
+        switch self {
+        case .ukrainian: "Українська"
+        case .english: "English"
+        case .polish: "Polski"
+        case .german: "Deutsch"
+        case .french: "Français"
+        case .spanish: "Español"
+        }
+    }
+    var badge: String {
+        switch self {
+        case .ukrainian: "UA"
+        case .english: "EN"
+        case .polish: "PL"
+        case .german: "DE"
+        case .french: "FR"
+        case .spanish: "ES"
+        }
+    }
+    var code: String {
+        switch self {
+        case .ukrainian: "uk-UA"
+        case .english: "en-US"
+        case .polish: "pl-PL"
+        case .german: "de-DE"
+        case .french: "fr-FR"
+        case .spanish: "es-ES"
+        }
+    }
+    /// Every lowercase letter the layout must reach, directly or by holding a key.
+    var alphabet: String {
+        switch self {
+        case .ukrainian: "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+        case .english: "abcdefghijklmnopqrstuvwxyz"
+        case .polish: "abcdefghijklmnopqrstuvwxyząćęłńóśźż"
+        case .german: "abcdefghijklmnopqrstuvwxyzäöüß"
+        case .french: "abcdefghijklmnopqrstuvwxyzàâæçéèêëîïôœùûüÿ"
+        case .spanish: "abcdefghijklmnopqrstuvwxyzáéíñóúü"
+        }
+    }
+    /// Latin layouts type every ASCII letter, so email and URL fields can keep them.
+    var isLatin: Bool { self != .ukrainian }
+    /// Only English and Ukrainian ship bundled dictionaries.
+    var dictionaryCode: String? {
+        switch self {
+        case .english: "en"
+        case .ukrainian: "uk"
+        default: nil
+        }
+    }
+
+    /// Accepts BCP 47 identifiers such as "en-GB" or "uk".
+    init?(languageCode: String) {
+        let prefix = languageCode.lowercased().prefix { $0.isLetter }
+        guard let language = Self.allCases.first(where: { $0.code.hasPrefix(prefix + "-") }) else { return nil }
+        self = language
+    }
+}
+
+/// Alternative English arrangements. Only the letters are listed; letterRows adds the
+/// optional apostrophe and punctuation where each layout usually has them.
+enum EnglishLayout: String, Codable, CaseIterable, Sendable {
+    case qwerty, colemak, colemakDH, dvorak, workman
+    var title: String {
+        switch self {
+        case .qwerty: "QWERTY"
+        case .colemak: "Colemak"
+        case .colemakDH: "Colemak-DH"
+        case .dvorak: "Dvorak"
+        case .workman: "Workman"
+        }
+    }
+    var letters: [String] {
+        switch self {
+        case .qwerty: ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
+        case .colemak: ["qwfpgjluy", "arstdhneio", "zxcvbkm"]
+        // The matrix bottom row, as used on ortholinear boards.
+        case .colemakDH: ["qwfpbjluy", "arstgmneio", "zxcdvkh"]
+        case .dvorak: ["pyfgcrl", "aoeuidhtns", "qjkxbmwvz"]
+        case .workman: ["qdrwbjfup", "ashtgyneoi", "zxmcvkl"]
+        }
+    }
 }
 
 enum KeyboardPage: Sendable { case letters, numbers, symbols }
@@ -34,13 +113,18 @@ struct InputState: Sendable {
     }
 
     mutating func consume(_ value: String) -> String {
-        let result = shift == .off ? value : value.uppercased()
+        let result = shift == .off ? value : value.shifted
         if value.lowercased() != value.uppercased() {
             if shift == .once { shift = .off }
             lastShiftTap = nil
         }
         return result
     }
+}
+
+extension String {
+    /// Shift, not text-transform uppercasing: ß becomes ẞ rather than "SS".
+    var shifted: String { self == "ß" ? "ẞ" : uppercased() }
 }
 
 enum KeyAction: Hashable, Sendable {
@@ -70,11 +154,7 @@ enum KeyboardLayout {
     static func rows(state: InputState, needsGlobe: Bool, preferences: KeyboardPreferences = .init()) -> [[Key]] {
         let strings: [String]
         switch state.page {
-        case .letters:
-            let apostrophe = preferences.showApostrophe ? "'" : ""
-            strings = state.language == .ukrainian
-                ? ["йцукенгшщзх" + (preferences.yiOnLongPress ? "" : "ї"), "фівапролджє", "ячсмитьбю" + (preferences.showPunctuation ? ".," : "")]
-                : ["qwertyuiop", "asdfghjkl" + apostrophe, "zxcvbnm" + (preferences.showPunctuation ? ".,?" : "")]
+        case .letters: strings = letterRows(state.language, preferences: preferences)
         case .numbers:
             strings = ["1234567890", "-/:;()$&@\"", ".,?!'[]=+%"]
         case .symbols:
@@ -83,11 +163,14 @@ enum KeyboardLayout {
         var result = strings.map { row in
             row.map { character in
                 Key(action: .text(String(character)),
-                    letterAlternatives: character == "і" && preferences.yiOnLongPress ? ["ї"] : [])
+                    letterAlternatives: state.page == .letters ? letterAlternatives(character, language: state.language, preferences: preferences) : [])
             }
         }
-        if state.page == .letters,
-           let lastLetter = result[2].firstIndex(where: { $0.action == .text(state.language == .english ? "m" : "ю") }) {
+        // Delete follows the last letter, ahead of any optional punctuation.
+        if state.page == .letters, let lastLetter = result[2].lastIndex(where: { key in
+            guard case .text(let value) = key.action else { return false }
+            return value == "'" || value.first?.isLetter == true
+        }) {
             result[2].insert(Key(action: .backspace, weight: preferences.validated.actionKeyWidth), at: lastLetter + 1)
         }
         var controls: [Key] = [Key(action: .page, weight: 1.35)]
@@ -97,13 +180,72 @@ enum KeyboardLayout {
             controls.append(Key(action: .shift, weight: 1.25))
         }
         if needsGlobe { controls.append(Key(action: .globe)) }
-        controls += [Key(action: .language, weight: 1.25), Key(action: .space, weight: 3.8),
+        // With a single language there is nothing to switch to, unless a URL or
+        // email field put the keyboard in English and it needs a way back.
+        if preferences.language(after: state.language) != state.language {
+            controls.append(Key(action: .language, weight: 1.25))
+        }
+        controls += [Key(action: .space, weight: 3.8),
                      Key(action: .enter, weight: preferences.validated.actionKeyWidth)]
         if state.page != .letters {
             controls.append(Key(action: .backspace, weight: preferences.validated.actionKeyWidth))
         }
         result.append(controls)
         return result
+    }
+
+    static func letterRows(_ language: KeyboardLanguage, preferences: KeyboardPreferences) -> [String] {
+        let punctuation = preferences.showPunctuation ? ".,?" : ""
+        switch language {
+        case .ukrainian:
+            return ["йцукенгшщзх" + (preferences.yiOnLongPress ? "" : "ї"), "фівапролджє",
+                    "ячсмитьбю" + (preferences.showPunctuation ? ".," : "")]
+        case .english:
+            var rows = preferences.englishLayout.letters
+            if preferences.englishLayout == .dvorak {
+                // Dvorak keeps ' , . together at the start of the top row.
+                rows[0] = (preferences.showApostrophe ? "'" : "") + (preferences.showPunctuation ? ",." : "") + rows[0]
+            } else {
+                if preferences.showApostrophe { rows[1] += "'" }
+                rows[2] += punctuation
+            }
+            return rows
+        case .polish: return ["qwertyuiop", "asdfghjkl", "zxcvbnm" + punctuation]
+        case .german: return ["qwertzuiopü", "asdfghjklöä", "yxcvbnm" + punctuation]
+        // French needs its apostrophe (l'eau, j'ai), so it is always on the letter page.
+        case .french: return ["azertyuiop", "qsdfghjklm", "wxcvbn'" + punctuation]
+        case .spanish: return ["qwertyuiop", "asdfghjklñ", "zxcvbnm" + punctuation]
+        }
+    }
+
+    /// Hold a letter for these; releasing in place types the first one.
+    static func letterAlternatives(_ character: Character, language: KeyboardLanguage,
+                                   preferences: KeyboardPreferences) -> [String] {
+        switch (language, character) {
+        case (.ukrainian, "і"): preferences.yiOnLongPress ? ["ї"] : []
+        case (.polish, "a"): ["ą"]
+        case (.polish, "c"): ["ć"]
+        case (.polish, "e"): ["ę"]
+        case (.polish, "l"): ["ł"]
+        case (.polish, "n"): ["ń"]
+        case (.polish, "o"): ["ó"]
+        case (.polish, "s"): ["ś"]
+        case (.polish, "z"): ["ż", "ź"]
+        case (.german, "s"): ["ß"]
+        case (.french, "e"): ["é", "è", "ê", "ë"]
+        case (.french, "a"): ["à", "â", "æ"]
+        case (.french, "c"): ["ç"]
+        case (.french, "u"): ["ù", "û", "ü"]
+        case (.french, "i"): ["î", "ï"]
+        case (.french, "o"): ["ô", "œ"]
+        case (.french, "y"): ["ÿ"]
+        case (.spanish, "a"): ["á"]
+        case (.spanish, "e"): ["é"]
+        case (.spanish, "i"): ["í"]
+        case (.spanish, "o"): ["ó"]
+        case (.spanish, "u"): ["ú", "ü"]
+        default: []
+        }
     }
 }
 
@@ -131,12 +273,20 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var nextWordSuggestions: Bool = true
     var contextualSuggestions: Bool = true
 
+    /// The languages the language key cycles through, in `allCases` order.
+    var languages: [KeyboardLanguage] = [.ukrainian, .english]
+    var englishLayout: EnglishLayout = .qwerty
+    var rememberLanguage: Bool = true
+    /// Bumped to make the keyboard forget remembered languages; see LanguageMemory.
+    var languageMemoryGeneration: Int = 0
+
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
         case controlHeight, letterSize, actionKeyWidth, shiftPlacement, showPunctuation, showApostrophe, showHeader, autoSpacePunctuation
         case yiOnLongPress
         case theme, accent, showLongPressHints
         case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
+        case languages, englishLayout, rememberLanguage, languageMemoryGeneration
     }
 
     var validated: Self {
@@ -147,7 +297,18 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         result.actionKeyWidth = actionKeyWidth.isFinite ? min(3.5, max(1.25, actionKeyWidth)) : 2.4
         result.columnSpacing = columnSpacing.isFinite ? min(8, max(0, columnSpacing)) : 2
         result.rowSpacing = rowSpacing.isFinite ? min(12, max(0, rowSpacing)) : 3
+        let enabled = KeyboardLanguage.allCases.filter(languages.contains)
+        result.languages = enabled.isEmpty ? Self().languages : enabled
+        if !result.languages.contains(defaultLanguage) { result.defaultLanguage = result.languages[0] }
         return result
+    }
+
+    /// The language key's target. A language outside the cycle, such as English
+    /// forced by an email field, leads back to the first enabled one.
+    func language(after language: KeyboardLanguage) -> KeyboardLanguage {
+        let enabled = validated.languages
+        guard let index = enabled.firstIndex(of: language) else { return enabled[0] }
+        return enabled[(index + 1) % enabled.count]
     }
     var suggestionHeight: Double { suggestionsEnabled ? 44 : 0 }
     var headerHeight: Double { suggestionHeight + (showHeader ? KeyboardGeometry.ribbonHeight : 0) }
@@ -157,11 +318,11 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     }
 
     mutating func apply(_ preset: KeyboardPreset) {
-        let language = defaultLanguage
+        let language = (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration)
         let appearance = (theme, accent, showLongPressHints)
         let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
         self = preset.preferences
-        defaultLanguage = language
+        (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration) = language
         (theme, accent, showLongPressHints) = appearance
         (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
     }
@@ -175,7 +336,8 @@ extension KeyboardPreferences {
         columnSpacing = try c.decodeIfPresent(Double.self, forKey: .columnSpacing) ?? columnSpacing
         rowSpacing = try c.decodeIfPresent(Double.self, forKey: .rowSpacing) ?? rowSpacing
         fillGaps = try c.decodeIfPresent(Bool.self, forKey: .fillGaps) ?? fillGaps
-        defaultLanguage = try c.decodeIfPresent(KeyboardLanguage.self, forKey: .defaultLanguage) ?? defaultLanguage
+        // Tolerate languages this version doesn't know rather than dropping every setting.
+        defaultLanguage = (try? c.decodeIfPresent(KeyboardLanguage.self, forKey: .defaultLanguage)) ?? defaultLanguage
         controlHeight = try c.decodeIfPresent(Double.self, forKey: .controlHeight) ?? controlHeight
         letterSize = try c.decodeIfPresent(Double.self, forKey: .letterSize) ?? letterSize
         actionKeyWidth = try c.decodeIfPresent(Double.self, forKey: .actionKeyWidth) ?? actionKeyWidth
@@ -191,6 +353,12 @@ extension KeyboardPreferences {
         suggestionsEnabled = try c.decodeIfPresent(Bool.self, forKey: .suggestionsEnabled) ?? suggestionsEnabled
         nextWordSuggestions = try c.decodeIfPresent(Bool.self, forKey: .nextWordSuggestions) ?? nextWordSuggestions
         contextualSuggestions = try c.decodeIfPresent(Bool.self, forKey: .contextualSuggestions) ?? contextualSuggestions
+        if let codes = try c.decodeIfPresent([String].self, forKey: .languages) {
+            languages = codes.compactMap(KeyboardLanguage.init(rawValue:))
+        }
+        englishLayout = (try? c.decodeIfPresent(EnglishLayout.self, forKey: .englishLayout)) ?? englishLayout
+        rememberLanguage = try c.decodeIfPresent(Bool.self, forKey: .rememberLanguage) ?? rememberLanguage
+        languageMemoryGeneration = try c.decodeIfPresent(Int.self, forKey: .languageMemoryGeneration) ?? languageMemoryGeneration
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated

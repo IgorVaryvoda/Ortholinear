@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01B65591D33D8B66B676217F /* LanguageMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE5F04871282EAE256326968 /* LanguageMemory.swift */; };
 		03CBFF3C82CAF53A25CD9E21 /* uk-context.json in Resources */ = {isa = PBXBuildFile; fileRef = A1EA96DEC416EC3C685B52C3 /* uk-context.json */; };
 		0481D40368ACECCCAC6A2EE8 /* PunctuationSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */; };
 		080054E0247A7577386B37CC /* en-context.json in Resources */ = {isa = PBXBuildFile; fileRef = 284493B8A152B026BA8A90FE /* en-context.json */; };
@@ -20,6 +21,7 @@
 		254E6B38A3A6A2EAC7B7AD6A /* KeyboardAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291C789BEB4272C066A1ADB0 /* KeyboardAppearance.swift */; };
 		2822A5F7F1A1E90223FB7626 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF307C0E61A7F0F7CA21AD9 /* KeyboardViewController.swift */; };
 		2B653E3F0C37D7DB5A7FD853 /* DeleteRepeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */; };
+		2B8DDD57B3FB9FA8E5AB9540 /* LanguageSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B55F3BD1452778CE31651E34 /* LanguageSettings.swift */; };
 		33D803B70D2BB7CBD7C06303 /* KeyboardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB208E703422E526173E53E8 /* KeyboardUITests.swift */; };
 		37BFB95BF57A4B15CD74B46B /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18883B1E32D31C78BBBC5823 /* KeyboardView.swift */; };
 		3CE564A6B8B731E7542D8EA7 /* KeyboardAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291C789BEB4272C066A1ADB0 /* KeyboardAppearance.swift */; };
@@ -40,6 +42,7 @@
 		C9C2786CBD707B44AC3D6E12 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BD329D52E74E3AFAF37B4B /* ContentView.swift */; };
 		CD8F50B47A24EAD6676C886D /* DeleteRepeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */; };
 		D8D3211AB99208B4172A998C /* PunctuationSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */; };
+		E54A830E376112B372DB7931 /* LanguageMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE5F04871282EAE256326968 /* LanguageMemory.swift */; };
 		E650A8527B92C553E6630E54 /* SuggestionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E00478A24886CBF8659DD76 /* SuggestionBar.swift */; };
 		E705ACF8C2196888FAB3BF72 /* KeyboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D189638075168513F1DBAF7E /* KeyboardModel.swift */; };
 		EBF2EA0CCCC05DCD8C6468B4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 86C599F5F1C2F0DED98F1A14 /* PrivacyInfo.xcprivacy */; };
@@ -111,11 +114,13 @@
 		A816BC4DB8557F655D3F8F36 /* OrtholinearSystemTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OrtholinearSystemTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ACF307C0E61A7F0F7CA21AD9 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		B091108B672BF6D4554C7520 /* OrtholinearKeyboard.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OrtholinearKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B55F3BD1452778CE31651E34 /* LanguageSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSettings.swift; sourceTree = "<group>"; };
 		D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PunctuationSpacing.swift; sourceTree = "<group>"; };
 		D189638075168513F1DBAF7E /* KeyboardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardModel.swift; sourceTree = "<group>"; };
 		D3243D3CB937E349465A4702 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D8BD329D52E74E3AFAF37B4B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteRepeat.swift; sourceTree = "<group>"; };
+		DE5F04871282EAE256326968 /* LanguageMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageMemory.swift; sourceTree = "<group>"; };
 		EF7D622F2A9EF67823BE3F93 /* SuggestionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionSettings.swift; sourceTree = "<group>"; };
 		EF9B5E28EDF58B56F10CA68B /* SystemExtensionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemExtensionTests.swift; sourceTree = "<group>"; };
 		FB208E703422E526173E53E8 /* KeyboardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardUITests.swift; sourceTree = "<group>"; };
@@ -169,6 +174,7 @@
 				31B5F6A134118D240BD5DBC5 /* AppearanceSettings.swift */,
 				D8BD329D52E74E3AFAF37B4B /* ContentView.swift */,
 				D3243D3CB937E349465A4702 /* Info.plist */,
+				B55F3BD1452778CE31651E34 /* LanguageSettings.swift */,
 				9D1EC3C852136D49D509329A /* Ortholinear.entitlements */,
 				64A444EABA05F1E4609B1364 /* OrtholinearApp.swift */,
 				5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */,
@@ -204,6 +210,7 @@
 				DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */,
 				291C789BEB4272C066A1ADB0 /* KeyboardAppearance.swift */,
 				D189638075168513F1DBAF7E /* KeyboardModel.swift */,
+				DE5F04871282EAE256326968 /* LanguageMemory.swift */,
 				D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */,
 				FDEC805383E88E7CF2C89CDE /* Suggestions.swift */,
 				5E3D5DF03C8999987210F491 /* SuggestionData */,
@@ -411,6 +418,8 @@
 				E705ACF8C2196888FAB3BF72 /* KeyboardModel.swift in Sources */,
 				455F68607FD5B5451296CC86 /* KeyboardPalette.swift in Sources */,
 				76E8A2096472863C92260E8A /* KeyboardView.swift in Sources */,
+				E54A830E376112B372DB7931 /* LanguageMemory.swift in Sources */,
+				2B8DDD57B3FB9FA8E5AB9540 /* LanguageSettings.swift in Sources */,
 				0FF64F2E44E0CF981D0F55F0 /* OrtholinearApp.swift in Sources */,
 				14908B890B2894164D488C49 /* PreferenceStore.swift in Sources */,
 				23A0055C86092F4090020792 /* PreviewSurface.swift in Sources */,
@@ -439,6 +448,7 @@
 				FB134ACA6E19FE0887CA21F4 /* KeyboardPalette.swift in Sources */,
 				37BFB95BF57A4B15CD74B46B /* KeyboardView.swift in Sources */,
 				2822A5F7F1A1E90223FB7626 /* KeyboardViewController.swift in Sources */,
+				01B65591D33D8B66B676217F /* LanguageMemory.swift in Sources */,
 				7BA9D990F92E94ACD2F48097 /* PreferenceStore.swift in Sources */,
 				D8D3211AB99208B4172A998C /* PunctuationSpacing.swift in Sources */,
 				523C692E92161C2115A75674 /* SuggestionBar.swift in Sources */,

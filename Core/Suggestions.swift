@@ -88,8 +88,7 @@ enum SuggestionText {
             && value.allSatisfy(isWordCharacter)
     }
     static func belongs(_ word: String, to language: KeyboardLanguage) -> Bool {
-        let alphabet = language == .english ? "abcdefghijklmnopqrstuvwxyz'" : "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя'"
-        return normalize(word).allSatisfy { alphabet.contains($0) }
+        normalize(word).allSatisfy { $0 == "'" || language.alphabet.contains($0) }
     }
     static func context(_ before: String) -> [String] {
         let sentence = before.split(omittingEmptySubsequences: false, whereSeparator: { ".!?;:\n".contains($0) }).last ?? ""
@@ -310,8 +309,8 @@ enum SuggestionResources {
         #endif
     }
     static func engine(language: KeyboardLanguage) throws -> SuggestionEngine {
-        let code = language == .english ? "en" : "uk"
-        guard let lexiconURL = bundle.url(forResource: code, withExtension: "orthlex") else { throw CocoaError(.fileNoSuchFile) }
+        guard let code = language.dictionaryCode,
+              let lexiconURL = bundle.url(forResource: code, withExtension: "orthlex") else { throw CocoaError(.fileNoSuchFile) }
         let model = bundle.url(forResource: code + "-context", withExtension: "json").flatMap { try? SuggestionContextModel(url: $0) }
         return SuggestionEngine(lexicon: try SuggestionLexicon(url: lexiconURL), context: model)
     }

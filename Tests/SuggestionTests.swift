@@ -54,6 +54,9 @@ final class SuggestionTests: XCTestCase {
         XCTAssertEqual(SuggestionText.cased("hello", like: "Helo", language: .english), "Hello")
         XCTAssertEqual(SuggestionText.cased("пам'ять", like: "пам’ять", language: .ukrainian), "пам’ять")
         XCTAssertFalse(SuggestionText.belongs("привiт", to: .ukrainian))
+        XCTAssertTrue(SuggestionText.belongs("zażółć", to: .polish))
+        XCTAssertFalse(SuggestionText.belongs("zażółć", to: .english))
+        XCTAssertThrowsError(try SuggestionResources.engine(language: .german), "Only English and Ukrainian ship dictionaries")
         XCTAssertEqual(SuggestionText.context("This ends. Next sentence "), ["next", "sentence"])
         XCTAssertEqual(SuggestionText.context("What? "), [])
     }

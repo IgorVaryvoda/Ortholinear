@@ -117,7 +117,7 @@ struct AppearanceSettings: View {
                 Spacer()
                 Text("Live preview").font(.caption).foregroundStyle(.secondary)
             }.padding(.horizontal, 16)
-            SettingsKeyboardPreview(preferences: preferences, language: .ukrainian)
+            SettingsKeyboardPreview(preferences: preferences, language: preferences.validated.defaultLanguage)
                 .frame(height: height)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .padding(.horizontal, 8)

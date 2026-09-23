@@ -1,6 +1,6 @@
 # Ortholinear
 
-A native, private Ukrainian + English keyboard for iPhone and iPad. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party runtime code dependencies; bundled language data has separate licenses.
+A native, private Ukrainian + English keyboard for iPhone and iPad, with optional Polish, German, French and Spanish layouts. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party runtime code dependencies; bundled language data has separate licenses.
 
 [Support](SUPPORT.md) · [Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
@@ -52,7 +52,7 @@ xcodegen generate
 - Letter-key height: 36–88 pt; control-row height: 36–72 pt; letter size: 18–36 pt; Return/Delete relative width: 1.25–3.5; horizontal spacing: 0–8 pt; vertical spacing: 0–12 pt.
 - **Fill gaps between keys** keeps the visible gutters but partitions the whole grid into adjoining touch targets. Turning it off restricts touches to visible rectangles.
 - VoiceOver key labels, shift state, and alternative-character actions; system light and dark appearance.
-- Numeric input traits start on numbers; email, URL, and ASCII traits start on English. Return labels reflect the host field.
+- Numeric input traits start on numbers; email, URL, and ASCII traits start in a Latin layout (English, unless you are already typing in another Latin language). Return labels reflect the host field.
 
 ```text
 й ц у к е н г ш щ з х ї
@@ -123,3 +123,22 @@ Open **Keyboard settings → Suggestions → Words and corrections** to toggle t
 The native Swift engine uses a compact symmetric-delete index, nearby-key ranking, and optional pruned bigram/trigram tables. See [research](docs/SUGGESTIONS-RESEARCH.md) and [verification notes](docs/SUGGESTIONS-VERIFICATION.md) for measured scope and limitations. Dictionary resources have separate attribution/share-alike terms; the application code remains MIT. Full notices ship in the app under **Suggestions → Dictionary credits** and in [DictionaryCredits.txt](Core/SuggestionData/DictionaryCredits.txt).
 
 Regenerate data with `uv venv build/suggestion-tools`, then `uv pip install --python build/suggestion-tools/bin/python wordfreq==3.1.1 spylls==0.1.7`, then `build/suggestion-tools/bin/python Tools/build_suggestion_data.py`. The script downloads pinned public data into ignored build storage, filters common surface forms, creates indexes and context tables, and evaluates next words on a separate test split. Generated assets include license/provenance metadata. Python and the source corpora are not part of the app runtime.
+
+## Languages, layouts, and field memory
+
+Open **Keyboard settings → Typing → Languages and layouts** to choose which languages the language key cycles through: Українська, English, Polski, Deutsch, Français, and Español. Ukrainian and English stay on by default, and at least one language must remain on. With a single language, the language key disappears and space gets wider.
+
+- **Polish** uses QWERTY; hold a, c, e, l, n, o, s, or z for ą ć ę ł ń ó ś ż ź.
+- **German** uses QWERTZ with ü, ö, and ä on the letter page; hold s for ß, or Shift + hold S for ẞ.
+- **French** uses AZERTY with its apostrophe always on the letter page; hold e, a, c, u, i, o, or y for é è ê ë, à â æ, ç, ù û ü, î ï, ô œ, and ÿ.
+- **Spanish** uses QWERTY with ñ; hold a, e, i, o, or u for á é í ó ú ü. Hold ? and slide to ¿.
+- **English** can use QWERTY, Colemak, Colemak-DH (ortholinear matrix bottom row), Dvorak, or Workman. Dvorak keeps ' , . at the start of the top row. Space shows the active variant, and suggestion key distances follow the layout you chose.
+
+Long-press hints mark every letter with held alternatives. Word suggestions remain English and Ukrainian only; other languages show a quiet note in the suggestion row.
+
+**Remember for each kind of field** is on by default. iOS doesn't tell keyboards which app, window, or chat they are in: one keyboard process serves every app, `documentIdentifier` changes each time a field gains focus, and conversation context isn't delivered to third-party keyboards. What does survive is a field's kind (its keyboard type, return key, and content type), so Ortholinear remembers by kind:
+
+- Message, search, email, and web address fields each reopen in the language you last used in that kind of field, in any app. The memory is saved in the keyboard's own container (field traits and language names, never text), so it survives iOS unloading the keyboard.
+- Email and URL fields start in a Latin layout. A language you choose there is kept for that kind of field, and the forced English doesn't carry into the next message.
+- A kind of field you haven't used yet continues in the last language you used in an ordinary field.
+- **Forget remembered languages**, changing the starting language, or turning off the language in use starts over from the starting language. The app can't write to the keyboard's container, so Forget bumps a counter in the shared settings and the keyboard clears its memory the next time it opens.

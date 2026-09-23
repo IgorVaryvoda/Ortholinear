@@ -292,6 +292,61 @@ final class KeyboardUITests: XCTestCase {
     }
 
     @MainActor
+    func testLanguageSettingsAddLayoutsToTheLanguageKey() throws {
+        let app = launchApp()
+        func openLanguages() {
+            tapMainButton("customize-keyboard", in: app)
+            let row = app.buttons["language-settings"]
+            revealSetting(row, in: app)
+            row.tap()
+            XCTAssertTrue(app.switches["language-polish"].waitForExistence(timeout: 3))
+        }
+        func toggle(_ identifier: String) {
+            app.switches[identifier].coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+                .withOffset(CGVector(dx: -25, dy: 0)).tap()
+        }
+        func chooseEnglishLayout(_ title: String) {
+            app.buttons["english-layout"].tap()
+            let option = app.buttons[title].firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
+            option.tap()
+        }
+        openLanguages()
+        XCTAssertEqual(app.switches["language-polish"].value as? String, "0")
+        toggle("language-polish")
+        XCTAssertEqual(app.switches["language-polish"].value as? String, "1")
+        chooseEnglishLayout("Colemak")
+        app.navigationBars["Languages"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.segmentedControls["preview-language"].buttons["PL"].waitForExistence(timeout: 3))
+        app.buttons["Done"].tap()
+
+        let editor = app.textViews["preview-editor"]
+        app.buttons["clear-preview"].tap()
+        app.buttons["key-Switch to English"].tap()
+        XCTAssertEqual(app.buttons["key-f"].frame.minY, app.buttons["key-q"].frame.minY, accuracy: 1, "Colemak puts f on the top row")
+        app.buttons["key-Switch to Polski"].tap()
+        app.buttons["key-z"].press(forDuration: 0.6)
+        app.buttons["key-a"].tap()
+        XCTAssertEqual(editor.value as? String, "ża")
+        XCTAssertTrue(app.staticTexts["No word suggestions for Polski"].waitForExistence(timeout: 2))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Polish layout in the preview"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["key-Switch to Українська"].tap()
+        app.buttons["clear-preview"].tap()
+
+        // Other tests expect the default Ukrainian and English cycle.
+        openLanguages()
+        toggle("language-polish")
+        XCTAssertEqual(app.switches["language-polish"].value as? String, "0")
+        chooseEnglishLayout("QWERTY")
+        app.navigationBars["Languages"].buttons.firstMatch.tap()
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["key-Switch to English"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
     func testTypingLanguagesShiftSymbolsAndDelete() throws {
         let app = launchApp()
         let editor = app.textViews["preview-editor"]

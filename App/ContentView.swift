@@ -19,7 +19,7 @@ struct ContentView: View {
                     GridMark().frame(width: 30, height: 30)
                     Text("ortholinear").font(.system(size: 23, weight: .semibold, design: .rounded))
                     Spacer()
-                    Text("UA + EN").font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    Text(languageBadge).font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .padding(.horizontal, 10).padding(.vertical, 7)
                         .overlay(Capsule().stroke(.primary.opacity(0.18)))
                     Button { showGeometry = true } label: {
@@ -127,6 +127,12 @@ struct ContentView: View {
             Spacer(minLength: 0)
         }
     }
+
+    private var languageBadge: String {
+        let languages = preferences.validated.languages
+        let shown = languages.prefix(2).map(\.badge).joined(separator: " + ")
+        return languages.count > 2 ? "\(shown) +\(languages.count - 2)" : shown
+    }
 }
 
 private struct GridMark: View {
@@ -148,13 +154,14 @@ struct GeometrySettings: View {
 
     init(preferences: Binding<KeyboardPreferences>) {
         _preferences = State(initialValue: preferences.wrappedValue)
+        _previewLanguage = State(initialValue: preferences.wrappedValue.validated.defaultLanguage)
         commit = { preferences.wrappedValue = $0 }
     }
     @Environment(\.dismiss) private var dismiss
 
-    @State private var previewLanguage: KeyboardLanguage = .ukrainian
+    @State private var previewLanguage: KeyboardLanguage
     @State private var showAppearance = false
-    private enum SettingsPage: Hashable { case suggestions }
+    private enum SettingsPage: Hashable { case suggestions, languages }
     @State private var navigationPath: [SettingsPage] = []
 
     var body: some View {
@@ -177,13 +184,19 @@ struct GeometrySettings: View {
             .navigationTitle("Keyboard settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-            .navigationDestination(for: SettingsPage.self) { _ in SuggestionSettings(preferences: $preferences) }
+            .navigationDestination(for: SettingsPage.self) { page in
+                switch page {
+                case .suggestions: SuggestionSettings(preferences: $preferences)
+                case .languages: LanguageSettings(preferences: $preferences)
+                }
+            }
             .sheet(isPresented: $showAppearance) { AppearanceSettings(preferences: $preferences) }
         }
         .tint(accent)
         .onChange(of: preferences) { _, value in
             do { try PreferenceStore.save(value) }
             catch { saveError = true }
+            if !value.validated.languages.contains(previewLanguage) { previewLanguage = value.validated.defaultLanguage }
         }
         .onDisappear { commit(preferences) }
         .alert("Settings weren’t saved", isPresented: $saveError) {
@@ -194,8 +207,14 @@ struct GeometrySettings: View {
     private func livePreview(maxHeight: CGFloat) -> some View {
         VStack(spacing: 10) {
             HStack {
-                Label("Live preview", systemImage: "keyboard")
-                    .font(.subheadline.weight(.semibold))
+                // Several language segments need the room the title would take.
+                if preferences.validated.languages.count > 3 {
+                    Image(systemName: "keyboard").font(.subheadline.weight(.semibold))
+                        .accessibilityLabel("Live preview")
+                } else {
+                    Label("Live preview", systemImage: "keyboard")
+                        .font(.subheadline.weight(.semibold))
+                }
                 Spacer()
                 Button { showAppearance = true } label: {
                     Image(systemName: "paintpalette").frame(width: 34, height: 34)
@@ -203,9 +222,9 @@ struct GeometrySettings: View {
                 .accessibilityLabel("Choose keyboard theme")
                 .accessibilityIdentifier("choose-theme")
                 Picker("Preview language", selection: $previewLanguage) {
-                    ForEach(KeyboardLanguage.allCases, id: \.self) { Text($0.badge).tag($0) }
+                    ForEach(preferences.validated.languages, id: \.self) { Text($0.badge).tag($0) }
                 }
-                .pickerStyle(.segmented).frame(width: 112)
+                .pickerStyle(.segmented).frame(width: max(112, CGFloat(preferences.validated.languages.count) * 44))
                 .accessibilityIdentifier("preview-language")
             }.padding(.horizontal, 16)
             SettingsKeyboardPreview(preferences: preferences, language: previewLanguage)
@@ -306,21 +325,23 @@ struct GeometrySettings: View {
                 Text("Fewer keys means wider letters. Punctuation stays available under 123. Moving ї to long-press і removes its separate key; hold І with Shift for Ї.")
             }
             Section {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Starting language")
-                    Picker("Language", selection: $preferences.defaultLanguage) {
-                        ForEach(KeyboardLanguage.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }.pickerStyle(.segmented)
-                }
+                NavigationLink(value: SettingsPage.languages) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Languages and layouts")
+                            Text(languageSummary).font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "globe") }
+                }.accessibilityIdentifier("language-settings")
                 Toggle("Space after punctuation", isOn: $preferences.autoSpacePunctuation)
                     .accessibilityIdentifier("auto-space-punctuation")
             } header: { Label("Typing", systemImage: "keyboard") } footer: {
-                Text("The UA / EN key switches languages as you type. Automatic spacing adds a space after punctuation; apostrophes and numbers such as 3.14 stay together. Hold Delete to gradually delete faster.")
+                Text("The language key switches languages as you type. Automatic spacing adds a space after punctuation; apostrophes and numbers such as 3.14 stay together. Hold Delete to gradually delete faster.")
             }
             Section {
                 Button("Reset to defaults") { preferences = KeyboardPreferences() }
             } footer: {
-                Text("Settings save on this device. Dismiss and reopen the system keyboard to apply changes. The UA / EN key switches languages as you type.")
+                Text("Settings save on this device. Dismiss and reopen the system keyboard to apply changes. The language key switches languages as you type.")
             }
         }
         .accessibilityIdentifier("geometry-controls")
@@ -328,16 +349,17 @@ struct GeometrySettings: View {
 
     private var activePreset: KeyboardPreset? {
         KeyboardPreset.allCases.first { preset in
-            var candidate = preset.preferences
-            candidate.defaultLanguage = preferences.defaultLanguage
-            candidate.theme = preferences.theme
-            candidate.accent = preferences.accent
-            candidate.showLongPressHints = preferences.showLongPressHints
-            candidate.suggestionsEnabled = preferences.suggestionsEnabled
-            candidate.nextWordSuggestions = preferences.nextWordSuggestions
-            candidate.contextualSuggestions = preferences.contextualSuggestions
+            // Presets only change geometry, so applying the active one is a no-op.
+            var candidate = preferences
+            candidate.apply(preset)
             return candidate == preferences
         }
+    }
+
+    private var languageSummary: String {
+        preferences.validated.languages.map { language in
+            language == .english && preferences.englishLayout != .qwerty ? "EN \(preferences.englishLayout.title)" : language.badge
+        }.joined(separator: " · ")
     }
 
     private func slider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {

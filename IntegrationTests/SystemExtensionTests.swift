@@ -69,6 +69,89 @@ final class SystemExtensionTests: XCTestCase {
     }
 
 
+    /// Runs after testInstalledExtensionTypesInHostField has enabled the extension.
+    @MainActor
+    func testInstalledKeyboardRemembersLanguagePerKindOfField() throws {
+        let app = XCUIApplication()
+        app.launch()
+        XCUIDevice.shared.orientation = .portrait
+        // The memory persists across runs; start from the starting language.
+        forgetRememberedLanguages(in: app)
+        tapOnMainPage("system-test", in: app)
+        let surface = app.otherElements["system-keyboard-surface"]
+        let editor = app.textViews["system-editor"]
+        let email = app.textFields["email-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        func dismissKeyboard() {
+            surface.buttons["suggestion-options"].tap()
+            app.buttons["Dismiss keyboard"].tap()
+            XCTAssertTrue(surface.waitForNonExistence(timeout: 3))
+        }
+        func focus(_ field: XCUIElement) {
+            // A field under the keyboard would pass the tap to a key instead.
+            if surface.exists, !field.isHittable || field.frame.maxY > surface.frame.minY { dismissKeyboard() }
+            field.tap()
+            XCTAssertTrue(surface.waitForExistence(timeout: 8), app.debugDescription)
+        }
+        func expect(_ language: String, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+            let next = surface.buttons[language == "EN" ? "key-Switch to Українська" : "key-Switch to English"]
+            XCTAssertTrue(next.waitForExistence(timeout: 3), "\(message): expected \(language)", file: file, line: line)
+        }
+        func choose(_ language: String) {
+            surface.buttons[language == "EN" ? "key-Switch to English" : "key-Switch to Українська"].tap()
+            expect(language, "Language key")
+        }
+        editor.tap()
+        if !surface.waitForExistence(timeout: 2) {
+            app.buttons["Next keyboard"].press(forDuration: 1)
+            let option = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Ortholinear'")).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
+            option.tap()
+        }
+        XCTAssertTrue(surface.waitForExistence(timeout: 8), app.debugDescription)
+        if surface.buttons["key-Switch to Українська"].exists { choose("UA") }
+
+        focus(email)
+        expect("EN", "Email starts in English")
+        focus(editor)
+        expect("UA", "Email's English must not leak into the editor")
+        choose("EN")
+        focus(email)
+        expect("EN", "Email")
+        choose("UA")
+        focus(editor)
+        expect("EN", "The editor keeps the language chosen in it")
+        focus(email)
+        expect("UA", "The email field keeps the language chosen in it")
+        dismissKeyboard()
+        focus(editor)
+        expect("EN", "Reopening the keyboard keeps the editor's language")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Language remembered per kind of field"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        choose("UA")
+        app.buttons["Done"].tap()
+    }
+
+    @MainActor
+    private func forgetRememberedLanguages(in app: XCUIApplication) {
+        func scroll(to element: XCUIElement, in form: XCUIElement) {
+            for _ in 0..<30 where !(element.exists && element.isHittable && element.frame.maxY < form.frame.maxY - 10) {
+                form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.8))
+                    .press(forDuration: 0.05, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)))
+            }
+            element.tap()
+        }
+        tapOnMainPage("customize-keyboard", in: app)
+        scroll(to: app.buttons["language-settings"], in: app.collectionViews["geometry-controls"])
+        let languages = app.collectionViews["language-controls"]
+        XCTAssertTrue(languages.waitForExistence(timeout: 3), app.debugDescription)
+        scroll(to: app.buttons["forget-languages"], in: languages)
+        app.navigationBars["Languages"].buttons.firstMatch.tap()
+        app.buttons["Done"].tap()
+    }
+
     @MainActor
     private func tapOnMainPage(_ identifier: String, in app: XCUIApplication) {
         let button = app.buttons[identifier]

@@ -206,6 +206,11 @@ final class SuggestionCoordinator {
         guard let keyboard else { return }
         guard keyboard.preferences.suggestionsEnabled, keyboard.inputState.page == .letters,
               let current = snapshot?() else { cancel(); return }
+        guard current.language.dictionaryCode != nil else {
+            cancel()
+            keyboard.suggestionBar.show([], word: nil, learned: [], message: "No word suggestions for \(current.language.title)")
+            return
+        }
         guard force || requested != current || preferences != keyboard.preferences else { return }
         cancel()
         requested = current; preferences = keyboard.preferences

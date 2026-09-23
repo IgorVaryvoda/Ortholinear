@@ -7,6 +7,11 @@ final class KeyboardViewController: UIInputViewController {
     private var punctuationSpacing = PunctuationSpacing()
     private var lastKeyboardType: UIKeyboardType?
     private var reportedLanguage: KeyboardLanguage?
+    /// iOS builds a new controller each time the keyboard appears and may unload the
+    /// process between uses, so the language memory is kept in the keyboard's defaults.
+    private static var memory = LanguageMemoryStore.load()
+        ?? LanguageMemory(startingLanguage: KeyboardPreferences().defaultLanguage)
+    private var languageContext: LanguageContext?
     private lazy var suggestions = SuggestionCoordinator(keyboard: keyboard)
     private var applyingSuggestion = false
 
@@ -35,7 +40,8 @@ final class KeyboardViewController: UIInputViewController {
             self?.suggestions.refresh()
         }
         keyboard.onDismiss = { [weak self] in self?.dismissKeyboard() }
-        inputState.language = PreferenceStore.load().defaultLanguage
+        adoptLanguageSettings(PreferenceStore.load())
+        inputState.language = Self.memory.fallback
         keyboard.inputState = inputState
         suggestions.refresh()
     }
@@ -44,9 +50,7 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         punctuationSpacing.reset()
         let preferences = PreferenceStore.load()
-        if keyboard.preferences.defaultLanguage != preferences.defaultLanguage {
-            inputState.language = preferences.defaultLanguage
-        }
+        adoptLanguageSettings(preferences)
         keyboard.preferences = preferences
         heightConstraint?.constant = preferences.keyboardHeight
         lastKeyboardType = nil
@@ -115,18 +119,55 @@ final class KeyboardViewController: UIInputViewController {
             switch type {
             case .numberPad, .decimalPad, .numbersAndPunctuation, .asciiCapableNumberPad:
                 inputState.page = .numbers
-            case .emailAddress, .URL, .asciiCapable:
-                inputState.page = .letters
-                inputState.language = .english
             default: inputState.page = .letters
             }
+            languageContext = nil
         }
+        let context = currentLanguageContext(type: type)
+        if context != languageContext { resolveLanguage(in: context) }
         reportLanguageIfNeeded()
         keyboard.needsGlobe = needsInputModeSwitchKey
         keyboard.returnTitle = returnLabel
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
         keyboard.inputState = inputState
         suggestions.refresh()
+    }
+
+    private func currentLanguageContext(type: UIKeyboardType) -> LanguageContext {
+        var context = LanguageContext(requiresLatin: [.emailAddress, .URL, .asciiCapable].contains(type))
+        guard keyboard.preferences.rememberLanguage else { return context }
+        // Keyboards never learn the app, window or chat (conversationContext isn't
+        // delivered to them), and documentIdentifier is new on every focus. These traits
+        // survive refocusing, so a message box, a search box and an address bar each
+        // keep their own language. Capitalization isn't used: it changes on resign.
+        context.field = [String(type.rawValue), String((textDocumentProxy.returnKeyType ?? .default).rawValue),
+                         (textDocumentProxy.textContentType ?? nil)?.rawValue ?? ""].joined(separator: "|")
+        return context
+    }
+
+    private func resolveLanguage(in context: LanguageContext) {
+        languageContext = context
+        let preferences = keyboard.preferences
+        let suggested = preferences.rememberLanguage
+            ? textDocumentProxy.documentInputMode?.primaryLanguage.flatMap(KeyboardLanguage.init(languageCode:)) : nil
+        let language = Self.memory.resolve(context, enabled: preferences.validated.languages, suggested: suggested)
+        inputState.language = language
+        updateMemory { $0.record(language, in: context, chosen: false) }
+    }
+
+    private func adoptLanguageSettings(_ preferences: KeyboardPreferences) {
+        updateMemory {
+            $0.adopt(startingLanguage: preferences.defaultLanguage, generation: preferences.languageMemoryGeneration,
+                     enabled: preferences.validated.languages)
+        }
+    }
+
+    private func updateMemory(_ change: (inout LanguageMemory) -> Void) {
+        var memory = Self.memory
+        change(&memory)
+        guard memory != Self.memory else { return }
+        Self.memory = memory
+        LanguageMemoryStore.save(memory)
     }
 
     private func reportLanguageIfNeeded() {
@@ -161,8 +202,10 @@ final class KeyboardViewController: UIInputViewController {
             if inputState.page == .letters { inputState.tapShift(at: Date.timeIntervalSinceReferenceDate) }
             else { inputState.page = inputState.page == .numbers ? .symbols : .numbers }
         case .language:
-            inputState.language = inputState.language.next
+            inputState.language = keyboard.preferences.language(after: inputState.language)
             inputState.page = .letters
+            let language = inputState.language, context = languageContext ?? LanguageContext()
+            updateMemory { $0.record(language, in: context, chosen: true) }
         case .page: inputState.page = inputState.page == .letters ? .numbers : .letters
         case .globe: advanceToNextInputMode()
         case .dismiss: dismissKeyboard()
@@ -180,5 +223,18 @@ final class KeyboardViewController: UIInputViewController {
         let edit = punctuationSpacing.edit(for: value, before: textDocumentProxy.documentContextBeforeInput, enabled: enabled)
         if edit.deleteBackward { textDocumentProxy.deleteBackward() }
         if !edit.text.isEmpty { textDocumentProxy.insertText(edit.text) }
+    }
+}
+
+/// The keyboard's own defaults: writable without Full Access, unlike the App Group
+/// the app shares settings through.
+private enum LanguageMemoryStore {
+    private static let key = "language-memory"
+    static func load() -> LanguageMemory? {
+        UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode(LanguageMemory.self, from: $0) }
+    }
+    static func save(_ memory: LanguageMemory) {
+        guard let data = try? JSONEncoder().encode(memory) else { return }
+        UserDefaults.standard.set(data, forKey: key)
     }
 }

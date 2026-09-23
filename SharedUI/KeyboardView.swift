@@ -140,17 +140,22 @@ final class KeyboardView: UIControl {
 
     private func title(_ action: KeyAction) -> String {
         switch action {
-        case .text(let text): return displayState.shift == .off ? text : text.uppercased()
+        case .text(let text): return displayState.shift == .off ? text : text.shifted
         case .shift: return displayState.page == .letters ? (displayState.shift == .locked ? "⇪" : "⇧") : (displayState.page == .numbers ? "#+=" : "123")
         case .backspace: return "⌫"
-        case .space: return displayState.language.title
+        case .space:
+            let language = displayState.language
+            let layout = preferences.englishLayout
+            return language == .english && layout != .qwerty ? "\(language.title) · \(layout.title)" : language.title
         case .enter: return returnTitle
-        case .language: return displayState.language.next.badge
+        case .language: return nextLanguage.badge
         case .page: return displayState.page == .letters ? "123" : "ABC"
         case .globe: return ""
         case .dismiss: return "⌄"
         }
     }
+
+    private var nextLanguage: KeyboardLanguage { preferences.language(after: displayState.language) }
 
     private func accessibilityName(_ action: KeyAction) -> String {
         switch action {
@@ -158,7 +163,7 @@ final class KeyboardView: UIControl {
         case .backspace: return "Delete"
         case .space: return "Space"
         case .enter: return "Return"
-        case .language: return "Switch to \(displayState.language.next.title)"
+        case .language: return "Switch to \(nextLanguage.title)"
         case .page: return displayState.page == .letters ? "Numbers" : "Letters"
         case .dismiss: return "Dismiss keyboard"
         default: return title(action)
@@ -285,7 +290,7 @@ final class KeyboardView: UIControl {
             drawText(label, in: frame, font: .systemFont(ofSize: size,
                      weight: isText ? .regular : .medium), color: color)
             if preferences.showLongPressHints, case .text(let letter) = action,
-               letter == "г" || letter == "і", let hint = cell.key.alternatives.first {
+               letter.first?.isLetter == true, let hint = cell.key.alternatives.first {
                 let hintFrame = CGRect(x: frame.maxX - 13, y: frame.minY + 3, width: 10, height: 12)
                 drawText(title(.text(hint)), in: hintFrame,
                          font: .systemFont(ofSize: 10, weight: .medium), color: palette.secondary)
@@ -333,7 +338,7 @@ final class KeyboardView: UIControl {
             }
         case .language:
             drawSymbol("arrow.left.arrow.right", in: frame.offsetBy(dx: 0, dy: -8), size: 16, color: color)
-            drawText(displayState.language.next.badge,
+            drawText(nextLanguage.badge,
                      in: CGRect(x: frame.minX, y: frame.midY + 5, width: frame.width, height: 13),
                      font: .systemFont(ofSize: 10, weight: .semibold), color: color)
         case .dismiss:

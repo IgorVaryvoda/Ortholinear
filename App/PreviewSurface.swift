@@ -133,7 +133,10 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     func apply(_ preferences: KeyboardPreferences, isActive: Bool) {
         self.isActive = isActive
         if !isActive { suggestions.suspend() }
-        if keyboard.preferences.defaultLanguage != preferences.defaultLanguage { state.language = preferences.defaultLanguage }
+        if keyboard.preferences.defaultLanguage != preferences.defaultLanguage
+            || !preferences.validated.languages.contains(state.language) {
+            state.language = preferences.validated.defaultLanguage
+        }
         keyboard.preferences = preferences
         height.constant = preferences.keyboardHeight
         keyboard.inputState = state
@@ -191,7 +194,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
             if state.page == .letters { state.tapShift(at: Date.timeIntervalSinceReferenceDate) }
             else { state.page = state.page == .numbers ? .symbols : .numbers }
         case .page: state.page = state.page == .letters ? .numbers : .letters
-        case .language: state.language = state.language.next; state.page = .letters
+        case .language: state.language = keyboard.preferences.language(after: state.language); state.page = .letters
         case .dismiss: editor.resignFirstResponder()
         default: break
         }
