@@ -1,6 +1,12 @@
-# V0.4.0 suggestion baseline
+# V0.4.0 verification — September 23, 2026
 
-See [suggestion verification and benchmarks](SUGGESTIONS-VERIFICATION.md) for the current 0.4.0 (17) development build.
+Version 0.4.0 (17) adds Polish, German, French, and Spanish layouts, English Colemak/Colemak-DH/Dvorak/Workman variants, per-field-kind language memory, and the tap-only suggestions described in [suggestion verification and benchmarks](SUGGESTIONS-VERIFICATION.md).
+
+- All 40 core tests pass (`swift test`), covering each language's full alphabet with held alternatives, every English variant, the enabled-language cycle, tolerant settings decoding, ẞ for shifted ß, and language memory resolution, persistence, and Forget.
+- Installed-extension tests pass on a disposable iPhone 17 Pro simulator (iOS 26.5): `testInstalledExtensionTypesInHostField` and `testInstalledKeyboardRemembersLanguagePerKindOfField`. The second covers email starting in English, no English leak into the editor, each field kind keeping its chosen language, and reopening the dismissed keyboard. A one-off check showed the editor's English and the email field's Ukrainian surviving a full simulator shutdown.
+- Probing the installed extension showed iOS gives it no app, window, or chat identity: one keyboard process serves every host app, `documentIdentifier` changes on every focus, the text proxy does not implement `conversationContext`, and `conversationContext(_:didChange:)` is never delivered, even when the host calls it. Memory is therefore keyed by field kind (keyboard type, return key, content type). Autocapitalization is excluded because it changes while a field resigns.
+- In-app UI tests: 12 of 14 pass, including the new Languages and layouts test. `testPunctuationHoldAndCapsLock` and `testCustomizationPersistsAndMakesRoomForLetters` fail identically on the previous commit: the first drags below the 38 pt ribbon now that the suggestion row moves the keys down, and the second taps a setting without scrolling it into view.
+- Signed Release archive succeeds at `build/release-040-17/Ortholinear.xcarchive` with the App Group entitlement on both targets and `RequestsOpenAccess` false. The archived app installed on the paired iPhone 15 Pro, which reports 0.4.0 (17), and launched on the second attempt after a transient CoreDevice connection error.
 
 # V0.3.2 verification — September 8, 2026
 
