@@ -5,7 +5,7 @@
 - Primary language: English (U.S.)
 - Bundle ID: com.varyvoda.Ortholinear
 - SKU: ortholinear-ios
-- Version: 0.4.0 (17)
+- Version: 0.4.0 (18)
 - Primary category: Utilities
 - Secondary category: Productivity
 - Support URL: https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md
@@ -68,12 +68,12 @@ No account or sign-in is required. Launch the containing app to use the interact
 
 The extension does not request Full Access (RequestsOpenAccess=false). The app writes geometry and typing preferences into its App Group; the keyboard only reads them. No network requests, microphone recording, or typed-text collection. For ґ, hold г; for Ґ, enable Shift and hold Г. Delete follows M / Ю; Ukrainian has no letter-page apostrophe. Automatic punctuation spacing is enabled by default and configurable. URL and email fields use literal punctuation.
 
-Version 0.4.0: Keyboard settings > Typing > Languages and layouts turns on Polish, German, French, and Spanish (Ukrainian and English stay on by default) and chooses an English layout: QWERTY, Colemak, Colemak-DH, Dvorak, or Workman. The language key cycles through the enabled languages; hold letters such as e, a, or s for accented forms. The keyboard remembers the language last used in each kind of field; for example, switch languages in the email field and the text editor of “Test the installed system keyboard”, then move between them. It stores only field types and language names in its own container, never text, and “Forget remembered languages” on the same settings page clears it. Tap-only word suggestions for English and Ukrainian run on-device from bundled dictionaries; text changes only when a suggestion is tapped. There is still no Full Access and no network access.
+Version 0.4.0: Keyboard settings > Languages and layouts (first in the list) turns on Polish, German, French, and Spanish (Ukrainian and English stay on by default) and chooses an English layout: QWERTY, Colemak, Colemak-DH, Dvorak, or Workman. The language key cycles through the enabled languages; hold letters such as e, a, or s for accented forms. The keyboard remembers the language last used in each kind of field; for example, switch languages in the email field and the text editor of “Test the installed system keyboard”, then move between them. It stores only field types and language names in its own container, never text, and “Forget remembered languages” on the same settings page clears it. Tap-only word suggestions for English and Ukrainian run on-device from bundled dictionaries; text changes only when a suggestion is tapped. There is still no Full Access and no network access.
 
 ## What’s New in 0.4.0
 
 New languages and layouts:
-• Polish, German, French, and Spanish join Ukrainian and English. Choose which languages the language key cycles through in Settings > Typing > Languages and layouts.
+• Polish, German, French, and Spanish join Ukrainian and English. Choose which languages the language key cycles through in Settings > Languages and layouts, first in the list.
 • English can use QWERTY, Colemak, Colemak-DH, Dvorak, or Workman.
 • Hold letters for accented characters, with small hints on the keys.
 • Ortholinear remembers the language you last used in each kind of field, such as messages, search, email, and web addresses, even after iOS closes the keyboard. Forget it any time in settings.
@@ -105,15 +105,16 @@ New languages and layouts:
 
 ## Submission status
 
-Version **0.4.0 (17)** was uploaded and submitted to App Review on September 23, 2026. App Store Connect reports **Waiting for Review**, with automatic release after approval. Version 0.3.2 (16) is live (Ready for Sale).
+Version **0.4.0 (18)** was submitted to App Review on September 23, 2026, replacing the same day's build 17 submission, which was withdrawn while still waiting for review. Build 18 puts Languages and layouts first in Keyboard settings. App Store Connect reports **Waiting for Review**, with automatic release after approval. Version 0.3.2 (16) is live (Ready for Sale).
 
-Build 17 was archived from commit `22c1857`, signed and uploaded with the team's Admin App Store Connect API key (`xcodebuild -exportArchive` with `destination: upload`), and processed as valid. The listing, What's New, keywords, promotional text, and review notes above were saved through the App Store Connect API before submission. Screenshots, pricing, availability, age rating, and the Data Not Collected privacy declaration are unchanged. Language memory stays on the device, so Data Not Collected still applies.
+Build 18 was archived from commit `24806bd` (build 17 from `22c1857`), signed and uploaded with the team's Admin App Store Connect API key (`xcodebuild -exportArchive` with `destination: upload`), and processed as valid. The listing, What's New, keywords, promotional text, and review notes above were saved through the App Store Connect API before submission. Screenshots, pricing, availability, age rating, and the Data Not Collected privacy declaration are unchanged. Language memory stays on the device, so Data Not Collected still applies.
 
-Submission ID: `79305522-72d6-4e1b-a1a8-bf7b8e7cfee4`. App record: `6808996711`. Version ID: `77413922-4c88-43eb-893c-ca2566bd0f0c`. Build ID: `67312466-548e-4147-acf7-d9dee746d751`.
+Submission ID: `20fc2bb8-4de9-4bdd-beab-7936c4ab7c91` (withdrawn: `79305522-72d6-4e1b-a1a8-bf7b8e7cfee4`). App record: `6808996711`. Version ID: `77413922-4c88-43eb-893c-ca2566bd0f0c`. Build ID: `a4357d01-7047-40ce-b795-0e1402dd5d06` (build 17: `67312466-548e-4147-acf7-d9dee746d751`).
 
 ## Prepared artifacts
 
-- `build/release-040-17/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (17).
+- `build/release-040-18/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (18).
+- `build/release-040-17/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (17), withdrawn.
 - `build/keyboard-032-release16/Ortholinear.xcarchive`: signed Release archive for 0.3.2 (16).
 - [iPhone 6.9-inch screenshot](screenshots/app-store/iphone-home.png): 1320 × 2868.
 - [iPad 13-inch screenshot](screenshots/app-store/ipad-home.png): 2064 × 2752.
