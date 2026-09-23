@@ -56,7 +56,7 @@ final class KeyboardCoreTests: XCTestCase {
         let alternatives = rows.flatMap { $0 }.flatMap(\.alternatives)
         XCTAssertTrue(alphabet.isSubset(of: Set(letters + alternatives)))
         XCTAssertFalse(letters.contains("ґ"))
-        XCTAssertEqual(Key(action: .text("г")).alternatives, ["ґ"])
+        XCTAssertEqual(rows.flatMap { $0 }.first { $0.action == .text("г") }?.alternatives, ["ґ"])
         XCTAssertEqual(letters.count, Set(letters).count)
         XCTAssertFalse(letters.contains("'"))
         XCTAssertFalse(letters.contains("."))
@@ -65,7 +65,10 @@ final class KeyboardCoreTests: XCTestCase {
 
     func testOriginalPresetRowCounts() {
         let letters: [KeyboardLanguage: [Int]] = [.ukrainian: [12, 11, 12], .english: [10, 10, 11], .polish: [10, 9, 11],
-                                                  .german: [11, 11, 11], .french: [10, 10, 11], .spanish: [10, 10, 11]]
+                                                  .german: [11, 11, 11], .french: [10, 10, 11], .spanish: [10, 10, 11],
+                                                  .czech: [10, 9, 11], .slovak: [10, 9, 11], .bcms: [12, 12, 11],
+                                                  .serbianCyrillic: [12, 12, 9], .swedish: [11, 11, 11], .norwegian: [11, 11, 11],
+                                                  .danish: [11, 11, 11], .dutch: [10, 9, 11], .russian: [11, 11, 12]]
         for language in KeyboardLanguage.allCases {
             for page in [KeyboardPage.letters, .numbers, .symbols] {
                 var state = InputState(); state.language = language; state.page = page
@@ -255,7 +258,9 @@ final class KeyboardCoreTests: XCTestCase {
     func testShiftIsImmediatelyBeforeZOrYaAndActionsAreLarge() {
         let bottom: [KeyboardLanguage: (first: String, last: String)] = [
             .ukrainian: ("я", "ю"), .english: ("z", "m"), .polish: ("z", "m"),
-            .german: ("y", "m"), .french: ("w", "'"), .spanish: ("z", "m")
+            .german: ("y", "m"), .french: ("w", "'"), .spanish: ("z", "m"),
+            .czech: ("y", "m"), .slovak: ("y", "m"), .bcms: ("y", "m"), .serbianCyrillic: ("џ", "м"),
+            .swedish: ("z", "m"), .norwegian: ("z", "m"), .danish: ("z", "m"), .dutch: ("z", "m"), .russian: ("я", "ю")
         ]
         for language in KeyboardLanguage.allCases {
             var state = InputState(); state.language = language
@@ -391,8 +396,32 @@ final class KeyboardCoreTests: XCTestCase {
         XCTAssertEqual(KeyboardLanguage(languageCode: "uk"), .ukrainian)
         XCTAssertEqual(KeyboardLanguage(languageCode: "de_DE"), .german)
         XCTAssertEqual(KeyboardLanguage(languageCode: "FR-ca"), .french)
-        XCTAssertNil(KeyboardLanguage(languageCode: "ru-RU"))
+        XCTAssertEqual(KeyboardLanguage(languageCode: "sr-Cyrl"), .serbianCyrillic)
+        XCTAssertNil(KeyboardLanguage(languageCode: "ja-JP"))
         XCTAssertNil(KeyboardLanguage(languageCode: ""))
         for language in KeyboardLanguage.allCases { XCTAssertEqual(KeyboardLanguage(languageCode: language.code), language) }
+    }
+
+    func testRussianIsOfferedOnlyToThoseWhoOpposeTheInvasion() throws {
+        var p = KeyboardPreferences(defaultLanguage: .russian, languages: [.ukrainian, .russian])
+        XCTAssertEqual(p.validated.languages, [.ukrainian])
+        XCTAssertEqual(p.validated.defaultLanguage, .ukrainian)
+        p.invasionAnswer = .supports
+        XCTAssertEqual(p.validated.languages, [.ukrainian])
+        XCTAssertEqual(p.language(after: .ukrainian), .ukrainian)
+        p.invasionAnswer = .opposes
+        XCTAssertEqual(p.validated.languages, [.ukrainian, .russian])
+        XCTAssertEqual(p.validated.defaultLanguage, .russian)
+        XCTAssertEqual(try JSONDecoder().decode(KeyboardPreferences.self, from: JSONEncoder().encode(p)), p)
+        p.apply(.original)
+        XCTAssertEqual(p.invasionAnswer, .opposes, "Presets keep the answer")
+        let odd = try JSONDecoder().decode(KeyboardPreferences.self,
+                                          from: Data(#"{"languages":["russian"],"invasionAnswer":"maybe"}"#.utf8))
+        XCTAssertEqual(odd.invasionAnswer, .unanswered)
+        XCTAssertEqual(odd.languages, [.ukrainian, .english], "Nothing left after the gate falls back to the defaults")
+        var state = InputState(); state.language = .russian
+        let keys = KeyboardLayout.rows(state: state, needsGlobe: false).flatMap { $0 }
+        XCTAssertEqual(keys.first { $0.action == .text("е") }?.alternatives, ["ё"])
+        XCTAssertEqual(keys.first { $0.action == .text("ь") }?.alternatives, ["ъ"])
     }
 }

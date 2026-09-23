@@ -208,7 +208,7 @@ struct GeometrySettings: View {
         VStack(spacing: 10) {
             HStack {
                 // Several language segments need the room the title would take.
-                if preferences.validated.languages.count > 3 {
+                if (4...5).contains(preferences.validated.languages.count) {
                     Image(systemName: "keyboard").font(.subheadline.weight(.semibold))
                         .accessibilityLabel("Live preview")
                 } else {
@@ -221,11 +221,20 @@ struct GeometrySettings: View {
                 }
                 .accessibilityLabel("Choose keyboard theme")
                 .accessibilityIdentifier("choose-theme")
-                Picker("Preview language", selection: $previewLanguage) {
-                    ForEach(preferences.validated.languages, id: \.self) { Text($0.badge).tag($0) }
+                // Segments fit up to five languages; beyond that, a menu.
+                if preferences.validated.languages.count > 5 {
+                    Picker("Preview language", selection: $previewLanguage) {
+                        ForEach(preferences.validated.languages, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("preview-language")
+                } else {
+                    Picker("Preview language", selection: $previewLanguage) {
+                        ForEach(preferences.validated.languages, id: \.self) { Text($0.badge).tag($0) }
+                    }
+                    .pickerStyle(.segmented).frame(width: max(112, CGFloat(preferences.validated.languages.count) * 48))
+                    .accessibilityIdentifier("preview-language")
                 }
-                .pickerStyle(.segmented).frame(width: max(112, CGFloat(preferences.validated.languages.count) * 44))
-                .accessibilityIdentifier("preview-language")
             }.padding(.horizontal, 16)
             SettingsKeyboardPreview(preferences: preferences, language: previewLanguage)
                 .frame(height: maxHeight)

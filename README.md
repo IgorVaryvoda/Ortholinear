@@ -1,6 +1,6 @@
 # Ortholinear
 
-A native, private Ukrainian + English keyboard for iPhone and iPad, with optional Polish, German, French and Spanish layouts. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party runtime code dependencies; bundled language data has separate licenses.
+A native, private Ukrainian + English keyboard for iPhone and iPad, with 13 optional layouts: Polish, German, French, Spanish, Czech, Slovak, Croatian/Bosnian/Montenegrin/Serbian (Latin and Cyrillic), Swedish, Norwegian, Danish, Dutch, and Russian. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party runtime code dependencies; bundled language data has separate licenses.
 
 [Support](SUPPORT.md) · [Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
@@ -126,12 +126,17 @@ Regenerate data with `uv venv build/suggestion-tools`, then `uv pip install --py
 
 ## Languages, layouts, and field memory
 
-Open **Keyboard settings → Languages and layouts** (first in the list) to choose which languages the language key cycles through: Українська, English, Polski, Deutsch, Français, and Español. Ukrainian and English stay on by default, and at least one language must remain on. With a single language, the language key disappears and space gets wider.
+Open **Keyboard settings → Languages and layouts** (first in the list) to choose which languages the language key cycles through: Українська, English, Polski, Deutsch, Français, Español, Čeština, Slovenčina, Latinica, Ћирилица, Svenska, Norsk, Dansk, Nederlands, and Русский. Ukrainian and English stay on by default, and at least one language must remain on. With a single language, the language key disappears and space gets wider.
 
 - **Polish** uses QWERTY; hold a, c, e, l, n, o, s, or z for ą ć ę ł ń ó ś ż ź.
 - **German** uses QWERTZ with ü, ö, and ä on the letter page; hold s for ß, or Shift + hold S for ẞ.
 - **French** uses AZERTY with its apostrophe always on the letter page; hold e, a, c, u, i, o, or y for é è ê ë, à â æ, ç, ù û ü, î ï, ô œ, and ÿ.
 - **Spanish** uses QWERTY with ñ; hold a, e, i, o, or u for á é í ó ú ü. Hold ? and slide to ¿.
+- **Czech** and **Slovak** use QWERTZ with held accents, as iOS does: ě š č ř ž ý á í é ů ú ď ť ň, and á ä č ď é í ľ ĺ ň ó ô ŕ š ť ú ý ž.
+- **Latinica** serves Croatian, Bosnian, Montenegrin, and Serbian Latin: QWERTZ with š đ č ć ž as keys; hold s or z for Montenegrin ś and ź. **Ћирилица** is the Serbian Cyrillic layout with љ њ ђ ћ џ ј.
+- **Swedish**, **Norwegian**, and **Danish** use QWERTY with å ä ö / å ø æ / å æ ø; hold e for é. **Dutch** uses QWERTY; hold a, e, i, o, or u for its accents.
+- **Russian** uses ЙЦУКЕН; hold е for ё and ь for ъ. It is offered only after answering “No” to “Do you support Russia’s invasion of Ukraine?”; answering “Yes” leaves it unavailable. Reset to defaults clears the answer.
+- Holding г for ґ is Ukrainian only.
 - **English** can use QWERTY, Colemak, Colemak-DH (ortholinear matrix bottom row), Dvorak, or Workman. Dvorak keeps ' , . at the start of the top row. Space shows the active variant, and suggestion key distances follow the layout you chose.
 
 Long-press hints mark every letter with held alternatives. Word suggestions remain English and Ukrainian only; other languages show a quiet note in the suggestion row.

@@ -2,7 +2,7 @@
 
 Effective September 23, 2026.
 
-Ortholinear is an on-device Ukrainian and English keyboard for iPhone and iPad, with optional Polish, German, French, and Spanish layouts, maintained by Igor Varyvoda.
+Ortholinear is an on-device Ukrainian and English keyboard for iPhone and iPad, with optional layouts for other European languages, maintained by Igor Varyvoda.
 
 ## Your typing
 
@@ -14,7 +14,7 @@ Only words you choose to teach are saved, up to 200 per language. The system key
 
 ## Settings
 
-Keyboard geometry, your languages, and your starting language are saved locally in a shared App Group container so the keyboard extension can read them. They are not sent to the developer.
+Keyboard geometry, your languages, your starting language, and your answer to the Russian-layout question are saved locally in a shared App Group container so the keyboard extension can read them. They are not sent to the developer.
 
 ## No tracking or Full Access
 

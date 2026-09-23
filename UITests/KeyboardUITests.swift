@@ -268,6 +268,71 @@ final class KeyboardUITests: XCTestCase {
         XCTFail("Could not scroll setting into view: \(element)")
     }
 
+    @MainActor
+    func testRussianNeedsAnAnswerAgainstTheInvasion() throws {
+        let app = launchApp()
+        func resetAndOpenLanguages() {
+            let reset = app.buttons["Reset to defaults"]
+            revealSetting(reset, in: app)
+            reset.tap()
+            let row = app.buttons["language-settings"]
+            revealSetting(row, in: app, scrollingDown: false)
+            row.tap()
+            XCTAssertTrue(app.collectionViews["language-controls"].waitForExistence(timeout: 3))
+        }
+        func back() { app.navigationBars["Languages"].buttons.firstMatch.tap() }
+        tapMainButton("customize-keyboard", in: app)
+        resetAndOpenLanguages()
+        let supports = app.buttons["invasion-supports"]
+        revealLanguageSetting(supports, in: app)
+        supports.tap()
+        XCTAssertTrue(app.staticTexts["Russian isn’t available."].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.switches["language-russian"].exists)
+        back()
+        resetAndOpenLanguages()
+        let opposes = app.buttons["invasion-opposes"]
+        revealLanguageSetting(opposes, in: app)
+        opposes.tap()
+        let russian = app.switches["language-russian"]
+        XCTAssertTrue(russian.waitForExistence(timeout: 3))
+        XCTAssertEqual(russian.value as? String, "0")
+        russian.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5)).withOffset(CGVector(dx: -25, dy: 0)).tap()
+        XCTAssertEqual(russian.value as? String, "1")
+        back()
+        app.buttons["Done"].tap()
+
+        let editor = app.textViews["preview-editor"]
+        app.buttons["clear-preview"].tap()
+        app.buttons["key-Switch to English"].tap()
+        app.buttons["key-Switch to Русский"].tap()
+        XCTAssertTrue(app.buttons["key-ы"].exists)
+        app.buttons["key-е"].press(forDuration: 0.6)
+        XCTAssertEqual(editor.value as? String, "ё")
+        app.buttons["key-Switch to Українська"].tap()
+        app.buttons["clear-preview"].tap()
+
+        // Other tests expect the default Ukrainian and English cycle.
+        tapMainButton("customize-keyboard", in: app)
+        let reset = app.buttons["Reset to defaults"]
+        revealSetting(reset, in: app)
+        reset.tap()
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["key-Switch to English"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    private func revealLanguageSetting(_ element: XCUIElement, in app: XCUIApplication) {
+        let form = app.collectionViews["language-controls"]
+        for attempt in 0..<24 {
+            let top = app.navigationBars["Languages"].frame.maxY + 20
+            if element.exists && element.isHittable && element.frame.midY > top && element.frame.midY < form.frame.maxY - 20 { return }
+            let down = element.exists ? element.frame.midY > form.frame.midY : attempt < 12
+            form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.8 : 0.5))
+                .press(forDuration: 0.05, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.5 : 0.8)))
+        }
+        XCTFail("Could not scroll language setting into view: \(element)")
+    }
+
     /// Languages sit above the presets, which can start below the fold.
     @MainActor
     private func applyBigLetters(in app: XCUIApplication) {
@@ -315,6 +380,7 @@ final class KeyboardUITests: XCTestCase {
                 .withOffset(CGVector(dx: -25, dy: 0)).tap()
         }
         func chooseEnglishLayout(_ title: String) {
+            revealLanguageSetting(app.buttons["english-layout"], in: app)
             app.buttons["english-layout"].tap()
             let option = app.buttons[title].firstMatch
             XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
