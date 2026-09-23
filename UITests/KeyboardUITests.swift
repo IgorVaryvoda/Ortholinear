@@ -142,7 +142,7 @@ final class KeyboardUITests: XCTestCase {
         app.buttons["theme-system"].tap()
         app.buttons["appearance-done"].tap()
         revealSetting(app.buttons["preset-bigLetters"], in: app, scrollingDown: false)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
         app.buttons["Done"].tap()
     }
 
@@ -150,7 +150,7 @@ final class KeyboardUITests: XCTestCase {
     func testLiveSettingsPreviewTracksSpacingAndLanguage() throws {
         let app = launchApp()
         tapMainButton("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
         let preview = app.otherElements["settings-keyboard-preview"]
         XCTAssertTrue(preview.waitForExistence(timeout: 5))
         let originalFrame = preview.frame
@@ -182,7 +182,7 @@ final class KeyboardUITests: XCTestCase {
         app.segmentedControls["preview-language"].buttons["EN"].tap()
         app.buttons["Done"].tap()
         tapMainButton("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
         app.buttons["Done"].tap()
     }
 
@@ -190,7 +190,7 @@ final class KeyboardUITests: XCTestCase {
     func testOptionalYiLongPressPersistsAndCanBeDisabled() throws {
         let app = launchApp()
         tapMainButton("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
         let toggle = app.switches["yi-on-long-press"]
         revealSetting(toggle, in: app)
         XCTAssertEqual(toggle.value as? String, "0")
@@ -257,14 +257,23 @@ final class KeyboardUITests: XCTestCase {
     @MainActor
     private func revealSetting(_ element: XCUIElement, in app: XCUIApplication, scrollingDown: Bool = true) {
         let form = app.collectionViews["geometry-controls"]
-        for _ in 0..<16 {
+        for attempt in 0..<32 {
             let top = max(form.frame.minY, app.navigationBars["Keyboard settings"].frame.maxY) + 20
             if element.exists && element.frame.midY > top && element.frame.midY < form.frame.maxY - 20 { return }
-            let down = element.exists ? element.frame.midY > form.frame.midY : scrollingDown
+            // An unloaded row may be either way, even from the top: try the other way halfway.
+            let down = element.exists ? element.frame.midY > form.frame.midY : scrollingDown == (attempt < 16)
             form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.8 : 0.5))
                 .press(forDuration: 0.05, thenDragTo: form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.5 : 0.8)))
         }
         XCTFail("Could not scroll setting into view: \(element)")
+    }
+
+    /// Languages sit above the presets, which can start below the fold.
+    @MainActor
+    private func applyBigLetters(in app: XCUIApplication) {
+        let preset = app.buttons["preset-bigLetters"]
+        revealSetting(preset, in: app)
+        preset.tap()
     }
 
     @MainActor
@@ -427,13 +436,14 @@ final class KeyboardUITests: XCTestCase {
         let app = launchApp()
         tapMainButton("customize-keyboard", in: app)
         XCTAssertTrue(app.navigationBars["Keyboard settings"].waitForExistence(timeout: 5))
+        revealSetting(app.buttons["preset-original"], in: app)
         app.buttons["preset-original"].tap()
         revealSetting(app.switches["show-punctuation"], in: app)
         XCTAssertEqual(app.switches["show-punctuation"].value as? String, "1")
         revealSetting(app.sliders["Key height"], in: app, scrollingDown: false)
         app.sliders["Key height"].adjust(toNormalizedSliderPosition: 0.7)
         revealSetting(app.buttons["preset-bigLetters"], in: app, scrollingDown: false)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
         revealSetting(app.switches["show-punctuation"], in: app)
         XCTAssertEqual(app.switches["show-punctuation"].value as? String, "0")
         app.buttons["Done"].tap()
@@ -475,8 +485,10 @@ final class KeyboardUITests: XCTestCase {
         app.buttons["key-Numbers"].tap()
         let first = app.buttons["key-1"].frame
         let last = app.buttons["key-0"].frame
+        // Alternatives draw along the top of the keyboard, over the suggestion row.
+        let top = app.otherElements["keyboard-surface"].frame.minY
         let target = app.coordinate(withNormalizedOffset: .zero).withOffset(
-            CGVector(dx: (first.minX + last.maxX) / 2 - 26, dy: first.minY + 17))
+            CGVector(dx: (first.minX + last.maxX) / 2 - 26, dy: top + 19))
         app.buttons["key-."].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             .press(forDuration: 0.6, thenDragTo: target)
         XCTAssertEqual(editor.value as? String, "АБ… ")
@@ -488,7 +500,7 @@ final class KeyboardUITests: XCTestCase {
     func testCustomizationPersistsAndMakesRoomForLetters() throws {
         let app = launchApp()
         tapMainButton("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
         app.buttons["Done"].tap()
         XCTAssertFalse(app.buttons["key-."].exists)
         XCTAssertFalse(app.buttons["key-,"].exists)
@@ -504,6 +516,7 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertEqual(app.buttons["key-Shift"].frame.maxX, app.buttons["key-я"].frame.minX, accuracy: 1)
 
         tapMainButton("customize-keyboard", in: app)
+        revealSetting(app.switches["show-punctuation"], in: app)
         // SwiftUI may expose either the whole toggle row or just its switch.
         // A fixed inset from the trailing edge hits the thumb in both cases.
         app.switches["show-punctuation"].coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
@@ -516,7 +529,8 @@ final class KeyboardUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["key-."].waitForExistence(timeout: 5))
         tapMainButton("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
+        revealSetting(app.switches["show-apostrophe"], in: app)
         app.switches["show-apostrophe"].coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
             .withOffset(CGVector(dx: -25, dy: 0)).tap()
         XCTAssertEqual(app.switches["show-apostrophe"].value as? String, "0")
@@ -526,7 +540,7 @@ final class KeyboardUITests: XCTestCase {
         app.buttons["key-Switch to English"].tap()
         XCTAssertFalse(app.buttons["key-'"].exists)
         tapMainButton("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
+        applyBigLetters(in: app)
         app.buttons["Done"].tap()
         XCTAssertTrue(app.buttons["key-'"].exists)
         app.buttons["key-Switch to Українська"].tap()

@@ -239,6 +239,16 @@ struct GeometrySettings: View {
 
     private var controls: some View {
         Form {
+            Section("Languages") {
+                NavigationLink(value: SettingsPage.languages) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Languages and layouts")
+                            Text(languageSummary).font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "globe") }
+                }.accessibilityIdentifier("language-settings")
+            }
             Section("Appearance") {
                 Button { showAppearance = true } label: {
                     HStack(spacing: 12) {
@@ -325,14 +335,6 @@ struct GeometrySettings: View {
                 Text("Fewer keys means wider letters. Punctuation stays available under 123. Moving ї to long-press і removes its separate key; hold І with Shift for Ї.")
             }
             Section {
-                NavigationLink(value: SettingsPage.languages) {
-                    Label {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Languages and layouts")
-                            Text(languageSummary).font(.caption).foregroundStyle(.secondary)
-                        }
-                    } icon: { Image(systemName: "globe") }
-                }.accessibilityIdentifier("language-settings")
                 Toggle("Space after punctuation", isOn: $preferences.autoSpacePunctuation)
                     .accessibilityIdentifier("auto-space-punctuation")
             } header: { Label("Typing", systemImage: "keyboard") } footer: {

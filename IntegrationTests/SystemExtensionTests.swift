@@ -171,7 +171,6 @@ final class SystemExtensionTests: XCTestCase {
         app.launch()
         XCUIDevice.shared.orientation = .portrait
         tapOnMainPage("customize-keyboard", in: app)
-        app.buttons["preset-bigLetters"].tap()
         let form = app.collectionViews["geometry-controls"]
         func reveal(_ element: XCUIElement, down fallback: Bool = true) {
             for _ in 0..<30 {
@@ -183,6 +182,8 @@ final class SystemExtensionTests: XCTestCase {
             }
             XCTFail("Setting is offscreen: \(element)")
         }
+        reveal(app.buttons["preset-bigLetters"])
+        app.buttons["preset-bigLetters"].tap()
         let yi = app.switches["yi-on-long-press"]
         reveal(yi)
         yi.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))

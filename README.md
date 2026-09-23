@@ -126,7 +126,7 @@ Regenerate data with `uv venv build/suggestion-tools`, then `uv pip install --py
 
 ## Languages, layouts, and field memory
 
-Open **Keyboard settings → Typing → Languages and layouts** to choose which languages the language key cycles through: Українська, English, Polski, Deutsch, Français, and Español. Ukrainian and English stay on by default, and at least one language must remain on. With a single language, the language key disappears and space gets wider.
+Open **Keyboard settings → Languages and layouts** (first in the list) to choose which languages the language key cycles through: Українська, English, Polski, Deutsch, Français, and Español. Ukrainian and English stay on by default, and at least one language must remain on. With a single language, the language key disappears and space gets wider.
 
 - **Polish** uses QWERTY; hold a, c, e, l, n, o, s, or z for ą ć ę ł ń ó ś ż ź.
 - **German** uses QWERTZ with ü, ö, and ä on the letter page; hold s for ß, or Shift + hold S for ẞ.
