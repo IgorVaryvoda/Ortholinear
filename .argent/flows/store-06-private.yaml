@@ -1,0 +1,21 @@
+steps:
+  - launch: com.varyvoda.Ortholinear
+  - wait: 2500
+  - await:
+      visible:
+        id: clear-preview
+  - echo: Scroll in the right margin, outside the test-drive keyboard, down to Enable keyboard
+  - tool: gesture-swipe
+    args: { fromX: 0.975, fromY: 0.9, toX: 0.975, toY: 0.25, durationMs: 500 }
+  - tool: gesture-swipe
+    args: { fromX: 0.975, fromY: 0.9, toX: 0.975, toY: 0.25, durationMs: 500 }
+  - await:
+      visible:
+        id: enable-keyboard
+  - tap:
+      id: enable-keyboard
+  - await:
+      visible:
+        text: Meet your new keyboard
+  - await:
+      idle: true

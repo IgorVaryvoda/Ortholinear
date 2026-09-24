@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showSetup = false
     @State private var showSystemTest = false
     @State private var saveError: String?
+    @State private var triedGestures: Set<KeyboardGesture> = []
 
     var body: some View {
         ScrollView {
@@ -53,12 +54,13 @@ struct ContentView: View {
                         Button("Clear") { NotificationCenter.default.post(name: .clearKeyboardPreview, object: nil) }
                             .font(.system(size: 12, weight: .medium)).accessibilityIdentifier("clear-preview")
                     }
-                    PreviewSurface(preferences: preferences, isActive: !showGeometry && !showSetup && !showSystemTest)
+                    PreviewSurface(preferences: preferences, isActive: !showGeometry && !showSetup && !showSystemTest) { gesture in
+                        triedGestures.insert(gesture)
+                    }
                         .frame(height: 100 + preferences.keyboardHeight)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.primary.opacity(0.08)))
-                    Text("Hold 123, slide to a symbol, and release to type it. Slide on space to move the cursor. Double-tap shift for caps lock.")
-                        .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
+                    GestureChecklist(preferences: preferences, tried: triedGestures)
                 }
 
                 VStack(spacing: 10) {
@@ -135,6 +137,41 @@ struct ContentView: View {
     }
 }
 
+/// Ticks off each gesture as it's tried in the preview above.
+private struct GestureChecklist: View {
+    let preferences: KeyboardPreferences
+    let tried: Set<KeyboardGesture>
+
+    private var items: [(KeyboardGesture, String)] {
+        var items: [(KeyboardGesture, String)] = [
+            (.alternative, preferences.validated.defaultLanguage == .ukrainian ? "Hold г, then release, for ґ" : "Hold a key with a small letter for more"),
+            (.symbolSlide, "Hold 123, slide to a symbol, release"),
+            (.spaceCursor, "Slide on Space to move the cursor")
+        ]
+        if preferences.digitAccess == .flick { items.append((.flick, "Flick a top-row key down for its digit")) }
+        if preferences.glideTyping { items.append((.glide, "Slide across letters to type a whole word")) }
+        return items
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text("TRY THIS").font(.system(size: 10, weight: .semibold, design: .monospaced)).tracking(2)
+                .foregroundStyle(.secondary)
+            ForEach(items, id: \.0) { gesture, title in
+                let done = tried.contains(gesture)
+                Label(title, systemImage: done ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(done ? accent : .secondary)
+                    .accessibilityIdentifier("try-\(gesture.rawValue)")
+                    .accessibilityValue(done ? "Done" : "Not yet")
+            }
+            Text("Tap Space twice to end a sentence. Double-tap Shift for caps lock.")
+                .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
+        }
+        .animation(.easeOut(duration: 0.2), value: tried)
+    }
+}
+
 private struct GridMark: View {
     var body: some View {
         Grid(horizontalSpacing: 2, verticalSpacing: 2) {
@@ -176,7 +213,8 @@ struct GeometrySettings: View {
                 } else {
                     VStack(spacing: 0) {
                         controls
-                        livePreview(maxHeight: geometry.size.height * 0.45)
+                        // Leaves room for several settings rows while the keys stay readable.
+                        livePreview(maxHeight: geometry.size.height * 0.36)
                     }
                 }
             }
@@ -243,7 +281,8 @@ struct GeometrySettings: View {
         }
         .padding(.top, 12).padding(.bottom, 8)
         .background(.regularMaterial)
-        .overlay(alignment: .top) { Divider() }
+        // Not Divider: beside the form in landscape it would turn vertical, through the preview.
+        .overlay(alignment: .top) { Rectangle().fill(Color(uiColor: .separator)).frame(height: 0.5) }
     }
 
     private var controls: some View {
@@ -344,10 +383,27 @@ struct GeometrySettings: View {
                 Text("Fewer keys means wider letters. Punctuation stays available under 123. Moving ї to long-press і removes its separate key; hold І with Shift for Ї.")
             }
             Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Digits on the letter page")
+                    Picker("Digits on the letter page", selection: $preferences.digitAccess) {
+                        ForEach(DigitAccess.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }.pickerStyle(.segmented)
+                }
+                .accessibilityIdentifier("digit-access")
+            } header: { Label("Letters · Digits", systemImage: "number") } footer: {
+                Text(digitFooter)
+            }
+            Section {
+                Toggle("Capitalize sentences", isOn: $preferences.autoCapitalize)
+                    .accessibilityIdentifier("auto-capitalize")
+                Toggle("Double-space for period", isOn: $preferences.doubleSpacePeriod)
+                    .accessibilityIdentifier("double-space-period")
                 Toggle("Space after punctuation", isOn: $preferences.autoSpacePunctuation)
                     .accessibilityIdentifier("auto-space-punctuation")
+                Toggle("Glide typing", isOn: $preferences.glideTyping)
+                    .accessibilityIdentifier("glide-typing")
             } header: { Label("Typing", systemImage: "keyboard") } footer: {
-                Text("The language key switches languages as you type. Automatic spacing adds a space after punctuation; apostrophes and numbers such as 3.14 stay together. Hold Delete to gradually delete faster.")
+                Text("Capitals follow each text field, so email and web addresses stay lowercase. Automatic spacing adds a space after punctuation; apostrophes and numbers such as 3.14 stay together. Glide typing works in English and Ukrainian: slide across the letters of a word and lift, and other readings appear above the keys. Hold Delete to gradually delete faster.")
             }
             Section {
                 Button("Reset to defaults") { preferences = KeyboardPreferences() }
@@ -356,6 +412,14 @@ struct GeometrySettings: View {
             }
         }
         .accessibilityIdentifier("geometry-controls")
+    }
+
+    private var digitFooter: String {
+        switch preferences.digitAccess {
+        case .flick: "Flick a top-row key down to type the small digit in its corner. No extra height."
+        case .numberRow: "A row of digits above the letters. It adds about \(Int(preferences.numberRowHeight)) pt to the keyboard."
+        case .off: "Digits stay under 123."
+        }
     }
 
     private var activePreset: KeyboardPreset? {
@@ -405,7 +469,7 @@ struct SetupView: View {
                 } footer: { Text("If Settings opens the app page, return to the main Settings list and follow the steps above.") }
                 Section("Where it works") {
                     Text("Use it in apps that allow third-party keyboards. iOS uses its own keyboard for passwords and phone-pad fields. Some apps disable third-party keyboards entirely.")
-                    Text("Suggestions change a word only when you tap one. There is no automatic capitalization. Word suggestions and punctuation spacing can be turned off in settings.")
+                    Text("Suggestions change a word only when you tap one. Sentences start with a capital where the text field asks for it. Capitals, suggestions, glide typing and punctuation spacing can each be turned off in settings.")
                 }
             }
             .navigationTitle("Meet your new keyboard")

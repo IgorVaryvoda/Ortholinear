@@ -14,6 +14,15 @@ final class KeyboardViewController: UIInputViewController {
     private var languageContext: LanguageContext?
     private lazy var suggestions = SuggestionCoordinator(keyboard: keyboard)
     private var applyingSuggestion = false
+    /// Shift that automatic capitals turned on, so they may also turn it off.
+    private var autoShifted = false
+    /// The text before the caret when the person last pressed Shift themselves.
+    private var manualShiftContext: String?
+    /// Safari's address bar is a web search field: mostly searches, so it gets suggestions
+    /// and glide. URL-looking tokens never get suggestions, whatever the field.
+    private static let suggestionTypes: [UIKeyboardType] = [.default, .asciiCapable, .twitter, .webSearch]
+    /// URL/email fields need literal punctuation, never automatic spaces or capitals.
+    private static let literalTypes: [UIKeyboardType] = [.URL, .emailAddress, .webSearch]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,10 +42,14 @@ final class KeyboardViewController: UIInputViewController {
         keyboard.globeButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         suggestions.snapshot = { [weak self] in self?.suggestionSnapshot() }
         suggestions.apply = { [weak self] edit, snapshot in self?.applySuggestion(edit, snapshot: snapshot) }
+        suggestions.insertWord = { [weak self] in self?.insertGlided($0) }
+        suggestions.glideContext = { [weak self] in self?.glideContext() }
+        suggestions.switchLanguage = { [weak self] in self?.switchLanguage(to: $0) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
         keyboard.onCursor = { [weak self] in
             self?.punctuationSpacing.reset()
             self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0)
+            self?.updateAutoShift()
             self?.suggestions.refresh()
         }
         keyboard.onDismiss = { [weak self] in self?.dismissKeyboard() }
@@ -44,6 +57,11 @@ final class KeyboardViewController: UIInputViewController {
         inputState.language = Self.memory.fallback
         keyboard.inputState = inputState
         suggestions.refresh()
+        // The completion arrives on an XPC queue, not the main thread.
+        requestSupplementaryLexicon { @Sendable [weak self] lexicon in
+            let words = SupplementaryWords(entries: lexicon.entries.map { ($0.userInput, $0.documentText) })
+            Task { @MainActor in self?.suggestions.supplementary = words }
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -54,6 +72,7 @@ final class KeyboardViewController: UIInputViewController {
         keyboard.preferences = preferences
         heightConstraint?.constant = preferences.keyboardHeight
         lastKeyboardType = nil
+        suggestions.beginSession()
         synchronize()
     }
 
@@ -71,6 +90,8 @@ final class KeyboardViewController: UIInputViewController {
     override func textDidChange(_ textInput: (any UITextInput)?) { if !applyingSuggestion { synchronize() } }
     override func selectionDidChange(_ textInput: (any UITextInput)?) {
         guard !applyingSuggestion else { return }
+        updateAutoShift()
+        keyboard.inputState = inputState
         suggestions.refresh()
     }
     override func didReceiveMemoryWarning() {
@@ -80,7 +101,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private func suggestionSnapshot() -> SuggestionSnapshot? {
         guard isViewLoaded, view.window != nil, lastKeyboardType != nil else { return nil }
-        let allowed: [UIKeyboardType] = [.default, .asciiCapable, .twitter]
+        let allowed = Self.suggestionTypes
         guard allowed.contains(textDocumentProxy.keyboardType ?? .default),
               textDocumentProxy.isSecureTextEntry != true else { return nil }
         let before = textDocumentProxy.documentContextBeforeInput
@@ -90,6 +111,14 @@ final class KeyboardViewController: UIInputViewController {
         guard before != nil || after != nil || !selected.isEmpty else { return nil }
         return .init(document: textDocumentProxy.documentIdentifier, before: before ?? "", after: after ?? "",
                      selection: selected, language: inputState.language)
+    }
+
+    private func glideContext() -> (language: KeyboardLanguage, before: String)? {
+        guard isViewLoaded, view.window != nil, lastKeyboardType != nil else { return nil }
+        let allowed = Self.suggestionTypes
+        guard allowed.contains(textDocumentProxy.keyboardType ?? .default),
+              textDocumentProxy.isSecureTextEntry != true else { return nil }
+        return (inputState.language, textDocumentProxy.documentContextBeforeInput ?? "")
     }
 
     private func applySuggestion(_ edit: SuggestionEdit, snapshot: SuggestionSnapshot) {
@@ -105,6 +134,68 @@ final class KeyboardViewController: UIInputViewController {
         }
         for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
         textDocumentProxy.insertText(edit.text)
+        if edit.text.hasSuffix(" ") {
+            punctuationSpacing.adoptSpace(before: textDocumentProxy.documentContextBeforeInput ?? "", at: ProcessInfo.processInfo.systemUptime)
+        }
+        updateAutoShift()
+        keyboard.inputState = inputState
+    }
+
+    private func insertGlided(_ word: String) -> String? {
+        guard isViewLoaded, inputState.page == .letters else { return nil }
+        applyingSuggestion = true
+        defer { applyingSuggestion = false }
+        var text = word
+        switch inputState.shift {
+        case .once: text = word.prefix(1).uppercased() + word.dropFirst(); inputState.shift = .off; autoShifted = false
+        case .locked: text = word.uppercased()
+        case .off: break
+        }
+        // Glides are whole words: separate them from the word or mark before.
+        let needsSpace = textDocumentProxy.documentContextBeforeInput?.last.map { !$0.isWhitespace && !"([{«„“'\"".contains($0) } ?? false
+        punctuationSpacing.reset()
+        textDocumentProxy.insertText((needsSpace ? " " : "") + text)
+        updateAutoShift()
+        keyboard.inputState = inputState
+        return text
+    }
+
+    private func switchLanguage(to language: KeyboardLanguage) {
+        guard keyboard.preferences.validated.languages.contains(language) else { return }
+        inputState.language = language
+        inputState.page = .letters
+        let context = languageContext ?? LanguageContext()
+        updateMemory { $0.record(language, in: context, chosen: true) }
+        reportLanguageIfNeeded()
+        keyboard.inputState = inputState
+    }
+
+    private var autocapitalization: AutoCapitalization {
+        guard keyboard.preferences.autoCapitalize,
+              !Self.literalTypes.contains(textDocumentProxy.keyboardType ?? .default) else { return .none }
+        switch textDocumentProxy.autocapitalizationType ?? .sentences {
+        case .none: return .none
+        case .words: return .words
+        case .allCharacters: return .allCharacters
+        default: return .sentences
+        }
+    }
+
+    /// Turns Shift on for one letter where the field's own capitalization asks for it.
+    private func updateAutoShift() {
+        guard inputState.page == .letters, inputState.shift != .locked else { return }
+        let before = textDocumentProxy.documentContextBeforeInput
+        guard manualShiftContext != (before ?? "") else { return }
+        manualShiftContext = nil
+        // A host that hides its context must not get a capital on every letter.
+        let wanted = !(before == nil && textDocumentProxy.hasText) && autocapitalization.shouldCapitalize(before: before)
+        if wanted, inputState.shift == .off {
+            inputState.shift = .once
+            autoShifted = true
+        } else if !wanted, autoShifted, inputState.shift == .once {
+            inputState.shift = .off
+            autoShifted = false
+        }
     }
 
     private func synchronize() {
@@ -129,6 +220,7 @@ final class KeyboardViewController: UIInputViewController {
         keyboard.needsGlobe = needsInputModeSwitchKey
         keyboard.returnTitle = returnLabel
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
+        updateAutoShift()
         keyboard.inputState = inputState
         suggestions.refresh()
     }
@@ -199,8 +291,11 @@ final class KeyboardViewController: UIInputViewController {
         case .backspace: punctuationSpacing.reset(); textDocumentProxy.deleteBackward()
         case .enter: insert("\n")
         case .shift:
-            if inputState.page == .letters { inputState.tapShift(at: Date.timeIntervalSinceReferenceDate) }
-            else { inputState.page = inputState.page == .numbers ? .symbols : .numbers }
+            if inputState.page == .letters {
+                inputState.tapShift(at: Date.timeIntervalSinceReferenceDate)
+                autoShifted = false
+                manualShiftContext = textDocumentProxy.documentContextBeforeInput ?? ""
+            } else { inputState.page = inputState.page == .numbers ? .symbols : .numbers }
         case .language:
             inputState.language = keyboard.preferences.language(after: inputState.language)
             inputState.page = .letters
@@ -212,15 +307,18 @@ final class KeyboardViewController: UIInputViewController {
         }
         reportLanguageIfNeeded()
         keyboard.returnEnabled = !(textDocumentProxy.enablesReturnKeyAutomatically ?? false) || textDocumentProxy.hasText
+        if action != .shift { updateAutoShift() }
         keyboard.inputState = inputState
         suggestions.refresh()
     }
 
     private func insert(_ value: String) {
-        // URL/email fields need literal punctuation, never automatic spaces.
-        let literalTypes: [UIKeyboardType] = [.URL, .emailAddress, .webSearch]
-        let enabled = keyboard.preferences.autoSpacePunctuation && !literalTypes.contains(textDocumentProxy.keyboardType ?? .default)
-        let edit = punctuationSpacing.edit(for: value, before: textDocumentProxy.documentContextBeforeInput, enabled: enabled)
+        let literal = Self.literalTypes.contains(textDocumentProxy.keyboardType ?? .default)
+        let preferences = keyboard.preferences
+        let edit = punctuationSpacing.edit(for: value, before: textDocumentProxy.documentContextBeforeInput,
+                                           enabled: preferences.autoSpacePunctuation && !literal,
+                                           doubleSpacePeriod: preferences.doubleSpacePeriod && !literal,
+                                           at: ProcessInfo.processInfo.systemUptime)
         if edit.deleteBackward { textDocumentProxy.deleteBackward() }
         if !edit.text.isEmpty { textDocumentProxy.insertText(edit.text) }
     }

@@ -21,7 +21,7 @@ struct AppearanceSettings: View {
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Make it yours")
+            .navigationTitle("Theme and colors")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }.accessibilityIdentifier("appearance-done")
@@ -32,9 +32,13 @@ struct AppearanceSettings: View {
     private var controls: some View {
         Form {
             Section {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(KeyboardTheme.allCases, id: \.self) { theme in
-                        themeCard(theme)
+                // Automatic spans the top, so the six fixed themes fill the grid evenly.
+                VStack(spacing: 10) {
+                    themeCard(.system)
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        ForEach(KeyboardTheme.allCases.filter { $0 != .system }, id: \.self) { theme in
+                            themeCard(theme)
+                        }
                     }
                 }.padding(.vertical, 6)
             } header: { Text("Keyboard theme") } footer: {
@@ -68,10 +72,10 @@ struct AppearanceSettings: View {
                 }
             } header: { Text("Accent") }
             Section {
-                Toggle("Show long-press hints", isOn: $preferences.showLongPressHints)
+                Toggle("Show key hints", isOn: $preferences.showLongPressHints)
                     .accessibilityIdentifier("show-long-press-hints")
             } header: { Label("Key hints", systemImage: "character.bubble") } footer: {
-                Text("Small ґ and ї hints show which letters are available by holding a key. Enable ї on long-press і in Keyboard settings → Letters to move it off its separate key.")
+                Text("Small letters such as ґ show what holding a key types, and small digits show what a downward flick types. Enable ї on long-press і in Keyboard settings → Letters to move it off its separate key.")
             }
         }.accessibilityIdentifier("appearance-controls")
     }
@@ -82,7 +86,7 @@ struct AppearanceSettings: View {
         return Button { preferences.theme = theme } label: {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 3) {
-                    ForEach(["і", "ї", "⌫"], id: \.self) { letter in
+                    ForEach(["й", "ц", "у", "a", "⌫"], id: \.self) { letter in
                         Text(letter).font(.system(size: 19, weight: .medium))
                             .frame(maxWidth: .infinity, minHeight: 31)
                             .background(Color(uiColor: UIColor(keyboardHex: letter == "⌫" ? colors.control : colors.key)),
@@ -124,6 +128,6 @@ struct AppearanceSettings: View {
         }
         .padding(.vertical, 10)
         .background(.regularMaterial)
-        .overlay(alignment: .top) { Divider() }
+        .overlay(alignment: .top) { Rectangle().fill(Color(uiColor: .separator)).frame(height: 0.5) }
     }
 }

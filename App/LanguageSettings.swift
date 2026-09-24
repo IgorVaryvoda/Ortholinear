@@ -17,7 +17,19 @@ struct LanguageSettings: View {
                     .accessibilityIdentifier("language-\(language.rawValue)")
                 }
             } header: { Text("Languages") } footer: {
-                Text("The language key cycles through the languages you turn on. Hold a letter for its accented forms. Word suggestions are available in English and Ukrainian.")
+                Text("The language key cycles through the languages you turn on. Hold a letter for its accented forms. English and Ukrainian have bundled word suggestions and glide typing; the other layouts use the spell checker built into iOS, on your device.")
+            }
+            Section {
+                Picker("English layout", selection: $preferences.englishLayout) {
+                    ForEach(EnglishLayout.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .accessibilityIdentifier("english-layout")
+                SettingsKeyboardPreview(preferences: preferences, language: .english)
+                    .frame(height: 170)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+            } footer: {
+                Text("Colemak, Colemak-DH, Dvorak and Workman rearrange the English letters. Colemak-DH uses the ortholinear bottom row. Suggestions follow the layout you choose.")
             }
             Section {
                 switch preferences.invasionAnswer {
@@ -47,18 +59,6 @@ struct LanguageSettings: View {
                 if preferences.invasionAnswer == .unanswered {
                     Text("Answer to see the Russian layout.")
                 }
-            }
-            Section {
-                Picker("English layout", selection: $preferences.englishLayout) {
-                    ForEach(EnglishLayout.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .accessibilityIdentifier("english-layout")
-                SettingsKeyboardPreview(preferences: preferences, language: .english)
-                    .frame(height: 170)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
-            } footer: {
-                Text("Colemak, Colemak-DH, Dvorak and Workman rearrange the English letters. Colemak-DH uses the ortholinear bottom row. Suggestions follow the layout you choose.")
             }
             Section {
                 Picker("Starting language", selection: $preferences.defaultLanguage) {

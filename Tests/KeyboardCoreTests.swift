@@ -179,7 +179,7 @@ final class KeyboardCoreTests: XCTestCase {
             }
             state.page = .numbers
             let numbers = KeyboardLayout.rows(state: state, needsGlobe: false, preferences: .init(showApostrophe: false))
-            for value in [".", ",", "'", "?"] {
+            for value in [".", ",", language == .ukrainian ? "ʼ" : "'", "?"] {
                 XCTAssertTrue(numbers.flatMap { $0 }.contains { $0.action == .text(value) })
             }
         }
@@ -423,5 +423,50 @@ final class KeyboardCoreTests: XCTestCase {
         let keys = KeyboardLayout.rows(state: state, needsGlobe: false).flatMap { $0 }
         XCTAssertEqual(keys.first { $0.action == .text("е") }?.alternatives, ["ё"])
         XCTAssertEqual(keys.first { $0.action == .text("ь") }?.alternatives, ["ъ"])
+    }
+
+    func testDigitsFlickFromTheTopRowOrSitInANumberRow() throws {
+        let ukrainian = KeyboardLayout.rows(state: InputState(), needsGlobe: false)
+        XCTAssertEqual(ukrainian[0].prefix(10).map(\.flick), "1234567890".map { String($0) })
+        XCTAssertNil(ukrainian[0][10].flick, "Only the first ten keys carry digits")
+        XCTAssertTrue(ukrainian.dropFirst().joined().allSatisfy { $0.flick == nil })
+        var off = KeyboardPreferences(); off.digitAccess = .off
+        XCTAssertTrue(KeyboardLayout.rows(state: InputState(), needsGlobe: false, preferences: off).joined().allSatisfy { $0.flick == nil })
+        var numbers = InputState(); numbers.page = .numbers
+        XCTAssertTrue(KeyboardLayout.rows(state: numbers, needsGlobe: false).joined().allSatisfy { $0.flick == nil })
+
+        var row = KeyboardPreferences(); row.digitAccess = .numberRow
+        XCTAssertEqual(row.numberRowHeight, 43)
+        XCTAssertEqual(row.keyboardHeight, KeyboardPreferences().keyboardHeight + 43 + 3)
+        let rows = KeyboardLayout.rows(state: InputState(), needsGlobe: true, preferences: row)
+        XCTAssertEqual(rows.count, 5)
+        XCTAssertEqual(rows[0].map(\.action), "1234567890".map { .text(String($0)) })
+        XCTAssertTrue(rows.joined().allSatisfy { $0.flick == nil })
+        XCTAssertTrue(rows[3].contains { $0.action == .backspace }, "Delete still follows the last letter")
+        for page in [KeyboardPage.letters, .numbers, .symbols] {
+            var state = InputState(); state.page = page
+            let cells = KeyboardGeometry.cells(width: 393, state: state, preferences: row, needsGlobe: true)
+            XCTAssertEqual(cells.first!.hitFrame.minY, row.headerHeight)
+            XCTAssertEqual(cells.last!.hitFrame.maxY, row.keyboardHeight, accuracy: 0.001, "Every page fills the same height")
+            for y in stride(from: row.headerHeight, to: row.keyboardHeight, by: 1.9) {
+                XCTAssertEqual(cells.filter { $0.hitFrame.contains(CGPoint(x: 200, y: y)) }.count, 1)
+            }
+        }
+        var preset = row
+        preset.apply(.balanced)
+        XCTAssertEqual(preset.digitAccess, .numberRow, "Presets keep typing choices")
+        XCTAssertEqual(try JSONDecoder().decode(KeyboardPreferences.self, from: JSONEncoder().encode(row)), row)
+        let old = try JSONDecoder().decode(KeyboardPreferences.self, from: Data(#"{"schemaVersion":3,"digitAccess":"dial"}"#.utf8))
+        XCTAssertEqual(old.digitAccess, .flick)
+        XCTAssertTrue(old.autoCapitalize && old.doubleSpacePeriod && old.glideTyping)
+    }
+
+    func testUkrainianNumbersPageTypesTheModifierApostrophe() {
+        var state = InputState(); state.page = .numbers
+        let keys = KeyboardLayout.rows(state: state, needsGlobe: false).joined()
+        XCTAssertEqual(keys.first { $0.action == .text("ʼ") }?.alternatives, ["ʼ", "'", "’", "\""])
+        XCTAssertFalse(keys.contains { $0.action == .text("'") })
+        state.language = .english
+        XCTAssertTrue(KeyboardLayout.rows(state: state, needsGlobe: false).joined().contains { $0.action == .text("'") })
     }
 }

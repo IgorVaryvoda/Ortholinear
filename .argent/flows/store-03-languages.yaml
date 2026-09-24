@@ -1,0 +1,18 @@
+steps:
+  - launch: com.varyvoda.Ortholinear
+  - wait: 2500
+  - await:
+      visible:
+        id: customize-keyboard
+  - tap:
+      id: customize-keyboard
+  - await:
+      visible:
+        text: Keyboard settings
+  - tap:
+      id: language-settings
+  - await:
+      visible:
+        text: Polski
+  - await:
+      idle: true

@@ -18,7 +18,11 @@ Need help with Ortholinear? [Open an issue](https://github.com/IgorVaryvoda/Orth
 - **Faster deletion:** hold Delete to accelerate; release or slide away to stop.
 - **No keyboard in a password field:** iOS uses its own keyboard for secure and phone-pad fields. Some apps disallow custom keyboards.
 - **Punctuation spacing:** automatic spacing is on by default. Change it under Customize → Typing → Space after punctuation. Apostrophes, URLs, and email fields stay literal.
-- **No autocorrect:** Ortholinear types exactly what you tap. Prediction and autocorrect are not included.
+- **Nothing is autocorrected:** Ortholinear types exactly what you tap. Suggestions above the keys change a word only when you tap one. Between words, that row shows punctuation.
+- **Capitals and periods:** sentences start with a capital where the text field asks for one, and two Spaces after a word type “. ”. Turn either off under Keyboard settings → Typing.
+- **Digits:** flick a top-row key down to type the small digit in its corner, or choose a number row under Keyboard settings → Letters · Digits.
+- **Glide typing:** in English and Ukrainian, slide across a word's letters and lift. Other readings appear above the keys; tap one to swap it in. Turn it off under Keyboard settings → Typing.
+- **Typed on the wrong layout:** with English and Ukrainian both on, a word like “ghbdsn” gets a “привіт ⇄” offer that fixes it and switches language.
 - **Move the cursor:** slide horizontally on the space key.
 
 When reporting a problem, include your iOS version, device model, app version, and steps to reproduce. Remove personal information from screenshots. Never post passwords or private text.

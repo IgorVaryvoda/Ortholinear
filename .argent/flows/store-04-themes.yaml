@@ -1,0 +1,21 @@
+steps:
+  - launch: com.varyvoda.Ortholinear
+  - wait: 2500
+  - await:
+      visible:
+        id: customize-keyboard
+  - tap:
+      id: customize-keyboard
+  - await:
+      visible:
+        text: Keyboard settings
+  - tap:
+      id: choose-theme
+  - await:
+      visible:
+        id: theme-tokyoNight
+  - tap:
+      id: theme-tokyoNight
+  - wait: 600
+  - await:
+      idle: true

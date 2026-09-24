@@ -14,6 +14,11 @@ final class FeedbackButton: UIButton {
     }
 }
 
+/// Gestures the in-app preview checks off as someone tries them.
+enum KeyboardGesture: String, CaseIterable, Sendable {
+    case alternative, symbolSlide, spaceCursor, flick, glide
+}
+
 /// A single touch surface owns the complete grid, including the visual gutters.
 @MainActor
 final class KeyboardView: UIControl {
@@ -31,15 +36,23 @@ final class KeyboardView: UIControl {
     }
     var returnTitle = "return" { didSet { if oldValue != returnTitle { refresh() } } }
     var returnEnabled = true { didSet { if oldValue != returnEnabled { refresh() } } }
+    /// Hosts turn this on only for languages and fields that can decode a trace.
+    var glideEnabled = false { didSet { if !glideEnabled { for id in sessions.keys { sessions[id]?.trace = nil } } } }
     var onAction: ((KeyAction) -> Void)?
     var onCursor: ((Int) -> Void)?
     var onDismiss: (() -> Void)?
+    var onGlide: (([CGPoint]) -> Void)?
+    var onGesture: ((KeyboardGesture) -> Void)?
     let suggestionBar = SuggestionBar()
     let globeButton = FeedbackButton(type: .custom)
     private let dismissButton = FeedbackButton(type: .custom)
     private(set) var cells: [KeyCell] = []
     private var sessions: [ObjectIdentifier: TouchSession] = [:]
-    private var popup: (owner: ObjectIdentifier, values: [String], selected: Int)?
+    // Hiding the opaque suggestion row here, not in layout: a hold changes no geometry,
+    // so the popup would otherwise be drawn underneath the row.
+    private var popup: (owner: ObjectIdentifier, values: [String], selected: Int)? {
+        didSet { if (oldValue == nil) != (popup == nil) { updateChrome(); setNeedsLayout() } }
+    }
     private var accessibleKeys: [AccessibleKey] = []
     private var layoutSize: CGSize = .zero
     private var releasedKeys: [KeyAction: TimeInterval] = [:]
@@ -60,7 +73,21 @@ final class KeyboardView: UIControl {
         var cursorSteps = 0
         var cursorMode = false
         var timer: Timer?
+        var startCell: Int
+        var flick: String?
+        /// Recorded while a glide is still possible; nil once it can't be one.
+        var trace: [CGPoint]?
+        var pathLength: CGFloat = 0
+        var glide = false
+
+        init(cell: Int, original: KeyAction, start: CGPoint) {
+            self.cell = cell; self.original = original; self.start = start; startCell = cell
+        }
     }
+
+    /// Down at least this far, and not much sideways, from a top-row key types its digit.
+    static let flickDistance: CGFloat = 18
+    static let flickDrift: CGFloat = 22
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -87,6 +114,8 @@ final class KeyboardView: UIControl {
         dismissButton.addAction(UIAction { [weak self] _ in self?.onDismiss?() }, for: .touchUpInside)
         addSubview(dismissButton)
         addSubview(suggestionBar)
+        // Strip punctuation types like its key, so automatic spacing still applies.
+        suggestionBar.onPunctuation = { [weak self] in self?.emit(.text($0), feedback: false) }
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -103,10 +132,9 @@ final class KeyboardView: UIControl {
         globeButton.isHidden = !needsGlobe
         globeButton.frame = cells.first(where: { $0.key.action == .globe })?.hitFrame ?? .zero
         suggestionBar.frame = CGRect(x: 0, y: preferences.showHeader ? 38 : 0, width: bounds.width, height: preferences.suggestionHeight)
-        suggestionBar.isHidden = !preferences.suggestionsEnabled || popup != nil
         suggestionBar.style(palette)
         dismissButton.frame = CGRect(x: bounds.width - 44, y: 0, width: 44, height: 38)
-        dismissButton.isHidden = !preferences.showHeader || popup != nil
+        updateChrome()
         globeButton.tintColor = palette.text
         dismissButton.tintColor = palette.secondary
         backgroundColor = palette.background
@@ -120,6 +148,11 @@ final class KeyboardView: UIControl {
         setNeedsDisplay()
     }
 
+    private func updateChrome() {
+        suggestionBar.isHidden = !preferences.suggestionsEnabled || popup != nil
+        dismissButton.isHidden = !preferences.showHeader || popup != nil
+    }
+
     func cancelTouches() {
         for session in sessions.values { session.timer?.invalidate() }
         sessions.removeAll()
@@ -129,7 +162,6 @@ final class KeyboardView: UIControl {
         feedbackTimer = nil
         popup = nil
         setNeedsLayout()
-        dismissButton.isHidden = !preferences.showHeader
         setNeedsDisplay()
     }
 
@@ -196,7 +228,7 @@ final class KeyboardView: UIControl {
                 element.accessibilityValue = displayState.shift == .locked ? "Caps lock" : "On"
             }
             element.activate = { [weak self] in self?.emit(cell.key.action) }
-            element.accessibilityCustomActions = cell.key.alternatives.map { value in
+            element.accessibilityCustomActions = (cell.key.alternatives + [cell.key.flick].compactMap { $0 }).map { value in
                 UIAccessibilityCustomAction(name: "Type \(title(.text(value)))") { [weak self] _ in
                     self?.emit(.text(value)); return true
                 }
@@ -282,19 +314,35 @@ final class KeyboardView: UIControl {
 
             let color = action == .enter && !returnEnabled ? palette.secondary.withAlphaComponent(0.5) : palette.text
             if drawControl(action, in: frame, color: color) { continue }
-            let label = action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(action)
+            let flicked = sessions.values.first { $0.startCell == index && $0.flick != nil }?.flick
+            let label = flicked ?? (action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(action))
             var size: CGFloat = label.count > 2 ? 13 : 19
             if case .text = action {
                 size = min(preferences.validated.letterSize, max(14, frame.width - 3))
             }
             drawText(label, in: frame, font: .systemFont(ofSize: size,
-                     weight: isText ? .regular : .medium), color: color)
+                     weight: isText ? .regular : .medium), color: flicked == nil ? color : palette.accent)
             if preferences.showLongPressHints, case .text(let letter) = action,
                letter.first?.isLetter == true, let hint = cell.key.alternatives.first {
                 let hintFrame = CGRect(x: frame.maxX - 13, y: frame.minY + 3, width: 10, height: 12)
                 drawText(title(.text(hint)), in: hintFrame,
                          font: .systemFont(ofSize: 10, weight: .medium), color: palette.secondary)
             }
+            if preferences.showLongPressHints, let digit = cell.key.flick {
+                drawText(digit, in: CGRect(x: frame.minX + 3, y: frame.minY + 3, width: 10, height: 12),
+                         font: .systemFont(ofSize: 10, weight: .semibold), color: palette.accent, alignment: .left)
+            }
+        }
+        for session in sessions.values where session.glide {
+            guard let trace = session.trace, let first = trace.first else { continue }
+            let trail = UIBezierPath()
+            trail.move(to: first)
+            trace.dropFirst().forEach(trail.addLine(to:))
+            trail.lineWidth = 6
+            trail.lineCapStyle = .round
+            trail.lineJoinStyle = .round
+            palette.accent.withAlphaComponent(0.55).setStroke()
+            trail.stroke()
         }
         if let popup {
             let width = min(bounds.width - 12, CGFloat(popup.values.count) * 52)
@@ -386,7 +434,13 @@ final class KeyboardView: UIControl {
                 sessions[id] = TouchSession(cell: pageIndex, original: .page, start: point)
                 continue
             }
-            sessions[id] = TouchSession(cell: index, original: key.action, start: point)
+            // A second finger means fast typing, never a glide.
+            for other in sessions.keys where !(sessions[other]?.glide ?? false) { sessions[other]?.trace = nil }
+            var session = TouchSession(cell: index, original: key.action, start: point)
+            if glideEnabled, sessions.isEmpty, case .text(let value) = key.action, value.first?.isLetter == true {
+                session.trace = [point]
+            }
+            sessions[id] = session
             if key.action == .backspace { emit(.backspace) }
             if key.action == .backspace || !key.alternatives.isEmpty {
                 let delay = key.action == .backspace ? DeleteRepeat.initialDelay : 0.42
@@ -405,8 +459,8 @@ final class KeyboardView: UIControl {
         if key.action == .backspace {
             repeatDelete(id: id)
         } else if popup == nil {
+            sessions[id]?.trace = nil
             popup = (id, key.alternatives, 0)
-            dismissButton.isHidden = true
             setNeedsDisplay()
         }
     }
@@ -474,12 +528,39 @@ final class KeyboardView: UIControl {
                 }
             }
             let index = KeyboardGeometry.hit(at: point, cells: cells)
+            if var trace = session.trace, let last = trace.last {
+                let step = hypot(point.x - last.x, point.y - last.y)
+                if step >= 2 {
+                    trace.append(point)
+                    session.pathLength += step
+                    session.trace = trace.count > 600 ? stride(from: 0, to: trace.count, by: 2).map { trace[$0] } : trace
+                }
+            }
+            if !session.glide, cells.indices.contains(session.startCell), let digit = cells[session.startCell].key.flick {
+                let dx = point.x - session.start.x, dy = point.y - session.start.y
+                if dy >= Self.flickDistance && abs(dx) < Self.flickDrift {
+                    session.timer?.invalidate()
+                    session.timer = nil
+                    session.flick = digit
+                    session.cell = session.startCell
+                    sessions[id] = session
+                    continue
+                }
+                session.flick = nil
+            }
+            if session.trace != nil, !session.glide, index != session.startCell,
+               cells.indices.contains(session.startCell),
+               session.pathLength >= max(36, cells[session.startCell].hitFrame.width * 1.1) {
+                session.glide = true
+                session.timer?.invalidate()
+                session.timer = nil
+            }
             if index != session.cell {
                 session.timer?.invalidate()
                 session.timer = nil
                 session.cell = index ?? -1
-                sessions[id] = session
             }
+            sessions[id] = session
         }
         setNeedsDisplay()
     }
@@ -510,14 +591,23 @@ final class KeyboardView: UIControl {
                 refresh()
                 layoutIfNeeded()
                 if isTap { emit(.page) }
-                else if let action, case .text = action { emit(action, feedback: false) }
+                else if let action, case .text = action { emit(action, feedback: false); onGesture?(.symbolSlide) }
                 // Holds, outside releases, and non-text targets restore letters silently.
             } else if let current = popup, current.owner == id {
                 let isInside = bounds.contains(touch.location(in: self))
                 popup = nil
-                dismissButton.isHidden = !preferences.showHeader
-                if isInside { emit(.text(current.values[current.selected])) }
-            } else if !session.cursorMode && session.original != .backspace,
+                if isInside { emit(.text(current.values[current.selected])); onGesture?(.alternative) }
+            } else if session.glide, var trace = session.trace {
+                trace.append(touch.location(in: self))
+                onGlide?(trace)
+                onGesture?(.glide)
+            } else if let digit = session.flick {
+                emit(.text(digit), feedback: false)
+                flash(session.original)
+                onGesture?(.flick)
+            } else if session.cursorMode {
+                onGesture?(.spaceCursor)
+            } else if session.original != .backspace,
                       let index = KeyboardGeometry.hit(at: touch.location(in: self), cells: cells) {
                 emit(cells[index].key.action)
             }
@@ -530,7 +620,7 @@ final class KeyboardView: UIControl {
             let id = ObjectIdentifier(touch)
             sessions.removeValue(forKey: id)?.timer?.invalidate()
             if symbolSlide?.owner == id { symbolSlide = nil; refresh() }
-            if popup?.owner == id { popup = nil; dismissButton.isHidden = !preferences.showHeader }
+            if popup?.owner == id { popup = nil }
         }
         setNeedsDisplay()
     }

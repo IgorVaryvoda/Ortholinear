@@ -1,0 +1,28 @@
+steps:
+  - wait: 2500
+  - await:
+      visible:
+        id: clear-preview
+  - wait: 1000
+  - tap:
+      id: "key-П"
+  - wait: 220
+  - tap:
+      id: "key-р"
+  - wait: 220
+  - tap:
+      id: "key-и"
+  - wait: 220
+  - tap:
+      id: "key-в"
+  - wait: 220
+  - tap:
+      id: "key-і"
+  - wait: 220
+  - tap:
+      id: "key-т"
+  - wait: 220
+  - wait: 700
+  - tap:
+      id: key-Space
+  - wait: 1500

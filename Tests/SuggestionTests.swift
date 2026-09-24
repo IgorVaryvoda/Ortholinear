@@ -127,4 +127,56 @@ final class SuggestionTests: XCTestCase {
             print("SUGGESTION_BENCHMARK \(language.badge) load=\(load) baseline=\(plainHits)/\(pairs.count) geometry=\(rankedHits)/\(pairs.count) p50_ms=\(timings[timings.count/2]) p95_ms=\(timings[Int(Double(timings.count-1)*0.95)])")
         }
     }
+
+    func testWordsTypedOnTheOtherLayoutAreRecovered() throws {
+        let english = try SuggestionResources.engine(language: .english)
+        let ukrainian = try SuggestionResources.engine(language: .ukrainian)
+        let preferences = KeyboardPreferences()
+        let en = SuggestionGeometry(language: .english, preferences: preferences, width: 393)
+        let uk = SuggestionGeometry(language: .ukrainian, preferences: preferences, width: 393)
+        // Type each word by position on the wrong layout, then recover it.
+        func mistype(_ word: String, on typed: SuggestionGeometry, meant: SuggestionGeometry) -> String {
+            String(word.compactMap { character -> Character? in
+                guard let point = meant.centers[character] else { return nil }
+                return typed.centers.filter { !typed.isAlternative($0.key) }
+                    .min { hypot($0.value.x - point.x, $0.value.y - point.y) < hypot($1.value.x - point.x, $1.value.y - point.y) }?.key
+            })
+        }
+        func accuracy(_ lexicon: SuggestionLexicon, meant: SuggestionGeometry, typed: SuggestionGeometry) -> Int {
+            let common = lexicon.words.filter { $0.word.count >= 4 && !$0.word.contains("'") }
+                .sorted { $0.frequency > $1.frequency }.prefix(100).map(\.word)
+            return common.filter {
+                LayoutRecovery.recover(mistype($0, on: typed, meant: meant), from: typed, to: meant, lexicon: lexicon) == $0
+            }.count
+        }
+        XCTAssertEqual(LayoutRecovery.recover(mistype("привіт", on: en, meant: uk), from: en, to: uk, lexicon: ukrainian.lexicon), "привіт")
+        XCTAssertEqual(LayoutRecovery.recover(mistype("hello", on: uk, meant: en), from: uk, to: en, lexicon: english.lexicon), "hello")
+        XCTAssertGreaterThanOrEqual(accuracy(ukrainian.lexicon, meant: uk, typed: en), 85)
+        XCTAssertGreaterThanOrEqual(accuracy(english.lexicon, meant: en, typed: uk), 85)
+        XCTAssertNil(LayoutRecovery.recover("zq", from: en, to: uk, lexicon: ukrainian.lexicon), "Too short to guess")
+        XCTAssertNil(LayoutRecovery.recover("h3llo", from: en, to: uk, lexicon: ukrainian.lexicon))
+    }
+
+    func testReplacementsMayHoldSpacesButNeedATypedShortcut() throws {
+        let typed = snapshot("omw")
+        let replacement = WordSuggestion(word: "On my way!", kind: .replacement)
+        XCTAssertEqual(SuggestionEdit.make(suggestion: replacement, offered: typed, current: typed)?.text, "On my way! ")
+        XCTAssertEqual(SuggestionEdit.make(suggestion: replacement, offered: typed, current: typed)?.deleteCount, 3)
+        let empty = snapshot("see ")
+        XCTAssertNil(SuggestionEdit.make(suggestion: replacement, offered: empty, current: empty))
+    }
+
+    func testMissingApostrophesAreOffered() throws {
+        let english = try SuggestionResources.engine(language: .english)
+        let ukrainian = try SuggestionResources.engine(language: .ukrainian)
+        func offers(_ engine: SuggestionEngine, _ typed: String, _ language: KeyboardLanguage) -> [String] {
+            let target = try! XCTUnwrap(snapshot(typed, language: language).target)
+            return engine.suggest(target: target, language: language, learned: [], geometry: nil, nextWords: true, useContext: true).map(\.word)
+        }
+        XCTAssertEqual(offers(english, "whos", .english).first, "who's")
+        XCTAssertEqual(offers(english, "dont", .english).first, "don't")
+        XCTAssertTrue(offers(english, "its", .english).contains("it's"), "\(offers(english, "its", .english))")
+        XCTAssertEqual(offers(ukrainian, "память", .ukrainian).first, "памʼять")
+        XCTAssertEqual(offers(ukrainian, "Мясо", .ukrainian).first, "Мʼясо")
+    }
 }

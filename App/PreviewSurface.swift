@@ -51,8 +51,12 @@ extension Notification.Name {
 struct PreviewSurface: UIViewRepresentable {
     let preferences: KeyboardPreferences
     let isActive: Bool
+    var onGesture: (KeyboardGesture) -> Void = { _ in }
     func makeUIView(context: Context) -> PreviewContainer { PreviewContainer() }
-    func updateUIView(_ view: PreviewContainer, context: Context) { view.apply(preferences, isActive: isActive) }
+    func updateUIView(_ view: PreviewContainer, context: Context) {
+        view.onGesture = onGesture
+        view.apply(preferences, isActive: isActive)
+    }
 }
 
 final class PreviewContainer: UIView, UITextViewDelegate {
@@ -66,6 +70,10 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     private lazy var suggestions = SuggestionCoordinator(keyboard: keyboard)
     private var applyingSuggestion = false
     private var isActive = true
+    private var autoShifted = false
+    private var manualShiftContext: String?
+    /// Reports each gesture the first time someone tries it, for the checklist below the preview.
+    var onGesture: ((KeyboardGesture) -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -102,6 +110,18 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         keyboard.needsGlobe = false
         suggestions.snapshot = { [weak self] in self?.suggestionSnapshot() }
         suggestions.apply = { [weak self] edit, snapshot in self?.applySuggestion(edit, snapshot: snapshot) }
+        suggestions.insertWord = { [weak self] in self?.insertGlided($0) }
+        suggestions.glideContext = { [weak self] in
+            guard let self, self.isActive else { return nil }
+            return (self.state.language, self.textBeforeCaret)
+        }
+        suggestions.switchLanguage = { [weak self] language in
+            guard let self, self.keyboard.preferences.validated.languages.contains(language) else { return }
+            self.state.language = language
+            self.state.page = .letters
+            self.keyboard.inputState = self.state
+        }
+        keyboard.onGesture = { [weak self] in self?.onGesture?($0) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
         keyboard.onDismiss = { [weak self] in self?.editor.resignFirstResponder() }
         keyboard.onCursor = { [weak self] offset in
@@ -109,6 +129,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
                   let position = self.editor.position(from: selection.start, offset: offset) else { return }
             self.punctuationSpacing.reset()
             self.editor.selectedTextRange = self.editor.textRange(from: position, to: position)
+            self.updateAutoShift()
             self.suggestions.refresh()
         }
         NotificationCenter.default.addObserver(self, selector: #selector(clear), name: .clearKeyboardPreview, object: nil)
@@ -131,6 +152,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
 
     func apply(_ preferences: KeyboardPreferences, isActive: Bool) {
+        let wasActive = self.isActive
         self.isActive = isActive
         if !isActive { suggestions.suspend() }
         if keyboard.preferences.defaultLanguage != preferences.defaultLanguage
@@ -139,6 +161,8 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         }
         keyboard.preferences = preferences
         height.constant = preferences.keyboardHeight
+        if isActive && !wasActive { suggestions.beginSession() }
+        updateAutoShift()
         keyboard.inputState = state
         if isActive { suggestions.refresh() }
     }
@@ -147,6 +171,8 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         punctuationSpacing.reset()
         editor.text = ""
         placeholder.isHidden = false
+        updateAutoShift()
+        keyboard.inputState = state
         suggestions.refresh(force: true)
     }
 
@@ -155,7 +181,52 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         if !applyingSuggestion { suggestions.refresh() }
     }
     func textViewDidChangeSelection(_ textView: UITextView) {
-        if !applyingSuggestion { punctuationSpacing.reset(); suggestions.refresh() }
+        guard !applyingSuggestion else { return }
+        punctuationSpacing.reset()
+        updateAutoShift()
+        keyboard.inputState = state
+        suggestions.refresh()
+    }
+
+    private var textBeforeCaret: String {
+        let range = editor.selectedRange
+        guard range.location != NSNotFound, range.location <= (editor.text as NSString).length else { return "" }
+        return (editor.text as NSString).substring(to: range.location)
+    }
+
+    /// Same rules as the system keyboard, for a sentence-capitalized text view.
+    private func updateAutoShift() {
+        guard state.page == .letters, state.shift != .locked else { return }
+        let before = textBeforeCaret
+        guard manualShiftContext != before else { return }
+        manualShiftContext = nil
+        let wanted = keyboard.preferences.autoCapitalize && AutoCapitalization.sentences.shouldCapitalize(before: before)
+        if wanted, state.shift == .off {
+            state.shift = .once
+            autoShifted = true
+        } else if !wanted, autoShifted, state.shift == .once {
+            state.shift = .off
+            autoShifted = false
+        }
+    }
+
+    private func insertGlided(_ word: String) -> String? {
+        guard isActive, state.page == .letters else { return nil }
+        applyingSuggestion = true
+        defer { applyingSuggestion = false }
+        var text = word
+        switch state.shift {
+        case .once: text = word.prefix(1).uppercased() + word.dropFirst(); state.shift = .off; autoShifted = false
+        case .locked: text = word.uppercased()
+        case .off: break
+        }
+        let needsSpace = textBeforeCaret.last.map { !$0.isWhitespace && !"([{«„“'\"".contains($0) } ?? false
+        punctuationSpacing.reset()
+        editor.insertText((needsSpace ? " " : "") + text)
+        placeholder.isHidden = !editor.text.isEmpty
+        updateAutoShift()
+        keyboard.inputState = state
+        return text
     }
     private func suggestionSnapshot() -> SuggestionSnapshot? {
         guard isActive else { return nil }
@@ -180,6 +251,9 @@ final class PreviewContainer: UIView, UITextViewDelegate {
             editor.selectedTextRange = editor.textRange(from: caret, to: caret)
         }
         placeholder.isHidden = !editor.text.isEmpty
+        if edit.text.hasSuffix(" ") { punctuationSpacing.adoptSpace(before: textBeforeCaret, at: ProcessInfo.processInfo.systemUptime) }
+        updateAutoShift()
+        keyboard.inputState = state
     }
 
     private func handle(_ action: KeyAction) {
@@ -191,14 +265,18 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         case .enter: insert("\n")
         case .backspace: punctuationSpacing.reset(); editor.deleteBackward()
         case .shift:
-            if state.page == .letters { state.tapShift(at: Date.timeIntervalSinceReferenceDate) }
-            else { state.page = state.page == .numbers ? .symbols : .numbers }
+            if state.page == .letters {
+                state.tapShift(at: Date.timeIntervalSinceReferenceDate)
+                autoShifted = false
+                manualShiftContext = textBeforeCaret
+            } else { state.page = state.page == .numbers ? .symbols : .numbers }
         case .page: state.page = state.page == .letters ? .numbers : .letters
         case .language: state.language = keyboard.preferences.language(after: state.language); state.page = .letters
         case .dismiss: editor.resignFirstResponder()
         default: break
         }
         placeholder.isHidden = !editor.text.isEmpty
+        if action != .shift { updateAutoShift() }
         keyboard.inputState = state
         if isActive { suggestions.refresh() }
     }
@@ -207,7 +285,9 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         let selection = editor.selectedRange
         if selection.length > 0 { punctuationSpacing.reset() }
         let context = (editor.text as NSString).substring(to: selection.location)
-        let edit = punctuationSpacing.edit(for: value, before: context, enabled: keyboard.preferences.autoSpacePunctuation)
+        let edit = punctuationSpacing.edit(for: value, before: context, enabled: keyboard.preferences.autoSpacePunctuation,
+                                           doubleSpacePeriod: keyboard.preferences.doubleSpacePeriod,
+                                           at: ProcessInfo.processInfo.systemUptime)
         if edit.deleteBackward { editor.deleteBackward() }
         if !edit.text.isEmpty { editor.insertText(edit.text) }
     }

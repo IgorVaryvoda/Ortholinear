@@ -1,0 +1,17 @@
+executionPrerequisite: >-
+  The home screen test drive shows the Ukrainian keyboard with Привіт typed.
+
+steps:
+  - tap:
+      id: "key-Switch to English"
+  - wait: 1000
+  - echo: Glide h → e → l → o on English QWERTY (normalized key centres on the 6.9-inch screen)
+  - tool: gesture-custom
+    args:
+      events:
+        - { type: Down, x: 0.545, y: 0.675 }
+        - { type: Move, x: 0.276, y: 0.600, delayMs: 180 }
+        - { type: Move, x: 0.814, y: 0.675, delayMs: 260 }
+        - { type: Up, x: 0.814, y: 0.600, delayMs: 160 }
+      interpolate: 12
+  - wait: 1800

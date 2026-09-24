@@ -1,0 +1,16 @@
+executionPrerequisite: >-
+  The home screen test drive, in English, after a glided word.
+
+steps:
+  - tap:
+      id: customize-keyboard
+  - wait: 1200
+  - tap:
+      id: choose-theme
+  - wait: 1000
+  - tap:
+      id: theme-tokyoNight
+  - wait: 1200
+  - tap:
+      id: theme-nord
+  - wait: 1500

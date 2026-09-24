@@ -1,0 +1,44 @@
+steps:
+  - launch: com.varyvoda.Ortholinear
+  - wait: 2500
+  - await:
+      visible:
+        id: clear-preview
+  - tap:
+      id: clear-preview
+  - await:
+      idle: true
+  - echo: Automatic capitals put Shift on, so the first key is uppercase
+  - tap:
+      id: "key-П"
+  - tap:
+      id: "key-р"
+  - tap:
+      id: "key-и"
+  - tap:
+      id: "key-в"
+  - tap:
+      id: "key-і"
+  - tap:
+      id: "key-т"
+  - tap:
+      id: "key-Space"
+  - tap:
+      id: "key-я"
+  - tap:
+      id: "key-к"
+  - tap:
+      id: "key-Space"
+  - tap:
+      id: "key-с"
+  - tap:
+      id: "key-п"
+  - tap:
+      id: "key-р"
+  - tap:
+      id: "key-а"
+  - tap:
+      id: "key-в"
+  - wait: 800
+  - await:
+      idle: true

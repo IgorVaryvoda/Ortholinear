@@ -4,8 +4,50 @@ import XCTest
 final class SystemExtensionTests: XCTestCase {
     /// Uses the already enabled extension; safe to run on the paired iPhone too.
     @MainActor
+    func testInstalledKeyboardGlidesInEmptyAndFilledFields() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-no-auto-capitals", "-no-keyboard-tips"]
+        app.launch()
+        XCUIDevice.shared.orientation = .portrait
+        tapOnMainPage("system-test", in: app)
+        let editor = app.textViews["system-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        editor.tap()
+        let surface = app.otherElements["system-keyboard-surface"]
+        if !surface.waitForExistence(timeout: 2) {
+            let globe = app.buttons["Next keyboard"]
+            XCTAssertTrue(globe.waitForExistence(timeout: 3), app.debugDescription)
+            globe.press(forDuration: 1)
+            let option = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Ortholinear'")).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
+            option.tap()
+        }
+        XCTAssertTrue(surface.waitForExistence(timeout: 8), app.debugDescription)
+        if surface.buttons["key-Switch to English"].exists { surface.buttons["key-Switch to English"].tap() }
+        func glide(_ from: String, _ to: String) {
+            surface.buttons["key-\(from)"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                .press(forDuration: 0.05, thenDragTo: surface.buttons["key-\(to)"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+                       withVelocity: 300, thenHoldForDuration: 0.05)
+        }
+        func waitForText(_ check: @escaping (String) -> Bool) -> Bool {
+            let predicate = NSPredicate { _, _ in check(editor.value as? String ?? "") }
+            return XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: nil)], timeout: 5) == .completed
+        }
+        // Hosts report no text context at all in an empty field.
+        glide("w", "t")
+        XCTAssertTrue(waitForText { $0.count > 2 && $0.hasPrefix("w") && $0.hasSuffix("t") },
+                      "Glide in an empty field typed \(editor.value ?? "nothing")")
+        let first = editor.value as? String ?? ""
+        glide("w", "t")
+        XCTAssertTrue(waitForText { $0.count > first.count + 2 && $0.hasPrefix(first + " w") },
+                      "A second glide adds a spaced word: \(editor.value ?? "nothing")")
+        surface.buttons["key-Delete"].press(forDuration: 2)
+    }
+
+    @MainActor
     func testInstalledSuggestionsAreTapOnly() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-no-auto-capitals", "-no-keyboard-tips"]
         app.launch()
         XCUIDevice.shared.orientation = .portrait
         tapOnMainPage("system-test", in: app)
@@ -53,6 +95,11 @@ final class SystemExtensionTests: XCTestCase {
         type("зорбліф")
         surface.buttons["suggestion-options"].tap()
         let teach = app.buttons["Teach “зорбліф”"]
+        // An interrupted earlier run may have left the word taught.
+        if !teach.waitForExistence(timeout: 3), app.buttons["Forget “зорбліф”"].exists {
+            app.buttons["Forget “зорбліф”"].tap()
+            surface.buttons["suggestion-options"].tap()
+        }
         XCTAssertTrue(teach.waitForExistence(timeout: 3), app.debugDescription)
         teach.tap()
         app.buttons["Done"].tap()
@@ -73,6 +120,7 @@ final class SystemExtensionTests: XCTestCase {
     @MainActor
     func testInstalledKeyboardRemembersLanguagePerKindOfField() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-no-auto-capitals", "-no-keyboard-tips"]
         app.launch()
         XCUIDevice.shared.orientation = .portrait
         // The memory persists across runs; start from the starting language.
@@ -168,6 +216,7 @@ final class SystemExtensionTests: XCTestCase {
     @MainActor
     func testInstalledExtensionTypesInHostField() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-no-auto-capitals", "-no-keyboard-tips"]
         app.launch()
         XCUIDevice.shared.orientation = .portrait
         tapOnMainPage("customize-keyboard", in: app)

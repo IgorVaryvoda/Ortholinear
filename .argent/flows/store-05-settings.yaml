@@ -1,0 +1,17 @@
+steps:
+  - launch: com.varyvoda.Ortholinear
+  - wait: 2500
+  - await:
+      visible:
+        id: customize-keyboard
+  - tap:
+      id: customize-keyboard
+  - await:
+      visible:
+        text: Keyboard settings
+  - echo: Scroll the form to the size sliders, above the docked live preview
+  - tool: gesture-swipe
+    args: { fromX: 0.5, fromY: 0.5, toX: 0.5, toY: 0.2, durationMs: 600 }
+  - wait: 800
+  - await:
+      idle: true

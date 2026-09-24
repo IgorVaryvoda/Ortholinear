@@ -1,0 +1,47 @@
+steps:
+  - launch: com.varyvoda.Ortholinear
+  - wait: 2500
+  - await:
+      visible:
+        id: clear-preview
+  - tap:
+      id: clear-preview
+  - await:
+      idle: true
+  - tap:
+      id: "key-Switch to English"
+  - tap:
+      id: "key-S"
+  - tap:
+      id: "key-e"
+  - tap:
+      id: "key-e"
+  - tap:
+      id: "key-Space"
+  - tap:
+      id: "key-y"
+  - tap:
+      id: "key-o"
+  - tap:
+      id: "key-u"
+  - tap:
+      id: "key-Space"
+  - tap:
+      id: "key-t"
+  - tap:
+      id: "key-o"
+  - tap:
+      id: "key-m"
+  - tap:
+      id: "key-o"
+  - tap:
+      id: "key-r"
+  - tap:
+      id: "key-o"
+  - tap:
+      id: "key-w"
+  - await:
+      visible:
+        text: Use tomorrow
+  - await:
+      idle: true

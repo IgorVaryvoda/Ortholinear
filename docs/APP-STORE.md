@@ -53,7 +53,7 @@ MORE LANGUAGES AND LAYOUTS
 • Message, search, email, and web address fields each reopen in the language you last used in them.
 
 YOUR WORDS STAY YOURS
-Typing works without Full Access. No analytics, ads, app accounts, or typed-text collection. Typing and settings stay on your device. There is no autocorrect: optional English and Ukrainian word suggestions run on your device and change a word only when you tap one.
+Typing works without Full Access. No analytics, ads, app accounts, or typed-text collection. Typing and settings stay on your device. Nothing is autocorrected: optional word suggestions run on your device and change a word only when you tap one.
 
 TRY IT BEFORE ENABLING
 Use the interactive keyboard preview inside the app, customize your layout, then follow the setup guide to enable Ortholinear in iOS Settings.
@@ -69,6 +69,19 @@ No account or sign-in is required. Launch the containing app to use the interact
 The extension does not request Full Access (RequestsOpenAccess=false). The app writes geometry and typing preferences into its App Group; the keyboard only reads them. No network requests, microphone recording, or typed-text collection. For ґ, hold г; for Ґ, enable Shift and hold Г. Delete follows M / Ю; Ukrainian has no letter-page apostrophe. Automatic punctuation spacing is enabled by default and configurable. URL and email fields use literal punctuation.
 
 Version 0.4.0: Keyboard settings > Languages and layouts (first in the list) turns on Polish, German, French, Spanish, Czech, Slovak, Croatian, Bosnian, Montenegrin, Serbian (Latin and Cyrillic), Swedish, Norwegian, Danish, Dutch (Ukrainian and English stay on by default) and chooses an English layout: QWERTY, Colemak, Colemak-DH, Dvorak, or Workman. The language key cycles through the enabled languages; hold letters such as e, a, or s for accented forms. The keyboard remembers the language last used in each kind of field; for example, switch languages in the email field and the text editor of “Test the installed system keyboard”, then move between them. It stores only field types and language names in its own container, never text, and “Forget remembered languages” on the same settings page clears it. Tap-only word suggestions for English and Ukrainian run on-device from bundled dictionaries; text changes only when a suggestion is tapped. There is still no Full Access and no network access. Russian is listed separately: it asks “Do you support Russia’s invasion of Ukraine?”. Answering No shows the Russian toggle; answering Yes shows “Russian isn’t available.” Reset to defaults clears the answer.
+
+## What’s New in the next version (draft)
+
+Typing basics:
+• Sentences start with a capital automatically, following each text field. Email and web addresses stay lowercase.
+• Tap Space twice to end a sentence with a period.
+• Between words, the suggestion row shows . , ? ! and quotes, so punctuation is one tap.
+• Flick a top-row key down for its digit, or turn on a number row.
+• Glide typing for English and Ukrainian: slide across the letters of a word.
+• Typed a Ukrainian word with the English layout? Tap the offered word to fix it and switch language.
+• Suggestions for Polish, German, French, Spanish, Czech, Slovak, and the other layouts, from the spell checker built into iOS, plus your own text replacements.
+Fixes:
+• Letters you get by holding a key, such as ґ and accents, are now visible above the keys while you hold.
 
 ## What’s New in 0.4.0
 

@@ -28,9 +28,9 @@ The checked-in Xcode project is ready to open. `project.yml` is the source for r
 xcodegen generate
 ```
 
-## V0.3.2 behavior
+## Behavior
 
-- Ukrainian and English with equal-width letters within each row, including the complete Ukrainian alphabet. English has an optional apostrophe; Ukrainian keeps it on the numbers page.
+- Ukrainian and English with equal-width letters within each row, including the complete Ukrainian alphabet. English has an optional apostrophe; Ukrainian keeps it on the numbers page, where it types ʼ (U+02BC, as the macOS Ukrainian layout does). Hold it for ' ’ ".
 - Turn on **ї on long-press і** in customization to remove the separate ї key and widen the top row. Tap і for і; hold for ї, or hold І with Shift for Ї. The option is off by default.
 - Customization keeps a live keyboard preview visible as you adjust size and spacing sliders, with UA/EN switching and a side-by-side layout in landscape.
 - Open **Settings → Appearance → Theme and colors** to choose Automatic, Warm Light, Soft Dark, High Contrast, Tokyo Night, Catppuccin Mocha, or Nord. Keep the theme accent or choose teal, blue, purple, rose, or amber. Theme and accent settings persist and are shared with the extension.
@@ -42,12 +42,20 @@ xcodegen generate
 - Big letters, Balanced, and Original grid presets; optional letter-page punctuation and header.
 - Optional automatic spacing after . , ! ? : ; …, enabled by default. Consecutive punctuation stays together, manual Space does not double the gap, and numeric continuations such as 3.14 work. URL and email fields use literal punctuation.
 - UA / EN toggle, one-shot shift, double-tap caps lock.
+- Sentences start with a capital where the host field asks for it (its `autocapitalizationType`: sentences, words, or all characters). Email, URL, and web search fields never get automatic capitals, and a Shift you turn off yourself stays off until you type. **Capitalize sentences** is on by default.
+- Two Spaces within 1.2 s after a word type “. ”. **Double-space for period** is on by default and skips URL and email fields.
+- Between words, the suggestion row shows `. , ? ! :` and `« »` (Cyrillic) or `- "` (Latin) in fixed positions, so a period is one tap. Marks attach to the word, even after a suggestion added a space.
+- **Digits on the letter page**: flick a top-row key down (at least 18 pt, less than 22 pt sideways) to type the small digit in its corner, which is the default and costs no height; or show a number row (about 45 pt at the default size); or turn both off. Other pages share the number row's height, so the keyboard never changes size.
+- **Glide typing** (English and Ukrainian, on by default): slide across a word's letters and lift. The word goes in with a space before it when needed, other readings appear in the suggestion row, and tapping one replaces it. A slide shorter than about one key still just moves to the neighbouring key. The decoder matches the trace's shape and position against the bundled dictionary on the device in about half a millisecond.
+- A word typed on the wrong layout, such as “ghbdsn” while English is active, gets a “привіт ⇄” offer that fixes the word and switches language, when English and Ukrainian are both on.
+- The system keyboard also offers your iOS text replacements and contact names (via `requestSupplementaryLexicon`, which needs no Full Access).
+- In an empty field, the row shows a one-line tip about a gesture, at most three times per tip. Tap a tip to hide it. The app's test drive ticks off each gesture as you try it.
 - Backspace deletes immediately; after a 420 ms hold, character deletion gradually accelerates from one every 120 ms to one every 25 ms over four seconds. Releasing, sliding off Delete, or dismissing the keyboard stops repetition. Each new hold starts slowly.
 - Space, return, two number/symbol pages, keyboard dismissal. The 123 / ABC switch always stays at the far left of the control row.
 - Tap 123 to stay on numbers. Hold or slide from 123 onto a symbol and release to type it, then return to letters. Pause over #+= to reach the second symbols page. Releasing outside or holding and releasing in place cancels.
 - Immediate pressed-key feedback and a short release fade, including globe and header dismissal. Key frames stay fixed during feedback; Reduce Motion uses a brief static highlight.
 - Native globe interaction when `needsInputModeSwitchKey` is true, including Apple's keyboard picker on hold. On Face ID devices, iOS may supply the globe below the extension instead.
-- Hold punctuation for 420 ms, slide into the alternatives at the top of the keyboard, and release on an alternative. Release outside the keyboard to cancel. Available on period, comma, apostrophe, quote, hyphen, and question mark. Without the header, alternatives temporarily overlay the first row.
+- Hold punctuation for 420 ms, slide into the alternatives at the top of the keyboard, and release on an alternative. Release outside the keyboard to cancel. Available on period, comma, apostrophe, quote, hyphen, and question mark. The alternatives replace the suggestion row while you hold; with no suggestion row or header, they temporarily overlay the first row.
 - Swipe horizontally on space: 12 points per cursor step; no space inserted after a cursor drag.
 - Letter-key height: 36–88 pt; control-row height: 36–72 pt; letter size: 18–36 pt; Return/Delete relative width: 1.25–3.5; horizontal spacing: 0–8 pt; vertical spacing: 0–12 pt.
 - **Fill gaps between keys** keeps the visible gutters but partitions the whole grid into adjoining touch targets. Turning it off restricts touches to visible rectangles.
@@ -108,7 +116,7 @@ Resources/           App icon and privacy manifest
 
 ## Deliberately later
 
-Autocorrect and suggestions; automatic sentence capitalization; smart quotes and double-space period; haptics; extra geometry modes (stagger, handedness, offsets, individual key widths). No dictionary or third-party keyboard framework is bundled.
+Automatic correction (suggestions change text only when tapped); smart quotes; haptics, which need Full Access; extra geometry modes (stagger, handedness, offsets, individual key widths). No third-party keyboard framework is bundled.
 
 iOS replaces custom keyboards in secure/password and phone-pad fields. Host apps can refuse third-party keyboards. These are [system restrictions](https://developer.apple.com/documentation/uikit/configuring-a-custom-keyboard-interface).
 
@@ -116,11 +124,11 @@ Licensed under MIT.
 
 ## Suggestion-only typing (0.4.0)
 
-English and Ukrainian suggestions run entirely offline. Three large buttons offer corrections, completions, or next words; text changes only when a suggestion is tapped. Space and punctuation never accept a correction automatically. Place the caret inside a word or select it to see alternatives. URL, email, and numeric fields do not request suggestions.
+English and Ukrainian suggestions run entirely offline. Three large buttons offer corrections, completions, or next words; text changes only when a suggestion is tapped. Space and punctuation never accept a correction automatically. Place the caret inside a word or select it to see alternatives. URL, email, and numeric fields do not request suggestions; web search fields, such as the Safari address bar, do, but never for anything that looks like a web address.
 
 Open **Keyboard settings → Suggestions → Words and corrections** to toggle the row, next words, and short sentence context. Use **⋯ → Teach** to save a word, or the same menu to forget words. The extension and app preview maintain separate local word lists (up to 200 per language), so teaching works without Full Access. No typing history is collected.
 
-The native Swift engine uses a compact symmetric-delete index, nearby-key ranking, and optional pruned bigram/trigram tables. See [research](docs/SUGGESTIONS-RESEARCH.md) and [verification notes](docs/SUGGESTIONS-VERIFICATION.md) for measured scope and limitations. Dictionary resources have separate attribution/share-alike terms; the application code remains MIT. Full notices ship in the app under **Suggestions → Dictionary credits** and in [DictionaryCredits.txt](Core/SuggestionData/DictionaryCredits.txt).
+The native Swift engine uses a compact symmetric-delete index, nearby-key ranking, and optional pruned bigram/trigram tables. The last two dictionaries used stay loaded, so switching UA ↔ EN doesn't reload them; a memory warning releases both. See [research](docs/SUGGESTIONS-RESEARCH.md) and [verification notes](docs/SUGGESTIONS-VERIFICATION.md) for measured scope and limitations. Dictionary resources have separate attribution/share-alike terms; the application code remains MIT. Full notices ship in the app under **Suggestions → Dictionary credits** and in [DictionaryCredits.txt](Core/SuggestionData/DictionaryCredits.txt).
 
 Regenerate data with `uv venv build/suggestion-tools`, then `uv pip install --python build/suggestion-tools/bin/python wordfreq==3.1.1 spylls==0.1.7`, then `build/suggestion-tools/bin/python Tools/build_suggestion_data.py`. The script downloads pinned public data into ignored build storage, filters common surface forms, creates indexes and context tables, and evaluates next words on a separate test split. Generated assets include license/provenance metadata. Python and the source corpora are not part of the app runtime.
 
@@ -139,7 +147,7 @@ Open **Keyboard settings → Languages and layouts** (first in the list) to choo
 - Holding г for ґ is Ukrainian only.
 - **English** can use QWERTY, Colemak, Colemak-DH (ortholinear matrix bottom row), Dvorak, or Workman. Dvorak keeps ' , . at the start of the top row. Space shows the active variant, and suggestion key distances follow the layout you chose.
 
-Long-press hints mark every letter with held alternatives. Word suggestions remain English and Ukrainian only; other languages show a quiet note in the suggestion row.
+Long-press hints mark every letter with held alternatives. English and Ukrainian use the bundled dictionaries. The other layouts get corrections and completions from `UITextChecker`, Apple's on-device spell checker, re-ranked by nearby keys.
 
 **Remember for each kind of field** is on by default. iOS doesn't tell keyboards which app, window, or chat they are in: one keyboard process serves every app, `documentIdentifier` changes each time a field gains focus, and conversation context isn't delivered to third-party keyboards. What does survive is a field's kind (its keyboard type, return key, and content type), so Ortholinear remembers by kind:
 

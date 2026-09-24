@@ -132,6 +132,17 @@ enum InvasionAnswer: String, Codable, Sendable {
 }
 
 enum KeyboardPage: Sendable { case letters, numbers, symbols }
+/// How digits are reached from the letter page, besides 123.
+enum DigitAccess: String, Codable, CaseIterable, Sendable {
+    case flick, numberRow, off
+    var title: String {
+        switch self {
+        case .flick: "Flick down"
+        case .numberRow: "Number row"
+        case .off: "Off"
+        }
+    }
+}
 enum ShiftMode: Sendable { case off, once, locked }
 enum ShiftPlacement: String, Codable, CaseIterable, Sendable {
     case beforeLastRow, controlRow
@@ -178,12 +189,16 @@ struct Key: Sendable {
     let action: KeyAction
     var weight: Double = 1
     var letterAlternatives: [String] = []
+    /// Typed by a short downward flick; top-row digits.
+    var flick: String?
     var alternatives: [String] {
         guard case .text(let value) = action else { return [] }
         switch value {
         case ".": return [".", "…", "!", "?"]
         case ",": return [",", ";", ":"]
         case "'": return ["'", "’", "ʼ", "\""]
+        // Ukrainian types the modifier-letter apostrophe, as macOS does.
+        case "ʼ": return ["ʼ", "'", "’", "\""]
         case "-": return ["-", "–", "—", "_"]
         case "\"": return ["\"", "«", "»", "“", "”"]
         case "?": return ["?", "!", "¿"]
@@ -198,7 +213,7 @@ enum KeyboardLayout {
         switch state.page {
         case .letters: strings = letterRows(state.language, preferences: preferences)
         case .numbers:
-            strings = ["1234567890", "-/:;()$&@\"", ".,?!'[]=+%"]
+            strings = ["1234567890", "-/:;()$&@\"", (state.language == .ukrainian ? ".,?!ʼ" : ".,?!'") + "[]=+%"]
         case .symbols:
             strings = ["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'`:;₴…"]
         }
@@ -207,6 +222,10 @@ enum KeyboardLayout {
                 Key(action: .text(String(character)),
                     letterAlternatives: state.page == .letters ? letterAlternatives(character, language: state.language, preferences: preferences) : [])
             }
+        }
+        let digits = "1234567890".map(String.init)
+        if state.page == .letters && preferences.digitAccess == .flick {
+            for index in result[0].indices.prefix(digits.count) { result[0][index].flick = digits[index] }
         }
         // Delete follows the last letter, ahead of any optional punctuation.
         if state.page == .letters, let lastLetter = result[2].lastIndex(where: { key in
@@ -233,6 +252,9 @@ enum KeyboardLayout {
             controls.append(Key(action: .backspace, weight: preferences.validated.actionKeyWidth))
         }
         result.append(controls)
+        if state.page == .letters && preferences.digitAccess == .numberRow {
+            result.insert(digits.map { Key(action: .text($0)) }, at: 0)
+        }
         return result
     }
 
@@ -361,6 +383,10 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var theme: KeyboardTheme = .system
     var accent: KeyboardAccent = .theme
     var showLongPressHints: Bool = true
+    var autoCapitalize: Bool = true
+    var doubleSpacePeriod: Bool = true
+    var digitAccess: DigitAccess = .flick
+    var glideTyping: Bool = true
 
     var suggestionsEnabled: Bool = true
     var nextWordSuggestions: Bool = true
@@ -377,7 +403,7 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
         case controlHeight, letterSize, actionKeyWidth, shiftPlacement, showPunctuation, showApostrophe, showHeader, autoSpacePunctuation
-        case yiOnLongPress
+        case yiOnLongPress, autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping
         case theme, accent, showLongPressHints
         case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
         case languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer
@@ -406,19 +432,26 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     }
     var suggestionHeight: Double { suggestionsEnabled ? 44 : 0 }
     var headerHeight: Double { suggestionHeight + (showHeader ? KeyboardGeometry.ribbonHeight : 0) }
+    /// A shorter row: it costs about 45 pt at the default key height.
+    var numberRowHeight: Double {
+        digitAccess == .numberRow ? min(48, max(30, (validated.keyHeight * 0.6).rounded())) : 0
+    }
     var keyboardHeight: Double {
         let p = validated
-        return p.headerHeight + 3 * (p.keyHeight + p.rowSpacing) + p.controlHeight + p.rowSpacing
+        let numberRow = p.numberRowHeight > 0 ? p.numberRowHeight + p.rowSpacing : 0
+        return p.headerHeight + numberRow + 3 * (p.keyHeight + p.rowSpacing) + p.controlHeight + p.rowSpacing
     }
 
     mutating func apply(_ preset: KeyboardPreset) {
         let language = (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer)
         let appearance = (theme, accent, showLongPressHints)
         let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
+        let typing = (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping)
         self = preset.preferences
         (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer) = language
         (theme, accent, showLongPressHints) = appearance
         (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
+        (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping) = typing
     }
 }
 
@@ -441,6 +474,10 @@ extension KeyboardPreferences {
         showHeader = try c.decodeIfPresent(Bool.self, forKey: .showHeader) ?? showHeader
         autoSpacePunctuation = try c.decodeIfPresent(Bool.self, forKey: .autoSpacePunctuation) ?? autoSpacePunctuation
         yiOnLongPress = try c.decodeIfPresent(Bool.self, forKey: .yiOnLongPress) ?? yiOnLongPress
+        autoCapitalize = try c.decodeIfPresent(Bool.self, forKey: .autoCapitalize) ?? autoCapitalize
+        doubleSpacePeriod = try c.decodeIfPresent(Bool.self, forKey: .doubleSpacePeriod) ?? doubleSpacePeriod
+        digitAccess = (try? c.decodeIfPresent(DigitAccess.self, forKey: .digitAccess)) ?? digitAccess
+        glideTyping = try c.decodeIfPresent(Bool.self, forKey: .glideTyping) ?? glideTyping
         theme = try c.decodeIfPresent(KeyboardTheme.self, forKey: .theme) ?? theme
         accent = try c.decodeIfPresent(KeyboardAccent.self, forKey: .accent) ?? accent
         showLongPressHints = try c.decodeIfPresent(Bool.self, forKey: .showLongPressHints) ?? showLongPressHints
@@ -501,11 +538,16 @@ enum KeyboardGeometry {
                       needsGlobe: Bool) -> [KeyCell] {
         guard width > 0 else { return [] }
         let p = preferences.validated
-        return KeyboardLayout.rows(state: state, needsGlobe: needsGlobe, preferences: p).enumerated().flatMap { row, keys in
+        let rows = KeyboardLayout.rows(state: state, needsGlobe: needsGlobe, preferences: p)
+        // Pages without the number row share its height, so the keyboard never jumps.
+        let letterHeight = rows.count == 5 || p.numberRowHeight == 0 ? p.keyHeight
+            : p.keyHeight + (p.numberRowHeight + p.rowSpacing) / 3
+        var rowY = p.headerHeight
+        return rows.enumerated().flatMap { row, keys in
             let unit = width / keys.reduce(0) { $0 + $1.weight }
-            let keyHeight = row == 3 ? p.controlHeight : p.keyHeight
+            let keyHeight = row == rows.count - 1 ? p.controlHeight : (rows.count == 5 && row == 0 ? p.numberRowHeight : letterHeight)
             let rowHeight = keyHeight + p.rowSpacing
-            let rowY = p.headerHeight + Double(row) * (p.keyHeight + p.rowSpacing)
+            defer { rowY += rowHeight }
             var x = 0.0
             return keys.enumerated().map { column, key in
                 let right = column == keys.count - 1 ? width : x + unit * key.weight

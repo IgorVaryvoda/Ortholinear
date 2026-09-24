@@ -4,7 +4,7 @@ final class KeyboardUITests: XCTestCase {
     @MainActor
     func testSuggestionOnlyTypingTeachingAndSettings() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-suggestion-ui-tests"]
+        app.launchArguments = ["-suggestion-ui-tests", "-no-auto-capitals", "-no-keyboard-tips"]
         app.launch()
         XCUIDevice.shared.orientation = .portrait
         app.buttons["clear-preview"].tap()
@@ -93,7 +93,7 @@ final class KeyboardUITests: XCTestCase {
         let form = app.collectionViews["appearance-controls"]
         func reveal(_ element: XCUIElement, down fallback: Bool = true) {
             for _ in 0..<18 {
-                let top = app.navigationBars["Make it yours"].frame.maxY + 10
+                let top = app.navigationBars["Theme and colors"].frame.maxY + 10
                 if element.exists && element.frame.minY > top && element.frame.maxY < form.frame.maxY - 10 { return }
                 let down = element.exists ? element.frame.midY > (top + form.frame.maxY) / 2 : fallback
                 form.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: down ? 0.8 : 0.5))
@@ -305,9 +305,10 @@ final class KeyboardUITests: XCTestCase {
         app.buttons["clear-preview"].tap()
         app.buttons["key-Switch to English"].tap()
         app.buttons["key-Switch to Русский"].tap()
-        XCTAssertTrue(app.buttons["key-ы"].exists)
-        app.buttons["key-е"].press(forDuration: 0.6)
-        XCTAssertEqual(editor.value as? String, "ё")
+        // Reset to defaults turned automatic capitals back on, so the empty field starts with Shift.
+        XCTAssertTrue(app.buttons["key-Ы"].exists)
+        app.buttons["key-Е"].press(forDuration: 0.6)
+        XCTAssertEqual(editor.value as? String, "Ё")
         app.buttons["key-Switch to Українська"].tap()
         app.buttons["clear-preview"].tap()
 
@@ -354,8 +355,9 @@ final class KeyboardUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchApp(landscape: Bool = false) -> XCUIApplication {
+    private func launchApp(landscape: Bool = false, arguments: [String] = ["-no-auto-capitals", "-no-keyboard-tips"]) -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchArguments = arguments
         app.launch()
         XCUIDevice.shared.orientation = landscape ? .landscapeLeft : .portrait
         let orientation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
@@ -403,7 +405,10 @@ final class KeyboardUITests: XCTestCase {
         app.buttons["key-z"].press(forDuration: 0.6)
         app.buttons["key-a"].tap()
         XCTAssertEqual(editor.value as? String, "ża")
-        XCTAssertTrue(app.staticTexts["No word suggestions for Polski"].waitForExistence(timeout: 2))
+        // Apple's spell checker covers Polish; the row never just says there's nothing.
+        XCTAssertFalse(app.staticTexts["No word suggestions for Polski"].exists)
+        let offer = app.buttons["suggestion-0"], period = app.buttons["strip-0"]
+        XCTAssertTrue(offer.waitForExistence(timeout: 3) || period.waitForExistence(timeout: 1), app.debugDescription)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "Polish layout in the preview"
         screenshot.lifetime = .keepAlways
@@ -419,6 +424,68 @@ final class KeyboardUITests: XCTestCase {
         app.navigationBars["Languages"].buttons.firstMatch.tap()
         app.buttons["Done"].tap()
         XCTAssertTrue(app.buttons["key-Switch to English"].waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testSentenceCapitalsPunctuationRowAndDigitFlicks() throws {
+        let app = launchApp(arguments: ["-auto-capitals", "-no-keyboard-tips"])
+        let editor = app.textViews["preview-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        app.buttons["clear-preview"].tap()
+        if app.buttons["key-Switch to English"].exists { app.buttons["key-Switch to English"].tap() }
+        XCTAssertTrue(app.buttons["key-H"].waitForExistence(timeout: 3), "An empty field starts with a capital")
+        app.buttons["key-H"].tap()
+        app.buttons["key-i"].tap()
+        app.buttons["key-Space"].doubleTap()
+        XCTAssertEqual(editor.value as? String, "Hi. ", "Two Spaces end the sentence")
+        XCTAssertTrue(app.buttons["key-S"].waitForExistence(timeout: 2), "The next sentence starts with a capital")
+        for letter in ["S", "e", "e"] { app.buttons["key-\(letter)"].tap() }
+        let period = app.buttons["strip-0"]
+        let use = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Use ")).firstMatch
+        XCTAssertTrue(use.waitForExistence(timeout: 5), app.debugDescription)
+        use.tap()
+        XCTAssertTrue(period.waitForExistence(timeout: 3), "Punctuation fills the row between words")
+        XCTAssertEqual(period.label, "Period")
+        period.tap()
+        let text = try XCTUnwrap(editor.value as? String)
+        XCTAssertTrue(text.hasPrefix("Hi. See") && text.hasSuffix(". "), text)
+        XCTAssertFalse(text.contains(" ."), "The period attaches to the word: \(text)")
+
+        let q = app.buttons["key-Q"]
+        XCTAssertTrue(q.waitForExistence(timeout: 2))
+        q.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+            .press(forDuration: 0.05, thenDragTo: q.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).withOffset(CGVector(dx: 0, dy: 40)))
+        XCTAssertEqual(editor.value as? String, text + "1", "A downward flick on q types 1")
+        XCTAssertEqual(app.descendants(matching: .any)["try-flick"].value as? String, "Done")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Capitals, punctuation row and digit flick"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    @MainActor
+    func testGlideTypingTypesAWholeWord() throws {
+        let app = launchApp()
+        let editor = app.textViews["preview-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        app.buttons["clear-preview"].tap()
+        if app.buttons["key-Switch to English"].exists { app.buttons["key-Switch to English"].tap() }
+        // w → e → t is one straight stroke along the top row.
+        let w = app.buttons["key-w"], t = app.buttons["key-t"]
+        w.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: t.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+                   withVelocity: 300, thenHoldForDuration: 0.05)
+        let glided = NSPredicate { _, _ in
+            guard let value = editor.value as? String else { return false }
+            return value.count > 2 && value.hasPrefix("w") && value.hasSuffix("t")
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: glided, object: nil)], timeout: 5), .completed,
+                       "Glide typed \(editor.value ?? "nothing")")
+        XCTAssertEqual(app.descendants(matching: .any)["try-glide"].value as? String, "Done")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Glide typing"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     @MainActor

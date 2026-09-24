@@ -50,9 +50,12 @@ struct SuggestionTarget: Equatable, Sendable {
 }
 
 struct WordSuggestion: Equatable, Sendable {
-    enum Kind: Sendable { case correction, completion, nextWord }
+    /// A replacement is the user's own text replacement, which may hold spaces and punctuation.
+    enum Kind: Sendable { case correction, completion, nextWord, replacement }
     var word: String
     var kind: Kind
+    /// Set when the word belongs to another enabled language; accepting it switches to that language.
+    var language: KeyboardLanguage? = nil
 }
 
 struct SuggestionEdit: Equatable, Sendable {
@@ -63,8 +66,12 @@ struct SuggestionEdit: Equatable, Sendable {
 
     static func make(suggestion: WordSuggestion, offered: SuggestionSnapshot,
                      current: SuggestionSnapshot) -> Self? {
-        guard offered == current, let target = current.target,
-              SuggestionText.isWord(suggestion.word) else { return nil }
+        guard offered == current, let target = current.target else { return nil }
+        if suggestion.kind == .replacement {
+            guard !suggestion.word.isEmpty, suggestion.word.count <= 200, !target.word.isEmpty else { return nil }
+        } else {
+            guard SuggestionText.isWord(suggestion.word) else { return nil }
+        }
         let isNext = suggestion.kind == .nextWord
         guard isNext == target.word.isEmpty else { return nil }
         // Preserve punctuation and following text. Space is only added at the end of
@@ -207,6 +214,17 @@ struct SuggestionLexicon: Sendable {
         }
         return low
     }
+    /// Indices of the words starting with `prefix` (the words are sorted).
+    func range(prefix: String) -> Range<Int> {
+        let start = lowerBound(prefix)
+        guard !prefix.isEmpty else { return start..<words.count }
+        var low = start, high = words.count
+        while low < high {
+            let mid = (low + high) / 2
+            if words[mid].word.hasPrefix(prefix) { low = mid + 1 } else { high = mid }
+        }
+        return start..<low
+    }
     func contains(_ word: String) -> Bool {
         let index = lowerBound(word)
         return index < words.count && words[index].word == word
@@ -271,13 +289,24 @@ struct SuggestionEngine: Sendable {
         if query.count >= 2 && (!known || target.selected || target.rightCount > 0) {
             candidates.formUnion(lexicon.candidates(query))
         }
+        // The Ukrainian letter page has no apostrophe, and nobody types one in “dont”:
+        // “память” should offer “памʼять” and “its” should offer “it's”, even when known.
+        let bare = query.replacingOccurrences(of: "'", with: "")
+        var withApostrophe = Set<String>()
+        if !query.contains("'") {
+            for index in bare.indices.dropFirst() {
+                var word = bare; word.insert("'", at: index)
+                if lexicon.contains(word) { withApostrophe.insert(word) }
+            }
+        }
         var scored: [(String, Double, WordSuggestion.Kind)] = []
         func consider(_ word: String, frequency: Int, taught: Bool) {
             guard word != query else { return }
+            let apostropheOnly = word.contains("'") && word.replacingOccurrences(of: "'", with: "") == bare
             let completion = word.hasPrefix(query) && !target.selected && target.rightCount == 0
-            let distance = completion ? 0 : SuggestionDistance.evaluate(query, word, geometry: nil)
-            guard completion || distance <= (query.count <= 3 ? 1 : 2) else { return }
-            let cost = completion ? 0.6 + Double(word.count - query.count) * 0.10
+            let distance = completion || apostropheOnly ? 0 : SuggestionDistance.evaluate(query, word, geometry: nil)
+            guard completion || apostropheOnly || distance <= (query.count <= 3 ? 1 : 2) else { return }
+            let cost = apostropheOnly ? 0.15 : completion ? 0.6 + Double(word.count - query.count) * 0.10
                 : SuggestionDistance.evaluate(query, word, geometry: geometry)
             let contextBoost = log1p(Double(contextual[word] ?? 0)) * 0.22
             let score = Double(frequency) / 100 * 0.55 - cost * 2.3 + (taught ? 1.5 : 0) + contextBoost
@@ -290,12 +319,24 @@ struct SuggestionEngine: Sendable {
                 consider(entry.word, frequency: entry.frequency, taught: false)
             }
         }
+        for word in withApostrophe where !scored.contains(where: { $0.0 == word }) {
+            consider(word, frequency: lexicon.frequency(of: word) ?? 0, taught: false)
+        }
         for word in learned { consider(SuggestionText.normalize(word), frequency: 450, taught: true) }
         scored.sort { $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 > $1.1 }
         var seen = Set<String>()
         let floor = (scored.first?.1 ?? 0) - 1.6
         return scored.filter { $0.1 >= floor && seen.insert($0.0).inserted }.prefix(3).map {
             .init(word: SuggestionText.cased($0.0, like: target.word, language: language), kind: $0.2)
+        }
+    }
+    /// Words for a glide trace in `geometry`'s coordinates, best first.
+    func glide(_ points: [CGPoint], language: KeyboardLanguage, learned: [String],
+               geometry: SuggestionGeometry, context: [String] = [], limit: Int = 4) -> [WordSuggestion] {
+        let following = Dictionary(self.context?.following(context).map { ($0.word, $0.frequency) } ?? [], uniquingKeysWith: max)
+        // Taught words with letters the layout lacks never match a trace.
+        return GlideDecoder(lexicon: lexicon, geometry: geometry).decode(points, learned: learned, following: following, limit: limit).map {
+            .init(word: SuggestionText.cased($0, like: "", language: language), kind: .correction)
         }
     }
 }
