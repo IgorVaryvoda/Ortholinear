@@ -5,7 +5,7 @@
 - Primary language: English (U.S.)
 - Bundle ID: com.varyvoda.Ortholinear
 - SKU: ortholinear-ios
-- Version: 0.4.0 (19)
+- Version: 0.5.0 (20)
 - Primary category: Utilities
 - Secondary category: Productivity
 - Support URL: https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md
@@ -16,7 +16,7 @@
 
 ## Promotional text
 
-Bigger letters, straight rows, and adjustable geometry. Ukrainian, English, and 13 more layouts, with no tracking or Full Access requirement.
+Bigger letters in straight rows, now with glide typing, automatic capitals and one-tap punctuation. Ukrainian, English, and 13 more layouts. No Full Access, no tracking.
 
 ## Description
 
@@ -35,6 +35,13 @@ MAKE THE SPACE YOURS
 • Choose Shift placement and optional punctuation keys.
 • Extend touch targets into the gaps between keys.
 • Choose Warm Light, Soft Dark, High Contrast, Tokyo Night, Catppuccin Mocha, Nord, or Automatic themes, plus your own accent color.
+
+TYPE FASTER
+• Glide typing in English and Ukrainian: slide across the letters of a word and lift.
+• Sentences start with a capital on their own, and two Spaces end a sentence with a period.
+• Punctuation waits in the suggestion row between words, one tap away.
+• Flick a top-row key down for its digit, or turn on a number row.
+• Typed a Ukrainian word with the English layout on? One tap fixes it and switches language.
 
 UKRAINIAN + ENGLISH
 • Switch languages with one tap.
@@ -68,18 +75,22 @@ No account or sign-in is required. Launch the containing app to use the interact
 
 The extension does not request Full Access (RequestsOpenAccess=false). The app writes geometry and typing preferences into its App Group; the keyboard only reads them. No network requests, microphone recording, or typed-text collection. For ґ, hold г; for Ґ, enable Shift and hold Г. Delete follows M / Ю; Ukrainian has no letter-page apostrophe. Automatic punctuation spacing is enabled by default and configurable. URL and email fields use literal punctuation.
 
+Version 0.5.0: in the app's test drive and in the installed keyboard, sentences start with a capital automatically (following the text field's own capitalization setting; email and web address fields stay lowercase), two Spaces type a period, and the row above the keys shows punctuation between words. Flick a top-row key down to type its digit (Keyboard settings > Letters · Digits offers a number row instead). Glide typing works in English and Ukrainian: slide across a word's letters and lift; other readings appear above the keys. Suggestions still change text only when tapped. Other layouts get suggestions from UITextChecker, and the keyboard reads the user's text replacements and contact names with requestSupplementaryLexicon. Both work without Full Access. There is still no network access, and nothing leaves the device.
+
 Version 0.4.0: Keyboard settings > Languages and layouts (first in the list) turns on Polish, German, French, Spanish, Czech, Slovak, Croatian, Bosnian, Montenegrin, Serbian (Latin and Cyrillic), Swedish, Norwegian, Danish, Dutch (Ukrainian and English stay on by default) and chooses an English layout: QWERTY, Colemak, Colemak-DH, Dvorak, or Workman. The language key cycles through the enabled languages; hold letters such as e, a, or s for accented forms. The keyboard remembers the language last used in each kind of field; for example, switch languages in the email field and the text editor of “Test the installed system keyboard”, then move between them. It stores only field types and language names in its own container, never text, and “Forget remembered languages” on the same settings page clears it. Tap-only word suggestions for English and Ukrainian run on-device from bundled dictionaries; text changes only when a suggestion is tapped. There is still no Full Access and no network access. Russian is listed separately: it asks “Do you support Russia’s invasion of Ukraine?”. Answering No shows the Russian toggle; answering Yes shows “Russian isn’t available.” Reset to defaults clears the answer.
 
-## What’s New in the next version (draft)
+## What’s New in 0.5.0
 
 Typing basics:
 • Sentences start with a capital automatically, following each text field. Email and web addresses stay lowercase.
 • Tap Space twice to end a sentence with a period.
-• Between words, the suggestion row shows . , ? ! and quotes, so punctuation is one tap.
+• Between words, the suggestion row shows punctuation next to the next-word suggestions, so a period is one tap.
 • Flick a top-row key down for its digit, or turn on a number row.
 • Glide typing for English and Ukrainian: slide across the letters of a word.
 • Typed a Ukrainian word with the English layout? Tap the offered word to fix it and switch language.
 • Suggestions for Polish, German, French, Spanish, Czech, Slovak, and the other layouts, from the spell checker built into iOS, plus your own text replacements.
+• Suggestions add missing apostrophes: whos → who's, память → памʼять.
+• Suggestions and glide typing work in Safari's address bar, but never on web addresses.
 Fixes:
 • Letters you get by holding a key, such as ґ and accents, are now visible above the keys while you hold.
 
@@ -120,14 +131,15 @@ New languages and layouts:
 
 ## Submission status
 
-Version **0.4.0 (19)** was submitted to App Review on September 23, 2026. It replaces two submissions from the same day, both withdrawn while still waiting for review: build 17, then build 18, which put Languages and layouts first. Build 19 adds nine more layouts, including gated Russian. App Store Connect reports **Waiting for Review**, with automatic release after approval. Version 0.3.2 (16) is live (Ready for Sale).
+Version **0.5.0 (20)** was submitted to App Review on September 24, 2026, with automatic release after approval. App Store Connect reports **Waiting for Review**. Version 0.4.0 (19) is live (Ready for Sale).
 
-Build 19 was archived from commit `94766ff`, signed and uploaded with the team's Admin App Store Connect API key (`xcodebuild -exportArchive` with `destination: upload`), and processed as valid. The listing, What's New, keywords, promotional text, and review notes above were saved through the App Store Connect API before submission. Screenshots, pricing, availability, age rating, and the Data Not Collected privacy declaration are unchanged. Language memory and the Russian-layout answer stay on the device.
+Build 20 was archived from commit `350b4a6`, then signed and uploaded with the team's Admin App Store Connect API key (`xcodebuild -exportArchive` with `destination: upload`); it processed as valid. The description, What's New, promotional text and review notes above were saved through the App Store Connect API. The six iPhone 6.9-inch screenshots and the 19-second app preview come from goldie (`goldie/goldie.config.ts`, captured by `Tools/store-capture.py`) and replace the single 0.3 screenshot. The iPad screenshot, keywords, pricing, availability, age rating and the Data Not Collected declaration are unchanged.
 
-Submission ID: `05f0752b-139b-4da8-85bd-8537da50c1e3` (withdrawn: `20fc2bb8-4de9-4bdd-beab-7936c4ab7c91`, `79305522-72d6-4e1b-a1a8-bf7b8e7cfee4`). App record: `6808996711`. Version ID: `77413922-4c88-43eb-893c-ca2566bd0f0c`. Build ID: `f88c250d-a65f-4e88-bbb8-6b6cfe2470ee`.
+Submission ID: `73258f3a-28cf-42eb-8f3d-637fa92e36b2`. App record: `6808996711`. Version ID: `694585a5-a059-469a-9c2d-960aa5e5036c`. Build ID: `cab792cc-8cc6-4cc9-ba17-4f59b395309a`. Version 0.4.0 (19): version `77413922-4c88-43eb-893c-ca2566bd0f0c`, submission `05f0752b-139b-4da8-85bd-8537da50c1e3`.
 
 ## Prepared artifacts
 
+- `build/release-050-20/Ortholinear.xcarchive`: signed Release archive for 0.5.0 (20).
 - `build/release-040-19/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (19).
 - `build/release-040-18/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (18), withdrawn.
 - `build/release-040-17/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (17), withdrawn.
