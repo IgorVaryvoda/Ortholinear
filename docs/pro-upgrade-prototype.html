@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Ortholinear Pro — upgrade flow prototype</title>
+<style>
+:root{color-scheme:light;--paper:#f5f2eb;--card:#fffdf7;--ink:#19332e;--muted:#53645f;--accent:#1f6e61;--line:#d5ddd6;--soft:#e4eee7;--bg:#e9e8e0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,select{font:inherit}button{cursor:pointer;min-height:44px;border:0;border-radius:12px;padding:11px 15px;background:var(--soft);color:var(--ink);font-weight:600}button:disabled{cursor:default;opacity:.55}button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}a{color:var(--accent)}h1,h2,h3,p{margin-top:0}h1{font-size:38px;line-height:1.08;letter-spacing:-1.5px;margin-bottom:18px}h2{font-size:32px;line-height:1.1;letter-spacing:-1px;margin:14px 0}h3{font-size:16px;margin:0 0 5px}p{margin-bottom:16px}.eyebrow{font:11px/1.5 ui-monospace,monospace;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}.shell{max-width:1320px;margin:auto;display:grid;grid-template-columns:minmax(210px,1fr) minmax(320px,410px) minmax(220px,1fr);gap:42px;padding:46px 34px;align-items:start}.rail{position:sticky;top:36px}.rail h1{margin-top:23px}.rail p{color:var(--muted);font-size:14px}.index{display:grid;gap:8px;margin:25px 0}.index button{text-align:left;background:transparent;border:1px solid var(--line);font-size:13px}.index button[aria-current=step]{background:var(--ink);color:var(--card)}.phone{background:var(--paper);border:1px solid #b8c6bc;border-radius:30px;overflow:hidden;box-shadow:0 20px 60px #16362d14;min-width:0}.chrome{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 8px;font-size:14px}.brand{font-weight:700;letter-spacing:-.5px}.mark{color:var(--accent);margin-right:7px}.close{padding:8px 10px;background:transparent;font-size:13px}.content{padding:12px 24px 26px;min-height:680px}.content h2:focus{outline:none}.sub{color:var(--muted);font-size:15px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px;margin:16px 0}.soft{background:var(--soft)}.label{display:inline-block;border:1px solid var(--line);padding:4px 9px;border-radius:8px;font-size:11px;font-weight:700}.benefit{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.benefit:last-child{border-bottom:0}.num{color:var(--accent);font:12px ui-monospace,monospace;padding-top:4px}.benefit p{font-size:13px;color:var(--muted);margin:0}.actions{display:grid;gap:9px;margin-top:20px}.primary{background:var(--accent);color:white;width:100%}.plain{background:transparent;font-size:13px}.fine{font-size:12px;color:var(--muted);line-height:1.5;margin:12px 0}.price{font-size:23px;font-weight:700;letter-spacing:-.5px}.links{display:flex;justify-content:center;gap:5px;flex-wrap:wrap}.links button{padding:8px;font-size:12px;background:transparent}.keys{display:grid;gap:4px;margin-top:10px}.row{display:flex;gap:4px}.key{flex:1;min-width:0;text-align:center;padding:10px 0;background:var(--card);border:1px solid var(--line);border-radius:5px;font-size:12px;font-weight:600}.key.hot{background:var(--accent);color:white}.keyboard{padding:12px;background:#dfe7df;border-radius:12px;margin:18px 0}.keyboard p{font-size:12px;margin:0 0 10px;color:var(--muted)}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{font-size:12px;flex:1}.status{font-size:13px;margin:14px 0;padding:12px;background:var(--soft);border-radius:10px}.check{font-size:34px;margin:20px 0 10px}.scenario label{display:block;font-size:13px;font-weight:600;margin:18px 0 8px}.scenario select{width:100%;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}.notes{border-top:1px solid var(--line);padding-top:20px;margin-top:24px}.notes strong{font-size:13px}.notes p{font-size:13px}.demo{background:var(--ink);color:var(--card);padding:12px;border-radius:10px;font-size:12px;margin-bottom:20px}.empty{height:2px}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:1050px){.shell{grid-template-columns:220px minmax(320px,410px);justify-content:center;gap:28px}.scenario{grid-column:1/-1;position:static}.scenario .notes{max-width:680px}}
+@media(max-width:640px){.shell{display:flex;flex-direction:column;padding:20px 12px;gap:20px}.rail{position:static;width:100%}.rail h1{font-size:28px;margin:10px 0}.index{grid-template-columns:repeat(3,1fr);margin:14px 0}.index button{font-size:11px;padding:8px}.phone{width:100%;max-width:430px;align-self:center}.content{min-height:0;padding:12px 20px 24px}.scenario{width:100%}.chrome{padding:15px 20px 0}}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--paper:#18231f;--card:#22302a;--ink:#edf3ed;--muted:#bccbc2;--accent:#317f70;--line:#41564b;--soft:#293f34;--bg:#111a16}.phone{border-color:var(--line)}.keyboard{background:#293a30}.demo{background:var(--soft);color:var(--ink)}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="rail">
+<div class="eyebrow">Product study / September 2026</div>
+<h1>Make it yours.<br>Try it first.</h1>
+<p>Ortholinear Pro<br>Seven days free. One optional purchase.</p>
+<nav class="index" aria-label="Prototype screens">
+<button data-screen="home">01 / Free discovery</button>
+<button data-screen="preview">02 / Workshop preview</button>
+<button data-screen="offer">03 / Trial offer</button>
+<button data-seed="trial">04 / Trial active</button>
+<button data-seed="expired">05 / Trial ended</button>
+<button data-seed="paid">06 / Purchased</button>
+</nav>
+<p>This is an interactive design prototype, not a working keyboard or checkout. Sample price: €9.99. Production uses localized App Store pricing.</p>
+</aside>
+<section class="phone" aria-label="Containing app prototype">
+<div class="chrome"><div class="brand"><span class="mark" aria-hidden="true">▦</span>ortholinear</div><button class="close" data-action="close">Close</button></div>
+<main id="content" class="content"></main>
+</section>
+<aside class="rail scenario">
+<div class="eyebrow">Test the decisions</div>
+<label for="scenario">Simulate a state</label>
+<select id="scenario">
+<option value="eligible">Eligible for trial</option><option value="trial">Active trial</option><option value="expired">Expired trial</option><option value="paid">Paid owner</option><option value="offline">App Store unavailable</option><option value="loading">Loading products</option><option value="pending">Pending approval</option><option value="cancelled">Cancelled purchase</option><option value="error">Unverified purchase</option><option value="sharing">Purchased, sharing failed</option><option value="revoked">Purchase revoked</option>
+</select>
+<label for="restore-result">Restore result (simulation)</label>
+<select id="restore-result"><option value="paid">Paid purchase found</option><option value="trial">Active original trial</option><option value="expired">Ended original trial</option><option value="none">No purchase found</option><option value="offline">Unable to check</option></select>
+<div class="actions"><button data-action="reset">Reset prototype</button></div>
+<div class="notes"><strong id="note-title">No forced funnel.</strong><p id="note">Free setup comes first. Pro discovery lives in the app, never in the keyboard extension.</p></div>
+<div class="notes"><strong>Continuity, not pressure.</strong><p>Expiry preserves saved work. The next keyboard presentation uses the latest Free setup. Nothing changes under an active finger.</p><p>No automatic charge, account capture, notification request or Full Access upsell.</p></div>
+</aside>
+</div>
+<div id="announcement" class="sr" aria-live="polite"></div>
+<script>
+'use strict';
+const content = document.getElementById('content');
+const PRICE = '€9.99'; // Deliberate mock. Shipping UI uses Product.displayPrice.
+let state;
+function reset(){state={access:'eligible',screen:'home',intent:'home',operation:'idle',end:null,hasSaved:false,custom:false,notice:''};document.getElementById('scenario').value='eligible';render();}
+function btn(label,action,kind='primary',disabled=false){return `<button class="${kind}" data-action="${action}" ${disabled?'disabled':''}>${label}</button>`;}
+function heading(kicker,title,sub=''){return `<div class="eyebrow">${kicker}</div><h2 id="screen-title" tabindex="-1">${title}</h2>${sub?`<p class="sub">${sub}</p>`:''}`;}
+function date(){return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(state.end||new Date());}
+function footer(){return `<div class="links">${btn('Restore purchases','restore','plain')}${btn('Privacy','privacy','plain')}${btn('Support','support','plain')}</div>`;}
+function keyboard(custom=false){const rows=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];return `<div class="keyboard"><p>${custom?'MY WRITING LAYOUT / EXAMPLE':'BUILT-IN KEYBOARD / EXAMPLE'}</p><div class="keys">${rows.map((r,i)=>`<div class="row">${i===2?'<span class="key">⇧</span>':''}${[...r].map(k=>`<span class="key">${k}</span>`).join('')}${i===2?'<span class="key">⌫</span>':''}</div>`).join('')}<div class="row"><span class="key">123</span><span class="key ${custom?'hot':''}">${custom?'—':','}</span><span class="key" style="flex:4">Space</span><span class="key ${custom?'hot':''}">${custom?'…':'.'}</span><span class="key">↵</span></div></div></div>`;}
+function benefits(){return `<div class="benefit"><span class="num">01</span><div><h3>Layout Workshop</h3><p>Move keys. Choose their size and long-press characters.</p></div></div><div class="benefit"><span class="num">02</span><div><h3>Your own layers</h3><p>Keep symbols and reusable phrases one tap away.</p></div></div><div class="benefit"><span class="num">03</span><div><h3>Saved setups</h3><p>Save and share the keyboard you’ve made.</p></div></div>`;}
+function setNote(title,text){document.getElementById('note-title').textContent=title;document.getElementById('note').textContent=text;}
+function accessScreen(){return state.access==='paid'?'paid':state.access==='trial'?'trial':state.access==='expired'||state.access==='revoked'?'expired':'offer';}
+function navigate(screen){state.screen=screen;state.notice='';render();}
+function seed(which){state.notice='';state.operation='idle';if(['eligible','trial','expired','paid','revoked'].includes(which)){state.access=which;state.hasSaved=['trial','expired','paid','revoked'].includes(which);state.end=new Date(Date.now()+(which==='expired'?-86400000:3*86400000));state.screen=which==='eligible'?'offer':which==='revoked'?'expired':which;}else{state.access=['sharing'].includes(which)?'paid':'eligible';state.screen=which==='sharing'?'sharing':which==='pending'?'pending':'offer';state.operation=which;if(which==='cancelled')state.notice='Purchase cancelled. Nothing was charged or activated.';if(which==='error')state.notice='We couldn’t verify this purchase. Your previous access and work are unchanged.';}document.getElementById('scenario').value=which;render();}
+function render(){let html='';const busy=state.operation==='loading'||state.operation==='offline';
+if(state.screen==='home'){
+ html=heading('Your everyday keyboard','Room for<br>bigger letters.','Give the letters more space. Make everything else optional.')+keyboard()+btn('Enable keyboard','enable')+`<div class="card"><h3>${state.access==='paid'?'Pro · Purchased':state.access==='trial'?'Your Pro trial':state.access==='expired'?'Trial ended — work preserved':'Make it yours with Pro'}</h3><p class="sub">${state.access==='paid'?'Your toolkit is unlocked. No subscription.':'Rearrange keys. Add symbol and phrase layers. Save your setups.'}</p>${btn(state.access==='eligible'?'Explore Pro':'View Pro status','overview')}<p class="fine">${state.access==='eligible'?'Try all Pro features free for 7 days. No automatic charge.':state.access==='trial'?'Available until '+date()+'. No automatic charge.':state.access==='paid'?'Your saved configurations are ready.':'Your Free keyboard remains available.'}</p></div>`+btn('Explore a layout example','preview','plain');setNote('No forced funnel.','The existing Free setup remains primary. No trial begins on install, launch or keyboard activation.');
+}else if(state.screen==='preview'){
+ const enabled=['trial','paid'].includes(state.access);html=heading('Layout Workshop',enabled?'Make the space yours.':'Try a change.','This example simulates moving writing punctuation beside Space.')+`<span class="label">${enabled?'PRO WORKSPACE':'PREVIEW ONLY'}</span>`+keyboard(state.custom)+`<div class="toolbar">${btn('Try writing keys','custom','')}${btn('Revert example','revert','')}</div>`+`<p class="fine">${enabled?'Saving and applying are separate actions.':'Explore here for free. Start the trial to save and use a custom keyboard in other apps.'}</p><div class="actions">${enabled?btn('Save example','save',''):''}${btn('Apply custom keyboard','apply')}${btn('Back to Free home','home','plain')}</div>`;setNote('Paywall at a meaningful boundary.','Previewing never consumes a trial. Apply retains the draft and opens the same trial offer; success returns to the draft for confirmation. This is not a full layout editor.');
+}else if(state.screen==='offer'){
+ html=heading('Ortholinear Pro','A keyboard,<br>exactly your way.')+benefits()+`<div class="card soft"><h3>7 days free. Then choose.</h3><p class="sub">Keep Pro for <strong>${busy?'a one-time purchase (price unavailable)':PRICE+' once'}</strong>, or continue with Free.</p><strong>No automatic charge. Nothing to cancel.</strong></div><p class="fine">After 7 days, custom editing and custom layouts/layers in the installed keyboard stop. Your work stays saved and exportable. The keyboard returns to your Free setup when next opened.</p>`+(busy?`<div class="status">${state.operation==='loading'?'Checking App Store availability…':'Connect to the App Store to check availability. Your free keyboard still works.'}</div>`:'')+`<div class="actions">${btn('Start 7-day free trial','start','primary',busy)}${btn('Continue with Free','home','plain')}${btn(busy?'Buy Pro (price unavailable)':'Or buy Pro now — '+PRICE+' once','buy','plain',busy)}</div>`+footer();setNote('Explicit consent, explicit price.','The trial button acquires only the zero-price trial product. Buying is a separate action. Real pricing and eligibility must be resolved before enabling either commercial action.');
+}else if(state.screen==='confirmTrial'||state.screen==='confirmBuy'){
+ const trial=state.screen==='confirmTrial';html=`<div class="demo">SIMULATION — APPLE CONFIRMATION<br>This is not a real App Store sheet.</div>`+heading('Prototype only',trial?'7-day Trial':'Ortholinear Pro',trial?'Zero-price non-consumable trial.':'One-time non-consumable unlock.')+`<div class="card"><div class="price">${trial?'€0.00':PRICE}</div><p class="fine">${trial?'No subscription. No automatic payment after the trial.':'A separate, explicit purchase. No subscription.'}</p></div><div class="actions">${btn('Simulate verified success',trial?'confirmTrial':'confirmBuy')}${btn('Simulate cancellation','cancel','plain')}${btn('Simulate pending approval','pending','plain')}${btn('Simulate verification failure','failure','plain')}</div>`;setNote('Do not recreate Apple’s payment UI.','This clearly labelled screen is a testing substitute. The native implementation presents Apple’s actual transaction/authentication UI.');
+}else if(state.screen==='trial'){
+ html=heading('Pro trial','Make it yours.','All released Pro features are available.')+`<div class="card soft"><span class="label">TRIAL ACTIVE</span><h3 style="margin-top:14px">Available until ${date()}</h3><p class="fine">You won’t be charged automatically. Choose whether to buy Pro or continue with Free.</p></div>`+keyboard(state.custom)+`<div class="actions">${btn('Continue customising','preview')}${btn('Buy Pro — '+PRICE+' once','buy','plain')}${btn('Simulate trial expiry','expire','plain')}</div>`+footer();setNote('Time comes from the transaction.','The original verified acquisition starts 168 hours. Restore reuses the original deadline. Real UI uses a quiet status card, not repeated modal reminders.');
+}else if(state.screen==='expired'){
+ const revoked=state.access==='revoked';html=heading('Ortholinear Pro',revoked?'This Pro purchase<br>is no longer active.':'Your Pro trial<br>has ended.','Your custom layouts and layers are still saved on this device. Unlock Pro to edit and use them again, or continue typing with Free.')+`<div class="card"><h3>My writing layout</h3><p class="fine">Saved on this device · available to inspect and export</p>${btn('View saved setup','saved','plain')}${btn('Export my setup','export','plain')}</div><div class="actions">${btn('Buy Pro — '+PRICE+' once','buy')}${btn('Continue with Free','home','plain')}</div>`+footer();setNote('Saved does not mean deleted.','Custom definitions are retained. New premium edits and activation stop; the next keyboard presentation uses the latest Free baseline. No sales UI appears in the extension.');
+}else if(state.screen==='paid'){
+ html=heading('Ortholinear Pro','Pro is yours.','One-time purchase. No subscription. Your saved setups are ready.')+`<div class="check" aria-hidden="true">✓</div><div class="card soft"><span class="label">PURCHASED</span><p style="margin:14px 0 0">Layout Workshop, custom layers and saved setups are unlocked.</p></div>`+keyboard(state.custom)+`<div class="actions">${btn('Continue customising','preview')}${state.hasSaved?btn('Apply saved keyboard','applySaved','plain'):''}${btn('Back to keyboard settings','home','plain')}</div>`+footer();setNote('Ownership wins over the trial.','Remove countdowns and sales prompts after purchase. Restoring access does not restore unsynced profiles. Applying an older layout remains an explicit choice.');
+}else if(state.screen==='restore'){
+ html=heading('Restore purchases','Recover your access.','This simulation uses the Restore result selector outside the phone.')+`<div class="card"><p>In the native app, an explicit restore may ask for App Store authentication. It never restarts the trial.</p></div><div class="actions">${btn('Simulate restore result','finishRestore')}${btn('Back','back','plain')}</div>`;setNote('Unknown is not “no purchase”.','A failed restore retains valid cached access. Only a completed reconciliation may report no purchase. An existing trial keeps its original end date.');
+}else if(state.screen==='pending'){
+ html=heading('App Store status','Waiting for approval.','Your current access and saved work are unchanged. Pro activates only after a verified transaction arrives.')+`<div class="actions">${btn('Continue with Free','home')}${btn('Back to Pro status','overview','plain')}</div>`;setNote('Pending is not success.','Do not begin a local timer, unlock prematurely or repeat the purchase automatically. Listen for transaction updates in the app.');
+}else if(state.screen==='sharing'){
+ html=heading('Pro is purchased','One setup step<br>needs a retry.','Your purchase is confirmed, but we couldn’t share the configuration with the keyboard.')+`<div class="card"><p>Do not buy again or enable Full Access. Retry publishing the configuration.</p></div><div class="actions">${btn('Retry sharing','retryShare')}${btn('Continue in app','preview','plain')}</div>`;setNote('Payment and publication differ.','Keep verified ownership even if the App Group write fails. Retry delivery without repurchasing. The prior coherent keyboard configuration remains intact.');
+}else if(state.screen==='saved'){
+ html=heading('Saved setup','My writing layout','Read-only after expiry. Your configuration has not been deleted.')+keyboard(true)+`<div class="actions">${btn('Export my setup','export')}${btn('Back to Pro status','overview','plain')}</div>`;setNote('Work remains accessible.','Inspection, deletion and privacy-reviewed export must remain available without a new payment. Importing and activating a Pro profile still requires access.');
+}
+content.innerHTML=html+(state.notice?`<div class="status" role="status">${state.notice}</div>`:'');document.querySelectorAll('[data-screen]').forEach(b=>{if(b.dataset.screen===state.screen)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});const h=document.getElementById('screen-title');if(h)h.focus({preventScroll:true});}
+function action(a){state.notice='';switch(a){
+case'close':navigate(state.intent==='preview'?'preview':'home');return;
+case'home':navigate('home');return;
+case'overview':state.intent='home';navigate(accessScreen());return;
+case'preview':navigate('preview');return;
+case'custom':state.custom=true;break;
+case'revert':state.custom=false;break;
+case'save':if(['trial','paid'].includes(state.access)){state.hasSaved=true;state.notice='Example saved. Apply it separately when you are ready.';}break;
+case'apply':if(['trial','paid'].includes(state.access)){state.notice=state.hasSaved?'Example applied in the simulation. In the app, dismiss and reopen the keyboard to load changes.':'Save your example first. Nothing was applied.';}else{state.intent='preview';navigate(accessScreen());return;}break;
+case'start':navigate('confirmTrial');return;
+case'buy':navigate('confirmBuy');return;
+case'confirmTrial':state.access='trial';state.end=new Date(Date.now()+604800000);state.operation='idle';navigate('trial');return;
+case'confirmBuy':state.access='paid';state.operation='idle';navigate('paid');return;
+case'cancel':state.screen=accessScreen();state.notice='Cancelled. Your previous access and draft are unchanged.';break;
+case'failure':state.screen=accessScreen();state.notice='We couldn’t verify the purchase. Retry or restore; your previous access is unchanged.';break;
+case'pending':navigate('pending');return;
+case'expire':state.access='expired';state.end=new Date(Date.now()-1);navigate('expired');return;
+case'applySaved':state.notice='Saved layout selected explicitly. Reopen the keyboard to apply it.';break;
+case'restore':navigate('restore');return;
+case'finishRestore':{const result=document.getElementById('restore-result').value;if(result==='none'||result==='offline'){state.screen=accessScreen();state.notice=result==='none'?'No Pro purchase was found in this simulated account.':'We couldn’t check purchases. Existing access is unchanged; retry when connected.';}else{const original=state.end;const paid=state.access==='paid';if(result==='paid'||paid){state.access='paid';state.screen='paid';state.notice='Pro restored. Local profiles are separate from purchase restoration.';}else{state.end=original||new Date(Date.now()+(result==='expired'?-86400000:3*86400000));state.access=result==='expired'||state.end<=new Date()?'expired':'trial';state.screen=state.access;state.notice=state.access==='trial'?'Original trial restored. The deadline has not restarted.':'Your original trial has ended. No new trial was started.';}}break;}
+case'back':navigate(accessScreen());return;
+case'saved':navigate('saved');return;
+case'export':state.notice='Export preview (simulation): My writing layout. Production offers removal of personal phrases and never exports purchases, trial dates or typing history. No file was exported here.';break;
+case'retryShare':state.access='paid';navigate('paid');return;
+case'privacy':state.notice='Typing stays local. The containing app uses Apple for purchases. This prototype has no network access or persistent storage.';break;
+case'support':state.notice='Production links to project support. Do not include private phrases, typed text or transaction receipts in a public issue.';break;
+case'enable':state.notice='Free setup stays available without a trial. This browser prototype cannot enable an iOS keyboard.';break;
+case'reset':reset();return;
+}render();document.getElementById('announcement').textContent=state.notice;}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.action)action(b.dataset.action);if(b.dataset.screen){state.intent='home';navigate(b.dataset.screen==='offer'?accessScreen():b.dataset.screen);}if(b.dataset.seed)seed(b.dataset.seed);});
+document.getElementById('scenario').addEventListener('change',e=>seed(e.target.value));reset();
+</script>
+</body>
+</html>
