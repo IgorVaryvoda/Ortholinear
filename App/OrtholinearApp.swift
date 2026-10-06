@@ -11,6 +11,7 @@ struct OrtholinearApp: App {
         // Tests written before automatic capitals type lowercase keys by identifier.
         if arguments.contains("-no-auto-capitals") { preferences.autoCapitalize = false }
         if arguments.contains("-auto-capitals") { preferences.autoCapitalize = true }
+        if arguments.contains("-reset-custom-layouts") { preferences.customLayouts = [:] }
         if preferences != PreferenceStore.load() { try? PreferenceStore.save(preferences) }
         #endif
         // Remove private data left by the retired development-only voice feature.

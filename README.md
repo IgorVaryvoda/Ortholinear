@@ -155,3 +155,11 @@ Long-press hints mark every letter with held alternatives. English and Ukrainian
 - Email and URL fields start in a Latin layout. A language you choose there is kept for that kind of field, and the forced English doesn't carry into the next message.
 - A kind of field you haven't used yet continues in the last language you used in an ordinary field.
 - **Forget remembered languages**, changing the starting language, or turning off the language in use starts over from the starting language. The app can't write to the keyboard's container, so Forget bumps a counter in the shared settings and the keyboard clears its memory the next time it opens.
+
+## Layout Workshop
+
+Open **Keyboard settings → Layout Workshop** to rearrange a language's three letter rows. Tap a key to change what it types and what holding it offers, move it left, right, or to the row above or below, swap it with another key, or add and remove keys (up to 12 per row). Delete, Shift, and the control row keep their places, and letter keys in a row keep equal widths.
+
+Edits stay a draft until **Apply to keyboard**. **Try it** types with the draft first. A layout can be applied only when every letter of the language is reachable, directly or by holding a key; the **Check** section lists anything missing, duplicated, or longer than one character. **Use the built-in layout** removes a language's custom layout. A language with a custom layout ignores the optional-key toggles and, for English, the layout picker.
+
+Touch, long-press, digit flicks, suggestions, glide typing, and wrong-layout recovery all follow the custom positions; a held letter such as ґ is placed on its key unless it has a key of its own. **Share layout** and **Open a layout file** exchange single layouts as `.ortholayout` JSON files containing only the language and its keys. Opening a file loads it as a draft; nothing changes until it is applied.

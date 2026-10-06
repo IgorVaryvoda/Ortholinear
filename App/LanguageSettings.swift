@@ -29,7 +29,7 @@ struct LanguageSettings: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
             } footer: {
-                Text("Colemak, Colemak-DH, Dvorak and Workman rearrange the English letters. Colemak-DH uses the ortholinear bottom row. Suggestions follow the layout you choose.")
+                Text("Colemak, Colemak-DH, Dvorak and Workman rearrange the English letters. Colemak-DH uses the ortholinear bottom row. Suggestions follow the layout you choose." + (preferences.customLayouts[.english] == nil ? "" : " Your English layout from the Layout Workshop is in use instead."))
             }
             Section {
                 switch preferences.invasionAnswer {

@@ -198,7 +198,7 @@ struct GeometrySettings: View {
 
     @State private var previewLanguage: KeyboardLanguage
     @State private var showAppearance = false
-    private enum SettingsPage: Hashable { case suggestions, languages }
+    private enum SettingsPage: Hashable { case suggestions, languages, workshop }
     @State private var navigationPath: [SettingsPage] = []
 
     var body: some View {
@@ -226,6 +226,7 @@ struct GeometrySettings: View {
                 switch page {
                 case .suggestions: SuggestionSettings(preferences: $preferences)
                 case .languages: LanguageSettings(preferences: $preferences)
+                case .workshop: LayoutWorkshop(preferences: $preferences)
                 }
             }
             .sheet(isPresented: $showAppearance) { AppearanceSettings(preferences: $preferences) }
@@ -296,6 +297,14 @@ struct GeometrySettings: View {
                         }
                     } icon: { Image(systemName: "globe") }
                 }.accessibilityIdentifier("language-settings")
+                NavigationLink(value: SettingsPage.workshop) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Layout Workshop")
+                            Text(workshopSummary).font(.caption).foregroundStyle(.secondary)
+                        }
+                    } icon: { Image(systemName: "square.grid.3x3.square") }
+                }.accessibilityIdentifier("layout-workshop")
             }
             Section("Appearance") {
                 Button { showAppearance = true } label: {
@@ -380,7 +389,7 @@ struct GeometrySettings: View {
                 Toggle("ї on long-press і", isOn: $preferences.yiOnLongPress)
                     .accessibilityIdentifier("yi-on-long-press")
             } header: { Label("Letters · Optional keys", systemImage: "character.cursor.ibeam") } footer: {
-                Text("Fewer keys means wider letters. Punctuation stays available under 123. Moving ї to long-press і removes its separate key; hold І with Shift for Ї.")
+                Text("Fewer keys means wider letters. Punctuation stays available under 123. Moving ї to long-press і removes its separate key; hold І with Shift for Ї." + (preferences.customLayouts.isEmpty ? "" : " Languages arranged in the Layout Workshop keep the keys you gave them."))
             }
             Section {
                 VStack(alignment: .leading, spacing: 10) {
@@ -429,6 +438,12 @@ struct GeometrySettings: View {
             candidate.apply(preset)
             return candidate == preferences
         }
+    }
+
+    private var workshopSummary: String {
+        let custom = preferences.validated.languages.filter { preferences.customLayouts[$0] != nil }
+        return custom.isEmpty ? "Move letters and choose what each key holds"
+            : "Your layout: " + custom.map(\.badge).joined(separator: " · ")
     }
 
     private var languageSummary: String {
