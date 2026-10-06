@@ -1,6 +1,6 @@
 # Privacy policy
 
-Effective September 23, 2026.
+Effective October 6, 2026.
 
 Ortholinear is an on-device Ukrainian and English keyboard for iPhone and iPad, with optional layouts for other European languages, maintained by Igor Varyvoda.
 
@@ -14,11 +14,19 @@ Only words you choose to teach are saved, up to 200 per language. The system key
 
 ## Settings
 
-Keyboard geometry, your languages, your starting language, and your answer to the Russian-layout question are saved locally in a shared App Group container so the keyboard extension can read them. They are not sent to the developer.
+Keyboard geometry, your languages, your starting language, and your answer to the Russian-layout question are saved locally in a shared App Group container so the keyboard extension can read them. So are the things you make: custom letter layouts, layers and phrase keys, keycap colors, and text expansions. Phrase keys and text expansions can contain whatever you type into them, such as an email address; they stay on your device. Saved setups are kept in the app's own storage. None of this is sent to the developer.
+
+## Files you share
+
+Layout and setup files are created only when you choose to share one, and go wherever you send them. Layout files contain only letters and their held characters. Setup files leave out your phrase keys and text expansions unless you choose to include them, and never contain your languages, purchases, typed text or taught words.
+
+## Purchases
+
+Ortholinear Pro is a one-time in-app purchase handled by Apple. When you buy or restore it, the app talks to the App Store through Apple's StoreKit; Apple processes the payment under its own privacy policy. The developer does not receive your name, Apple Account or payment details. The app keeps only whether Pro is unlocked, on your device.
 
 ## No tracking or Full Access
 
-The app and keyboard include no analytics, advertising, accounts, or tracking SDKs. The keyboard does not request Full Access and makes no network requests.
+The app and keyboard include no analytics, advertising, accounts, or tracking SDKs. The keyboard does not request Full Access and makes no network requests. The app's only network use is the App Store for purchases, as described above.
 
 ## External links and support
 

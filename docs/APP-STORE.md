@@ -5,7 +5,7 @@
 - Primary language: English (U.S.)
 - Bundle ID: com.varyvoda.Ortholinear
 - SKU: ortholinear-ios
-- Version: 0.5.0 (20)
+- Version: 0.6.0 (21)
 - Primary category: Utilities
 - Secondary category: Productivity
 - Support URL: https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md
@@ -16,7 +16,16 @@
 
 ## Promotional text
 
-Bigger letters in straight rows, now with glide typing, automatic capitals and one-tap punctuation. Ukrainian, English, and 13 more layouts. No Full Access, no tracking.
+New: a free Layout Workshop. And Ortholinear Pro, once: flicks on every key, keycap colorways, navigation keys and text expansions. No Full Access, no tracking.
+
+## In-app purchase
+
+- Ortholinear Pro, non-consumable, product ID `com.varyvoda.Ortholinear.pro` (App Store Connect ID 6819696774)
+- Price: USD 9.99 base (USA), automatic prices elsewhere (EUR 9.99 in Germany); all 175 territories, including new ones
+- Family Sharing: on (cannot be turned off again)
+- Display name and description: English (U.S.) and Ukrainian
+- Review screenshot: the purchase screen, captured by `ReviewScreenshotTests` in the private Pro repository with a demonstration price
+- Built from the private Pro edition: `xcodegen generate --spec project.pro.yml` in `OrtholinearPro`, then archive the `OrtholinearPro` scheme in Release
 
 ## Description
 
@@ -59,6 +68,18 @@ MORE LANGUAGES AND LAYOUTS
 • Type English in QWERTY, Colemak, Colemak-DH, Dvorak, or Workman.
 • Message, search, email, and web address fields each reopen in the language you last used in them.
 
+MAKE IT YOURS
+• Layout Workshop: move letters, choose what each key holds, and try it before applying. Free.
+• Share a layout as a file, or open one someone else made.
+
+ORTHOLINEAR PRO: ONE PURCHASE, NO SUBSCRIPTION
+• Flicks on any key: swipe up, down, left or right for a symbol. One tap puts ! @ # on every letter.
+• Keycap colorways: eight keycap sets, or your own colors, fonts and sculpted keycaps.
+• Navigation keys: move by word or line, delete whole words, type ( ) with the cursor inside.
+• Text expansions: type ;mail and get your email address.
+• Layers for math, code and writing, phrase keys, and saved setups you can switch and share.
+Everything that was free stays free.
+
 YOUR WORDS STAY YOURS
 Typing works without Full Access. No analytics, ads, app accounts, or typed-text collection. Typing and settings stay on your device. Nothing is autocorrected: optional word suggestions run on your device and change a word only when you tap one.
 
@@ -75,9 +96,24 @@ No account or sign-in is required. Launch the containing app to use the interact
 
 The extension does not request Full Access (RequestsOpenAccess=false). The app writes geometry and typing preferences into its App Group; the keyboard only reads them. No network requests, microphone recording, or typed-text collection. For ґ, hold г; for Ґ, enable Shift and hold Г. Delete follows M / Ю; Ukrainian has no letter-page apostrophe. Automatic punctuation spacing is enabled by default and configurable. URL and email fields use literal punctuation.
 
+Version 0.6.0: Keyboard settings > Layout Workshop (free) rearranges a language's letters: tap a key, change what it types and holds, move or swap it, Try it, then Apply. Keyboard settings > Ortholinear Pro offers one non-consumable in-app purchase, com.varyvoda.Ortholinear.pro ("Unlock Pro"), with Restore purchases on the same screen; nothing that was free before is locked. Pro adds: flicks (Layout Workshop > Fill swipe-up with symbols, then Apply; swipe a letter up in the test drive), keycap colorways (Theme and colors), layers including a Navigate layer with word and line movement (Layers > add Navigate, turn on Layer key), text expansions (Text expansions > ;ty, then type ;ty and Space), and saved setups. Without Pro these rows show a PRO label and open the purchase screen. Purchases use StoreKit in the containing app only; the keyboard extension still has no Full Access (RequestsOpenAccess=false), no StoreKit and no network access. Layers and text expansions the user creates are stored on the device in the App Group and are only read by the keyboard.
+
 Version 0.5.0: in the app's test drive and in the installed keyboard, sentences start with a capital automatically (following the text field's own capitalization setting; email and web address fields stay lowercase), two Spaces type a period, and the row above the keys shows punctuation between words. Flick a top-row key down to type its digit (Keyboard settings > Letters · Digits offers a number row instead). Glide typing works in English and Ukrainian: slide across a word's letters and lift; other readings appear above the keys. Suggestions still change text only when tapped. Other layouts get suggestions from UITextChecker, and the keyboard reads the user's text replacements and contact names with requestSupplementaryLexicon. Both work without Full Access. There is still no network access, and nothing leaves the device.
 
-Version 0.4.0: Keyboard settings > Languages and layouts (first in the list) turns on Polish, German, French, Spanish, Czech, Slovak, Croatian, Bosnian, Montenegrin, Serbian (Latin and Cyrillic), Swedish, Norwegian, Danish, Dutch (Ukrainian and English stay on by default) and chooses an English layout: QWERTY, Colemak, Colemak-DH, Dvorak, or Workman. The language key cycles through the enabled languages; hold letters such as e, a, or s for accented forms. The keyboard remembers the language last used in each kind of field; for example, switch languages in the email field and the text editor of “Test the installed system keyboard”, then move between them. It stores only field types and language names in its own container, never text, and “Forget remembered languages” on the same settings page clears it. Tap-only word suggestions for English and Ukrainian run on-device from bundled dictionaries; text changes only when a suggestion is tapped. There is still no Full Access and no network access. Russian is listed separately: it asks “Do you support Russia’s invasion of Ukraine?”. Answering No shows the Russian toggle; answering Yes shows “Russian isn’t available.” Reset to defaults clears the answer.
+## What’s New in 0.6.0
+
+Layout Workshop, free:
+• Move letters, choose what each key holds, and try the result before applying it.
+• Share a layout as a file, or open one someone else made.
+
+Ortholinear Pro, an optional one-time purchase:
+• Flicks on any key: swipe for a symbol. One tap puts ! @ # on every letter.
+• Keycap colorways: eight sets, or your own colors, fonts and sculpted keycaps.
+• Navigation keys: move by word or line, delete words, type ( ) with the cursor inside.
+• Text expansions: type ;mail and get your email address.
+• Layers, phrase keys and saved setups.
+
+Everything that was free stays free. Still no Full Access, and the keyboard still makes no network requests.
 
 ## What’s New in 0.5.0
 
