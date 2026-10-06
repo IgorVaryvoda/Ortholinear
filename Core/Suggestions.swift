@@ -134,18 +134,26 @@ enum SuggestionHash {
 
 struct SuggestionGeometry: Sendable {
     var centers: [Character: CGPoint] = [:]
+    /// Held letters, such as ґ on г, placed at their key's center rather than on a key of their own.
+    var heldLetters: Set<Character> = []
     var unit: Double = 40
     init(language: KeyboardLanguage, preferences: KeyboardPreferences, width: Double) {
         var state = InputState(); state.language = language
         let cells = KeyboardGeometry.cells(width: max(width, 200), state: state,
                                           preferences: preferences, needsGlobe: false)
+        var letterCells: [(Character, KeyCell)] = []
         for cell in cells {
             guard case .text(let text) = cell.key.action, let ch = text.first, ch.isLetter else { continue }
             centers[ch] = CGPoint(x: cell.hitFrame.midX, y: cell.hitFrame.midY)
             unit = cell.hitFrame.width
+            letterCells.append((ch, cell))
         }
-        centers["ґ"] = centers["г"]
-        if centers["ї"] == nil { centers["ї"] = centers["і"] }
+        for (ch, cell) in letterCells {
+            for held in cell.key.alternatives.compactMap(\.first) where held.isLetter && centers[held] == nil {
+                centers[held] = centers[ch]
+                heldLetters.insert(held)
+            }
+        }
     }
     func cost(_ a: Character, _ b: Character) -> Double {
         guard a != b else { return 0 }

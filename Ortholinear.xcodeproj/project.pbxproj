@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		01B65591D33D8B66B676217F /* LanguageMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE5F04871282EAE256326968 /* LanguageMemory.swift */; };
 		03CBFF3C82CAF53A25CD9E21 /* uk-context.json in Resources */ = {isa = PBXBuildFile; fileRef = A1EA96DEC416EC3C685B52C3 /* uk-context.json */; };
+		046917C296876109A0BD898D /* CustomLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D1F7D709E48A6AD263F5072 /* CustomLayout.swift */; };
 		0481D40368ACECCCAC6A2EE8 /* PunctuationSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */; };
 		080054E0247A7577386B37CC /* en-context.json in Resources */ = {isa = PBXBuildFile; fileRef = 284493B8A152B026BA8A90FE /* en-context.json */; };
 		083E797DBC4A44A3005E61EA /* DictionaryCredits.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6B02D6E44805FCD3D3FB6CFA /* DictionaryCredits.txt */; };
@@ -47,6 +48,7 @@
 		AC973A72C027D3253DC4401D /* DictionaryCredits.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6B02D6E44805FCD3D3FB6CFA /* DictionaryCredits.txt */; };
 		B478973F076CDA9D243440D2 /* SystemSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A4CC75847D7AE147046EEB /* SystemSuggestions.swift */; };
 		B4DF1FA5226CB69BB4C9436B /* en.orthlex in Resources */ = {isa = PBXBuildFile; fileRef = A372FA89C50EAFBBCD7DAAA3 /* en.orthlex */; };
+		B6CA50E5FD8BA83E4C6C6D03 /* CustomLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D1F7D709E48A6AD263F5072 /* CustomLayout.swift */; };
 		BA6763BE01E9B5A62BA32F28 /* OrtholinearKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B091108B672BF6D4554C7520 /* OrtholinearKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C9C2786CBD707B44AC3D6E12 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BD329D52E74E3AFAF37B4B /* ContentView.swift */; };
 		CD8F50B47A24EAD6676C886D /* DeleteRepeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */; };
@@ -102,6 +104,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0D1F7D709E48A6AD263F5072 /* CustomLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomLayout.swift; sourceTree = "<group>"; };
 		16E80A036245B0B0E0A8485A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		18883B1E32D31C78BBBC5823 /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
 		1F5730C942AD0C8948989808 /* Ortholinear.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ortholinear.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -227,6 +230,7 @@
 			isa = PBXGroup;
 			children = (
 				78BBA25BF6BCCA40DCE2A92C /* AutoCapitalization.swift */,
+				0D1F7D709E48A6AD263F5072 /* CustomLayout.swift */,
 				DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */,
 				34FA4C50C5E143D0378226B1 /* GlideDecoder.swift */,
 				291C789BEB4272C066A1ADB0 /* KeyboardAppearance.swift */,
@@ -438,6 +442,7 @@
 				7A50802F23B13ADCC742D137 /* AppearanceSettings.swift in Sources */,
 				DACDBC0CF17088175E82C195 /* AutoCapitalization.swift in Sources */,
 				C9C2786CBD707B44AC3D6E12 /* ContentView.swift in Sources */,
+				B6CA50E5FD8BA83E4C6C6D03 /* CustomLayout.swift in Sources */,
 				2B653E3F0C37D7DB5A7FD853 /* DeleteRepeat.swift in Sources */,
 				70B17601BF194ED53611B64A /* GlideDecoder.swift in Sources */,
 				254E6B38A3A6A2EAC7B7AD6A /* KeyboardAppearance.swift in Sources */,
@@ -472,6 +477,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9E6EDCA83512A2DE066E15B5 /* AutoCapitalization.swift in Sources */,
+				046917C296876109A0BD898D /* CustomLayout.swift in Sources */,
 				CD8F50B47A24EAD6676C886D /* DeleteRepeat.swift in Sources */,
 				1DC24A17DFE4855494DE495B /* GlideDecoder.swift in Sources */,
 				3CE564A6B8B731E7542D8EA7 /* KeyboardAppearance.swift in Sources */,

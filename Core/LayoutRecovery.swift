@@ -42,10 +42,8 @@ enum LayoutRecovery {
 }
 
 extension SuggestionGeometry {
-    /// ґ and a long-press ї share their base key's center; they are never the nearest key.
-    func isAlternative(_ character: Character) -> Bool {
-        character == "ґ" || (character == "ї" && centers["ї"] == centers["і"])
-    }
+    /// Held letters share their base key's center; they are never the nearest key.
+    func isAlternative(_ character: Character) -> Bool { heldLetters.contains(character) }
 }
 
 extension SuggestionLexicon {
