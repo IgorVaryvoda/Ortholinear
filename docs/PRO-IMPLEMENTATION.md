@@ -36,13 +36,18 @@ struct CustomLetterLayout: Codable, Equatable, Sendable {
 
 `KeyboardPreferences` gains `customLayouts`, encoded as `[String: CustomLetterLayout]` keyed by `KeyboardLanguage.rawValue`. Unknown languages are dropped on decode, as `languages` already does. Bump `schemaVersion` to 4 and keep decoding tolerant: a malformed layout is ignored, not fatal to the rest of the preferences.
 
-In `KeyboardLayout.rows`, the letters page uses the custom rows when a valid layout exists for `state.language`. Delete insertion, Shift placement, digit flicks and the number row already operate on the resulting rows and need no special case.
+In `KeyboardLayout.rows`, the letters page uses the custom rows when a usable layout exists for `state.language`. Shift placement, digit flicks and the number row already work on the resulting rows. Three things in the existing code needed changes:
 
-Everything downstream already derives from these rows. `KeyboardGeometry.cells` (`:537`) builds hit frames from them. `SuggestionGeometry` (`Core/Suggestions.swift:135`) builds key centres from those cells. `GlideDecoder` (`Core/GlideDecoder.swift:54`) and `LayoutRecovery` use those centres. Three places assume the built-in layouts and must change:
+- Delete was inserted only after a letter in the third row. A custom third row of punctuation alone now gets Delete at its end.
+- `Key.alternatives` returned hard-coded punctuation holds before a key's own. A custom key's holds now win; an empty list keeps the defaults.
+- Applying a preset replaced all preferences. It now keeps custom layouts.
 
-1. `Suggestions.swift:147` always moves ґ onto г. Only alias ґ and ї when they have no key of their own; otherwise a custom ґ key gets wrong suggestion and glide distances.
-2. `Suggestions.swift:145` takes `unit` from whichever letter cell came last. Use the median letter width so a short or punctuation-ended row cannot skew it.
-3. `SuggestionGeometry.isAlternative` (`Core/LayoutRecovery.swift:46`) hard-codes the same ґ/ї assumption. Derive it from the geometry instead.
+Everything downstream already derives from these rows. `KeyboardGeometry.cells` (`:537`) builds hit frames from them. `SuggestionGeometry` (`Core/Suggestions.swift:135`) builds key centres from those cells. `GlideDecoder` (`Core/GlideDecoder.swift:54`) and `LayoutRecovery` use those centres. Two places assumed the built-in layouts:
+
+1. `Suggestions.swift:147` always moved ґ onto г, which would give a custom ґ key wrong suggestion and glide distances. Held letters now take their key's centre only when they have no key of their own.
+2. `SuggestionGeometry.isAlternative` (`Core/LayoutRecovery.swift:46`) hard-coded the same ґ/ї assumption. It now uses the held letters recorded by the geometry.
+
+`unit` (`Suggestions.swift:145`) stays the width of the last letter key. Letter keys in a row have equal widths, and suggestion costs and glide scoring were tuned against that value.
 
 Validation (`CustomLetterLayout.validated(for: KeyboardLanguage)`), shared by the editor, file import and the extension:
 
@@ -94,7 +99,7 @@ The extension has no idea Pro exists. It renders whatever valid configuration it
 | # | Work | Repo | Size |
 | --- | --- | --- | --- |
 | 0 | Edition seam: private package skeleton, `project.pro.yml`, `ProEdition` protocol. Public build unchanged. | both | S |
-| 1 | Custom layout model, validation, `rows` override, the three geometry fixes, tolerant decoding. `swift test` coverage. | public | M |
+| 1 | Custom layout model, validation, `rows` override, the geometry fixes, tolerant decoding. `swift test` coverage. | public | M |
 | 2 | Free Workshop editor and single-layout files. **Ship as a free update.** Interest in this tells you whether Pro is worth finishing. | public | M–L |
 | 3 | Layer engine (page cycle, layer key, phrase rendering) and layer editor with starters. | both | M |
 | 4 | Saved setups and setup files with phrase export preview. | private | M |
