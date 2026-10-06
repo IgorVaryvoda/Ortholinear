@@ -30,6 +30,7 @@
 		37BFB95BF57A4B15CD74B46B /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18883B1E32D31C78BBBC5823 /* KeyboardView.swift */; };
 		3B0CADC790604AFF1E05F203 /* LayoutRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9098C19BACFDBF1568B8601 /* LayoutRecovery.swift */; };
 		3CE564A6B8B731E7542D8EA7 /* KeyboardAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291C789BEB4272C066A1ADB0 /* KeyboardAppearance.swift */; };
+		3E08E40E407CFE8589D34CFC /* ProHooks.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0DF3B8B2E55FD2B2F96A8EF /* ProHooks.swift */; };
 		43821D214F2759A917B6EE45 /* en-context.json in Resources */ = {isa = PBXBuildFile; fileRef = 284493B8A152B026BA8A90FE /* en-context.json */; };
 		455F68607FD5B5451296CC86 /* KeyboardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25BBD4E562DB705178DF0CB /* KeyboardPalette.swift */; };
 		4698757C2B221A3C9C4A7814 /* StoreCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACAA48C9A8F87BE29A910D96 /* StoreCaptureTests.swift */; };
@@ -147,6 +148,7 @@
 		DE5F04871282EAE256326968 /* LanguageMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageMemory.swift; sourceTree = "<group>"; };
 		EF7D622F2A9EF67823BE3F93 /* SuggestionSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionSettings.swift; sourceTree = "<group>"; };
 		EF9B5E28EDF58B56F10CA68B /* SystemExtensionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemExtensionTests.swift; sourceTree = "<group>"; };
+		F0DF3B8B2E55FD2B2F96A8EF /* ProHooks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProHooks.swift; sourceTree = "<group>"; };
 		FB208E703422E526173E53E8 /* KeyboardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardUITests.swift; sourceTree = "<group>"; };
 		FDEC805383E88E7CF2C89CDE /* Suggestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Suggestions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -203,6 +205,7 @@
 				9D1EC3C852136D49D509329A /* Ortholinear.entitlements */,
 				64A444EABA05F1E4609B1364 /* OrtholinearApp.swift */,
 				5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */,
+				F0DF3B8B2E55FD2B2F96A8EF /* ProHooks.swift */,
 				EF7D622F2A9EF67823BE3F93 /* SuggestionSettings.swift */,
 			);
 			path = App;
@@ -464,6 +467,7 @@
 				0FF64F2E44E0CF981D0F55F0 /* OrtholinearApp.swift in Sources */,
 				14908B890B2894164D488C49 /* PreferenceStore.swift in Sources */,
 				23A0055C86092F4090020792 /* PreviewSurface.swift in Sources */,
+				3E08E40E407CFE8589D34CFC /* ProHooks.swift in Sources */,
 				0481D40368ACECCCAC6A2EE8 /* PunctuationSpacing.swift in Sources */,
 				E650A8527B92C553E6630E54 /* SuggestionBar.swift in Sources */,
 				0F3D39C06934F1F81668FB54 /* SuggestionSettings.swift in Sources */,

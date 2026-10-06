@@ -1,17 +1,19 @@
 # Pro implementation plan
 
-Status: **proposed, not built.** Read [PRO.md](PRO.md) for the product decisions. Code references are to commit `084be31`.
+Status: **phases 0–3 built**: custom layouts, the free Workshop, the edition seam and layers. Saved setups and purchases are not built yet. Read [PRO.md](PRO.md) for the product decisions. Code references in section 2 are to commit `084be31`.
 
 ## 1. Edition boundary
 
-The public repository builds the Free app exactly as today. Pro is a private Swift package, `OrtholinearPro`, used only by the containing app. The keyboard extension never links it.
+The public repository builds the Free app exactly as before. Pro lives in the private repository `IgorVaryvoda/OrtholinearPro`, checked out next to this one. Its sources compile into the containing app target. The keyboard extension never includes them.
+
+The Pro code is not a separate Swift package. `Core/` compiles straight into the app target, so a package would see its own copy of every Core type, and the app's types and the package's types would not match.
 
 - `project.yml` stays the public spec, and the checked-in Xcode project stays the Free edition.
-- A private `project.pro.yml` uses XcodeGen's `include:` to pull in `project.yml`, then adds the `OrtholinearPro` package (a local path to the private checkout) as a dependency of the `Ortholinear` target. Release builds regenerate from it and do not commit the result.
-- The app talks to Pro through one protocol in `App/`, for example `ProEdition`, with a Free implementation that reports `isUnlocked == false` and provides no Pro screens. `OrtholinearApp.swift` holds the only `#if canImport(OrtholinearPro)`.
+- The private `project.pro.yml` uses XcodeGen's `include:` to pull in `../Ortholinear/project.yml`. It then adds the private `Sources/` to the `Ortholinear` target, sets the `PRO` compilation condition, and adds the Pro unit and UI test targets. Release builds use the generated `OrtholinearPro.xcodeproj`, which is not committed.
+- The app reaches Pro through `App/ProHooks.swift`, whose hooks stay empty in the Free edition. `OrtholinearApp.swift` holds the only `#if PRO`, which calls `ProEdition.install()` to fill them.
 - Engine code needed to *render* Pro data, such as layers, stays public in `Core/` and `SharedUI/`. The extension must be able to render whatever the app publishes.
 
-| Public (MIT) | Private (`OrtholinearPro`) |
+| Public (MIT) | Private (`OrtholinearPro` sources) |
 | --- | --- |
 | Custom layout and layer model, validation, decoding | Layer editor and starters |
 | Layout and geometry changes, glide and suggestion fixes | Phrase key editor and export preview |
@@ -64,14 +66,19 @@ Single-layout files: a `.ortholayout` JSON document with a declared UTType, open
 struct CustomLayer: Codable, Equatable, Sendable, Identifiable {
     var id: UUID
     var name: String
-    var rows: [[CustomKey]]     // up to four rows of up to 10 keys
+    var rows: [[CustomKey]]     // exactly three rows of up to 10 keys
 }
 ```
+
+Three rows keep a layer page exactly as tall as the numbers page. A fourth row would also be mistaken for the number row by `KeyboardGeometry.cells`.
 
 - `KeyboardPage` gains `case layer(UUID)`. The existing page cycle (`KeyboardViewController.swift:298`) continues numbers → symbols → each layer → numbers.
 - Optional control-row layer key (off by default) opens the first layer. The ABC key (`:304`) keeps returning to letters, and the language is untouched.
 - Glide stays letters-only. Layers have no suggestions.
 - Phrase keys: `label` is drawn and `output` is inserted. Output is limited to 200 characters with no newlines, enforced in validation.
+- `InputState.consume` leaves layer output alone, so Shift never turns a phrase into capitals or π into Π.
+- Up to 8 layers. Decoding drops damaged layers one by one. A layer with problems stays saved but is skipped by the page cycle, and a deleted layer that was open shows the numbers page.
+- Starters (Writing, Math, Code, Phrases, Empty) and the editor are private. Until purchases exist, layers are stored in `KeyboardPreferences` like everything else; section 4's split applies once StoreKit lands.
 - Keep the hold-123-and-slide gesture for numbers and symbols only.
 
 ## 4. Storage and publishing

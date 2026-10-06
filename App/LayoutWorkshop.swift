@@ -33,7 +33,7 @@ struct LayoutWorkshop: View {
                 }
             }
             Section {
-                KeyGrid(layout: draft, selection: selection, swapping: swapping, tap: tap)
+                KeyGrid(rows: draft.rows, selection: selection, swapping: swapping, tap: tap)
                     .listRowInsets(EdgeInsets(top: 10, leading: 8, bottom: 10, trailing: 8))
             } header: {
                 Text(isCustom || hasChanges ? "\(language.title) · your layout" : "\(language.title) · built-in layout")
@@ -324,18 +324,18 @@ private struct CharacterField: View {
     }
 }
 
-/// The editable letters, sized like the keyboard: equal widths within each row.
-private struct KeyGrid: View {
-    let layout: CustomLetterLayout
+/// Editable keys, sized like the keyboard: equal widths within each row.
+struct KeyGrid: View {
+    let rows: [[CustomKey]]
     let selection: KeyPosition?
     let swapping: Bool
     let tap: (KeyPosition) -> Void
 
     var body: some View {
         VStack(spacing: 6) {
-            ForEach(layout.rows.indices, id: \.self) { row in
+            ForEach(rows.indices, id: \.self) { row in
                 HStack(spacing: 4) {
-                    ForEach(layout.rows[row].indices, id: \.self) { column in
+                    ForEach(rows[row].indices, id: \.self) { column in
                         keyButton(KeyPosition(row: row, column: column))
                     }
                 }
@@ -344,10 +344,11 @@ private struct KeyGrid: View {
     }
 
     private func keyButton(_ position: KeyPosition) -> some View {
-        let key = layout[position]
+        let key = rows[position.row][position.column]
         let selected = position == selection
         return Button { tap(position) } label: {
-            Text(key.output.isEmpty ? "?" : key.output)
+            Text(key.label ?? (key.output.isEmpty ? "?" : key.output))
+                .lineLimit(1).minimumScaleFactor(0.5)
                 .font(.system(size: 19, weight: .medium, design: .rounded))
                 .foregroundStyle(key.output.isEmpty ? .secondary : .primary)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -366,7 +367,7 @@ private struct KeyGrid: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(key.output.isEmpty ? "Empty key" : key.output)
+        .accessibilityLabel(key.label ?? (key.output.isEmpty ? "Empty key" : key.output))
         .accessibilityValue(key.alternatives.isEmpty ? "" : "Holds \(key.alternatives.joined(separator: " "))")
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("workshop-key-\(position.row)-\(position.column)")

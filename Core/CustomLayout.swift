@@ -5,22 +5,26 @@ struct CustomKey: Codable, Equatable, Sendable {
     var output: String
     /// Empty keeps the usual holds for punctuation, such as … ! ? on the period.
     var alternatives: [String] = []
+    /// What a phrase key shows instead of its text. Letter keys have none.
+    var label: String?
 
-    init(_ output: String, alternatives: [String] = []) {
+    init(_ output: String, alternatives: [String] = [], label: String? = nil) {
         self.output = output
         self.alternatives = alternatives
+        self.label = label
     }
 
     init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         output = try c.decode(String.self, forKey: .output)
         alternatives = try c.decodeIfPresent([String].self, forKey: .alternatives) ?? []
+        label = try c.decodeIfPresent(String.self, forKey: .label)
     }
 }
 
 /// A person's own arrangement of a language's three letter rows. Delete, Shift and the
 /// control row are added around it exactly as for the built-in layouts.
-struct CustomLetterLayout: Codable, Equatable, Sendable {
+struct CustomLetterLayout: KeyRows, Codable, Equatable, Sendable {
     var rows: [[CustomKey]]
 
     static let maximumRowLength = 12
@@ -75,6 +79,74 @@ struct CustomLetterLayout: Codable, Equatable, Sendable {
     func isUsable(for language: KeyboardLanguage) -> Bool { problems(for: language).isEmpty }
 }
 
+/// A named extra page of keys after the symbols page: symbols, notation, or phrase keys.
+struct CustomLayer: KeyRows, Codable, Equatable, Sendable, Identifiable {
+    var id: UUID
+    var name: String
+    /// Exactly three rows, like the numbers and symbols pages.
+    var rows: [[CustomKey]]
+
+    static let maximumCount = 8
+    static let maximumRowLength = 10
+    static let maximumNameLength = 20
+    static let maximumLabelLength = 12
+    static let maximumPhraseLength = 200
+
+    init(id: UUID = UUID(), name: String, rows: [[CustomKey]]) {
+        self.id = id
+        self.name = name
+        self.rows = rows
+    }
+
+    enum Problem: Equatable, Sendable {
+        case noName
+        case nameTooLong
+        case rowCount(Int)
+        case rowLength(row: Int, count: Int)
+        case emptyKey
+        case phraseTooLong(String)
+        /// Keys type one line; a newline could send a message in some apps.
+        case multiline(String)
+        case labelTooLong(String)
+        case tooManyAlternatives(String)
+        case notOneCharacter(String)
+    }
+
+    var problems: [Problem] {
+        var problems: [Problem] = []
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { problems.append(.noName) }
+        if trimmed.count > Self.maximumNameLength { problems.append(.nameTooLong) }
+        if rows.count != 3 { problems.append(.rowCount(rows.count)) }
+        for (index, row) in rows.enumerated() where row.isEmpty || row.count > Self.maximumRowLength {
+            problems.append(.rowLength(row: index, count: row.count))
+        }
+        for key in rows.joined() {
+            if key.output.isEmpty { problems.append(.emptyKey) }
+            if key.output.count > Self.maximumPhraseLength { problems.append(.phraseTooLong(key.output)) }
+            if key.output.contains(where: \.isNewline) { problems.append(.multiline(key.output)) }
+            if let label = key.label, label.count > Self.maximumLabelLength { problems.append(.labelTooLong(label)) }
+            if key.alternatives.count > CustomLetterLayout.maximumAlternatives { problems.append(.tooManyAlternatives(key.output)) }
+            for value in key.alternatives where value.count != 1 { problems.append(.notOneCharacter(value)) }
+        }
+        return problems
+    }
+
+    var isUsable: Bool { problems.isEmpty }
+
+    /// The few characters a key that opens this layer can show.
+    var shortTitle: String {
+        let title = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.count <= 4 ? title : String(title.prefix(3))
+    }
+}
+
+/// Rows of keys a person edits: a letter layout or a layer.
+protocol KeyRows {
+    var rows: [[CustomKey]] { get set }
+    static var maximumRowLength: Int { get }
+}
+
 /// A key's place in a custom layout, used by the Workshop editor.
 struct KeyPosition: Hashable, Sendable {
     var row: Int
@@ -91,7 +163,7 @@ extension CustomKey {
     }
 }
 
-extension CustomLetterLayout {
+extension KeyRows {
     func contains(_ position: KeyPosition) -> Bool {
         rows.indices.contains(position.row) && rows[position.row].indices.contains(position.column)
     }
