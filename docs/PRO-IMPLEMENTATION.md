@@ -1,6 +1,6 @@
 # Pro implementation plan
 
-Status: **phases 0–3 built**: custom layouts, the free Workshop, the edition seam and layers. Saved setups and purchases are not built yet. Read [PRO.md](PRO.md) for the product decisions. Code references in section 2 are to commit `084be31`.
+Status: **phases 0–5 built**: custom layouts, the free Workshop, the edition seam, layers, saved setups and the paid unlock. Phase 6, the release work, remains. Read [PRO.md](PRO.md) for the product decisions. Code references in section 2 are to commit `084be31`.
 
 ## 1. Edition boundary
 
@@ -83,12 +83,11 @@ Three rows keep a layer page exactly as tall as the numbers page. A fourth row w
 
 ## 4. Storage and publishing
 
-Keep today's model: the app writes, the extension only reads `geometry.json` (`SharedUI/PreferenceStore.swift`). Add one app-private file:
+The app writes and the extension only reads `geometry.json` (`SharedUI/PreferenceStore.swift`). Every write goes through `KeyboardPublisher.publish` in `App/ProHooks.swift`. It passes the preferences through `ProHooks.prepareForKeyboard`, which the Pro edition sets to switch `layersEnabled` off while Pro is locked.
 
-- `geometry.json` (App Group) is the **published** configuration: Free preferences, custom layouts, and the active layers only when Pro is unlocked.
-- `pro.json` (app's Application Support) holds the source of truth for layers, phrase keys and saved setups. The extension never reads it.
-
-Publishing is one function: Free preferences, plus (if unlocked) the active setup's layers, written atomically as today. Refunds and revocations republish without layers. Nothing in `pro.json` is deleted. No migration is needed for existing users, because their `geometry.json` is already a valid Free configuration.
+- Layers stay in `KeyboardPreferences`. When `layersEnabled` is off, the keyboard offers none of them: they're out of the page cycle, there's no layer key, and an open layer shows the numbers page. They are never deleted, so a refund followed by a repurchase brings everything back. The flag replaces the separate `pro.json` planned earlier, which would have needed a second source of truth for layers.
+- When access changes, `ProStore` posts `ProHooks.accessChanged` and the app publishes again. The home test drive previews the published copy, so it matches the keyboard.
+- Saved setups live in the app's Application Support (`setups.json`). The keyboard only sees the setup that's switched in.
 
 The extension has no idea Pro exists. It renders whatever valid configuration it reads. Without Full Access or StoreKit in the extension, a refund takes effect the next time the app runs. That is acceptable.
 
@@ -99,18 +98,20 @@ The extension has no idea Pro exists. It renders whatever valid configuration it
 - Unlocked means a verified, unrevoked entitlement for that product exists. `currentEntitlements` works offline from StoreKit's own cache, so no network heartbeat is involved.
 - Call `AppStore.sync()` only from **Restore purchases**, because it can ask the person to sign in.
 - Treat cancelled, pending, unverified and failed results distinctly; only a verified transaction unlocks. Pending shows "Waiting for approval" and changes nothing.
-- Use a `.storekit` configuration file for local testing, plus unit tests against a fake `ProStore` protocol.
+- StoreKit sits behind `ProPurchasing`. `AppStorePurchasing` is the real adapter; unit tests drive `ProStore` with a fake to cover unlocking, caching, cancel, pending, unverified, failure, Ask to Buy approval, refund and restore. `SKTestSession` returned no products under command-line `xcodebuild` on the simulator, even with a known-good configuration, so the real adapter is checked by hand: in Xcode, using `StoreKit/Pro.storekit` (wired to the scheme's Run action), then in sandbox on a device.
+- The last verified answer is cached in `UserDefaults` (`pro.unlocked`), so Pro works at launch and offline before StoreKit answers.
+- Development builds accept `-pro-unlocked` and `-pro-locked` for UI tests. Release builds ignore them.
 
 ## 6. Phases
 
 | # | Work | Repo | Size |
 | --- | --- | --- | --- |
-| 0 | Edition seam: private package skeleton, `project.pro.yml`, `ProEdition` protocol. Public build unchanged. | both | S |
-| 1 | Custom layout model, validation, `rows` override, the geometry fixes, tolerant decoding. `swift test` coverage. | public | M |
-| 2 | Free Workshop editor and single-layout files. **Ship as a free update.** Interest in this tells you whether Pro is worth finishing. | public | M–L |
-| 3 | Layer engine (page cycle, layer key, phrase rendering) and layer editor with starters. | both | M |
-| 4 | Saved setups and setup files with phrase export preview. | private | M |
-| 5 | StoreKit, purchase sheet, Pro row, publishing rules. | private | S–M |
+| 0 | Edition seam: private sources, `project.pro.yml`, `ProHooks`. Public build unchanged. Done. | both | S |
+| 1 | Custom layout model, validation, `rows` override, the geometry fixes, tolerant decoding. `swift test` coverage. Done. | public | M |
+| 2 | Free Workshop editor and single-layout files. **Ship as a free update.** Interest in this tells you whether Pro is worth finishing. Done. | public | M–L |
+| 3 | Layer engine (page cycle, layer key, phrase rendering) and layer editor with starters. Done. | both | M |
+| 4 | Saved setups and setup files with phrase export preview. Done. | private | M |
+| 5 | StoreKit, purchase sheet, Pro row, publishing rules. Done. | private | S–M |
 | 6 | Release: sandbox purchases on device, review notes, privacy and README updates. | both | S |
 
 Phase 2 is independently valuable and ships before any billing work.

@@ -54,7 +54,8 @@ struct ContentView: View {
                         Button("Clear") { NotificationCenter.default.post(name: .clearKeyboardPreview, object: nil) }
                             .font(.system(size: 12, weight: .medium)).accessibilityIdentifier("clear-preview")
                     }
-                    PreviewSurface(preferences: preferences, isActive: !showGeometry && !showSetup && !showSystemTest) { gesture in
+                    PreviewSurface(preferences: KeyboardPublisher.published(preferences),
+                                   isActive: !showGeometry && !showSetup && !showSystemTest) { gesture in
                         triedGestures.insert(gesture)
                     }
                         .frame(height: 100 + preferences.keyboardHeight)
@@ -111,8 +112,11 @@ struct ContentView: View {
         .sheet(isPresented: $showSetup) { SetupView() }
         .sheet(isPresented: $showSystemTest) { SystemKeyboardTest() }
         .onChange(of: preferences) { _, value in
-            do { try PreferenceStore.save(value) }
+            do { try KeyboardPublisher.publish(value) }
             catch { saveError = "The preview was updated, but settings could not be shared with the extension. Check that both targets use the same App Group and signing team." }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: ProHooks.accessChanged)) { _ in
+            try? KeyboardPublisher.publish(preferences)
         }
         .alert("Settings weren’t saved", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
             Button("OK", role: .cancel) { saveError = nil }
@@ -233,7 +237,7 @@ struct GeometrySettings: View {
         }
         .tint(accent)
         .onChange(of: preferences) { _, value in
-            do { try PreferenceStore.save(value) }
+            do { try KeyboardPublisher.publish(value) }
             catch { saveError = true }
             if !value.validated.languages.contains(previewLanguage) { previewLanguage = value.validated.defaultLanguage }
         }
