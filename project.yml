@@ -17,7 +17,14 @@ targets:
   Ortholinear:
     type: application
     platform: iOS
-    sources: [App, Core, SharedUI, Resources]
+    sources:
+      # Info.plist is excluded explicitly so a build that generates its own elsewhere
+      # (the private Pro edition) doesn't copy this one in as a resource.
+      - path: App
+        excludes: [Info.plist]
+      - Core
+      - SharedUI
+      - Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.varyvoda.Ortholinear

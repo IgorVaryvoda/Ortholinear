@@ -142,7 +142,6 @@
 		B55F3BD1452778CE31651E34 /* LanguageSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSettings.swift; sourceTree = "<group>"; };
 		D0E39453769AEEE16E7100E5 /* PunctuationSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PunctuationSpacing.swift; sourceTree = "<group>"; };
 		D189638075168513F1DBAF7E /* KeyboardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardModel.swift; sourceTree = "<group>"; };
-		D3243D3CB937E349465A4702 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D8BD329D52E74E3AFAF37B4B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteRepeat.swift; sourceTree = "<group>"; };
 		DE5F04871282EAE256326968 /* LanguageMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageMemory.swift; sourceTree = "<group>"; };
@@ -199,7 +198,6 @@
 			children = (
 				31B5F6A134118D240BD5DBC5 /* AppearanceSettings.swift */,
 				D8BD329D52E74E3AFAF37B4B /* ContentView.swift */,
-				D3243D3CB937E349465A4702 /* Info.plist */,
 				B55F3BD1452778CE31651E34 /* LanguageSettings.swift */,
 				2C3ABEF2DC0013C3FE311B0E /* LayoutWorkshop.swift */,
 				9D1EC3C852136D49D509329A /* Ortholinear.entitlements */,
