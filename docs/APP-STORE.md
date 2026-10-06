@@ -167,11 +167,11 @@ New languages and layouts:
 
 ## Submission status
 
-Version **0.5.0 (20)** was submitted to App Review on September 24, 2026, with automatic release after approval. App Store Connect reports **Waiting for Review**. Version 0.4.0 (19) is live (Ready for Sale).
+Version **0.6.0 (21)** and the in-app purchase **Ortholinear Pro** were submitted to App Review together on October 6, 2026, with automatic release after approval. App Store Connect reports **Waiting for Review** for both. Version 0.5.0 (20) is live (Ready for Distribution).
 
-Build 20 was archived from commit `350b4a6`, then signed and uploaded with the team's Admin App Store Connect API key (`xcodebuild -exportArchive` with `destination: upload`); it processed as valid. The description, What's New, promotional text and review notes above were saved through the App Store Connect API. The six iPhone 6.9-inch screenshots and the 19-second app preview come from goldie (`goldie/goldie.config.ts`, captured by `Tools/store-capture.py`) and replace the single 0.3 screenshot. The iPad screenshot, keywords, pricing, availability, age rating and the Data Not Collected declaration are unchanged.
+Build 21 is the private Pro edition, archived in Release from `OrtholinearPro` (`project.pro.yml`, public commit `25fd695`), then signed and uploaded with the team's Admin App Store Connect API key; it processed as valid. The in-app purchase, its price, availability, localizations and review screenshot, the version, its listing text and review notes, and the draft review submission were all created through the API. Apple accepts a first non-consumable only alongside an app version and offers no API to attach it, so the purchase was added to the draft with **Add for Review** on its App Store Connect page (driven through Chrome's DevTools protocol), then submitted there.
 
-Submission ID: `73258f3a-28cf-42eb-8f3d-637fa92e36b2`. App record: `6808996711`. Version ID: `694585a5-a059-469a-9c2d-960aa5e5036c`. Build ID: `cab792cc-8cc6-4cc9-ba17-4f59b395309a`. Version 0.4.0 (19): version `77413922-4c88-43eb-893c-ca2566bd0f0c`, submission `05f0752b-139b-4da8-85bd-8537da50c1e3`.
+Submission ID: `59c93210-9f3e-47f2-9bf9-fa1dd97bf714`. Version ID: `f36aea49-221c-476a-8c03-f52b8abe9de8`. Build ID: `c1687c40-c11a-49d9-ad64-5ce4e046ee54`. In-app purchase: `6819696774`. Version 0.5.0 (20): version `694585a5-a059-469a-9c2d-960aa5e5036c`, submission `73258f3a-28cf-42eb-8f3d-637fa92e36b2`. Version 0.4.0 (19): version `77413922-4c88-43eb-893c-ca2566bd0f0c`, submission `05f0752b-139b-4da8-85bd-8537da50c1e3`.
 
 ## Prepared artifacts
 
