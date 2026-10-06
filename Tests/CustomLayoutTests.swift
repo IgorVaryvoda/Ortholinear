@@ -148,6 +148,69 @@ final class CustomLayoutTests: XCTestCase {
         XCTAssertEqual(wrongType.keyHeight, 60)
         XCTAssertTrue(wrongType.customLayouts.isEmpty)
     }
+
+    func testWorkshopEditsKeepRowsWithinBounds() {
+        var layout = CustomLetterLayout(builtIn: .english)
+        let q = KeyPosition(row: 0, column: 0)
+        XCTAssertNil(layout.move(q, .left))
+        XCTAssertNil(layout.move(q, .up))
+        let right = layout.move(q, .right)
+        XCTAssertEqual(right, KeyPosition(row: 0, column: 1))
+        XCTAssertEqual(letters(layout)[0], "wqertyuiop")
+
+        // Down moves into the same column of the next row, which grows by one.
+        let down = layout.move(KeyPosition(row: 0, column: 9), .down)
+        XCTAssertEqual(down, KeyPosition(row: 1, column: 9))
+        XCTAssertEqual(letters(layout), ["wqertyuio", "asdfghjklp'", "zxcvbnm"])
+        XCTAssertEqual(layout.move(KeyPosition(row: 1, column: 2), .down), KeyPosition(row: 2, column: 2))
+        XCTAssertEqual(letters(layout)[2], "zxdcvbnm")
+
+        layout.swapKeys(KeyPosition(row: 0, column: 0), KeyPosition(row: 2, column: 0))
+        XCTAssertEqual(letters(layout).map { $0.prefix(1) }, ["z", "a", "w"])
+
+        let added = layout.insertKey(after: KeyPosition(row: 2, column: 0))
+        XCTAssertEqual(added, KeyPosition(row: 2, column: 1))
+        XCTAssertTrue(layout.problems(for: .english).contains(.notOneCharacter("")))
+        XCTAssertEqual(layout.removeKey(at: KeyPosition(row: 2, column: 1)), KeyPosition(row: 2, column: 1))
+
+        var full = CustomLetterLayout(rows: [Array(repeating: CustomKey("a"), count: 12), [CustomKey("b")], [CustomKey("c")]])
+        XCTAssertNil(full.insertKey(after: KeyPosition(row: 0, column: 3)))
+        XCTAssertNil(full.move(KeyPosition(row: 1, column: 0), .up), "Row 0 is full")
+        XCTAssertNil(full.move(KeyPosition(row: 1, column: 0), .down), "Row 1 would be empty")
+        XCTAssertNil(full.removeKey(at: KeyPosition(row: 2, column: 0)))
+        XCTAssertNil(full.move(KeyPosition(row: 5, column: 0), .right))
+
+        XCTAssertEqual(CustomKey.characters(in: " é è é\u{301}ê "), ["é", "è", "é\u{301}", "ê"])
+        XCTAssertEqual(CustomKey.characters(in: "ґґ"), ["ґ"])
+    }
+
+    func testLayoutFilesRoundTripAndRefuseWhatTheEditorCannotShow() throws {
+        var layout = CustomLetterLayout(builtIn: .ukrainian)
+        layout.rows[2].append(CustomKey("ʼ"))
+        let file = LayoutFile(language: .ukrainian, layout: layout)
+        let data = try file.data()
+        XCTAssertEqual(try LayoutFile.read(data), file)
+        let text = try XCTUnwrap(String(data: data, encoding: .utf8))
+        XCTAssertTrue(text.contains(#""format" : "ortholinear-layout""#))
+        XCTAssertFalse(text.contains("schemaVersion"), "Files carry only the layout")
+
+        func error(_ json: String) -> LayoutFile.ReadError? {
+            do { _ = try LayoutFile.read(Data(json.utf8)); return nil } catch { return error }
+        }
+        let rows = #"[[{"output":"q"}],[{"output":"a"}],[{"output":"z"}]]"#
+        XCTAssertEqual(error(#"{"keyHeight":60}"#), .notALayout)
+        XCTAssertEqual(error("not json"), .notALayout)
+        XCTAssertEqual(error(#"{"format":"ortholinear-layout","version":2,"language":"english","layout":{"rows":\#(rows)}}"#), .newerVersion)
+        XCTAssertEqual(error(#"{"format":"ortholinear-layout","version":1,"language":"klingon","layout":{"rows":\#(rows)}}"#), .unknownLanguage)
+        XCTAssertEqual(error(#"{"format":"ortholinear-layout","version":1,"language":"english","layout":{"rows":[[{"output":"qq"}],[],[]]}}"#), .malformed)
+        XCTAssertEqual(error(#"{"format":"ortholinear-layout","version":1,"language":"english","layout":{"rows":[]}}"#), .malformed)
+        XCTAssertEqual(error(#"{"format":"ortholinear-layout","version":1,"language":"english"}"#), .malformed)
+        XCTAssertEqual(error(#"{"format":"ortholinear-layout","version":1,"language":"english","pad":""# + String(repeating: " ", count: 70_000) + #""}"#), .tooLarge)
+
+        // Missing letters are for the editor to point out, not a reason to refuse the file.
+        let partial = try LayoutFile.read(Data(#"{"format":"ortholinear-layout","version":1,"language":"english","layout":{"rows":\#(rows)}}"#.utf8))
+        XCTAssertFalse(partial.layout.isUsable(for: .english))
+    }
 }
 
 private extension InputState {

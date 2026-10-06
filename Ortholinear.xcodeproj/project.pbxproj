@@ -20,7 +20,9 @@
 		16CC8CD1F40F7D79FE24EB22 /* en.orthlex in Resources */ = {isa = PBXBuildFile; fileRef = A372FA89C50EAFBBCD7DAAA3 /* en.orthlex */; };
 		1DC24A17DFE4855494DE495B /* GlideDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34FA4C50C5E143D0378226B1 /* GlideDecoder.swift */; };
 		23A0055C86092F4090020792 /* PreviewSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */; };
+		25303F0D62014F5FF765058F /* WorkshopUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459417AA8AA2467ACDB9FC5D /* WorkshopUITests.swift */; };
 		254E6B38A3A6A2EAC7B7AD6A /* KeyboardAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291C789BEB4272C066A1ADB0 /* KeyboardAppearance.swift */; };
+		27B0D0FA6DB6B7CAE5D8EC26 /* LayoutWorkshop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3ABEF2DC0013C3FE311B0E /* LayoutWorkshop.swift */; };
 		2822A5F7F1A1E90223FB7626 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF307C0E61A7F0F7CA21AD9 /* KeyboardViewController.swift */; };
 		2B653E3F0C37D7DB5A7FD853 /* DeleteRepeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC39E6531473C8F6C5B467BD /* DeleteRepeat.swift */; };
 		2B8DDD57B3FB9FA8E5AB9540 /* LanguageSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B55F3BD1452778CE31651E34 /* LanguageSettings.swift */; };
@@ -112,10 +114,12 @@
 		240D35462685BB3A9B828BE7 /* uk.orthlex */ = {isa = PBXFileReference; path = uk.orthlex; sourceTree = "<group>"; };
 		284493B8A152B026BA8A90FE /* en-context.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "en-context.json"; sourceTree = "<group>"; };
 		291C789BEB4272C066A1ADB0 /* KeyboardAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardAppearance.swift; sourceTree = "<group>"; };
+		2C3ABEF2DC0013C3FE311B0E /* LayoutWorkshop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutWorkshop.swift; sourceTree = "<group>"; };
 		31B5F6A134118D240BD5DBC5 /* AppearanceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettings.swift; sourceTree = "<group>"; };
 		32F289822E78B8E86444E1DB /* PreferenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceStore.swift; sourceTree = "<group>"; };
 		34FA4C50C5E143D0378226B1 /* GlideDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlideDecoder.swift; sourceTree = "<group>"; };
 		3E00478A24886CBF8659DD76 /* SuggestionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionBar.swift; sourceTree = "<group>"; };
+		459417AA8AA2467ACDB9FC5D /* WorkshopUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkshopUITests.swift; sourceTree = "<group>"; };
 		55D1DDF0D7CE8041A8624AE7 /* OrtholinearUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OrtholinearUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSurface.swift; sourceTree = "<group>"; };
 		60DEBA4281CE92140F0EF537 /* OrtholinearKeyboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OrtholinearKeyboard.entitlements; sourceTree = "<group>"; };
@@ -195,6 +199,7 @@
 				D8BD329D52E74E3AFAF37B4B /* ContentView.swift */,
 				D3243D3CB937E349465A4702 /* Info.plist */,
 				B55F3BD1452778CE31651E34 /* LanguageSettings.swift */,
+				2C3ABEF2DC0013C3FE311B0E /* LayoutWorkshop.swift */,
 				9D1EC3C852136D49D509329A /* Ortholinear.entitlements */,
 				64A444EABA05F1E4609B1364 /* OrtholinearApp.swift */,
 				5964C3E29AFD44D3E85A98CF /* PreviewSurface.swift */,
@@ -263,6 +268,7 @@
 			children = (
 				FB208E703422E526173E53E8 /* KeyboardUITests.swift */,
 				ACAA48C9A8F87BE29A910D96 /* StoreCaptureTests.swift */,
+				459417AA8AA2467ACDB9FC5D /* WorkshopUITests.swift */,
 			);
 			path = UITests;
 			sourceTree = "<group>";
@@ -432,6 +438,7 @@
 			files = (
 				33D803B70D2BB7CBD7C06303 /* KeyboardUITests.swift in Sources */,
 				4698757C2B221A3C9C4A7814 /* StoreCaptureTests.swift in Sources */,
+				25303F0D62014F5FF765058F /* WorkshopUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -453,6 +460,7 @@
 				E54A830E376112B372DB7931 /* LanguageMemory.swift in Sources */,
 				2B8DDD57B3FB9FA8E5AB9540 /* LanguageSettings.swift in Sources */,
 				63DC5973629D9E20DC0D211E /* LayoutRecovery.swift in Sources */,
+				27B0D0FA6DB6B7CAE5D8EC26 /* LayoutWorkshop.swift in Sources */,
 				0FF64F2E44E0CF981D0F55F0 /* OrtholinearApp.swift in Sources */,
 				14908B890B2894164D488C49 /* PreferenceStore.swift in Sources */,
 				23A0055C86092F4090020792 /* PreviewSurface.swift in Sources */,
