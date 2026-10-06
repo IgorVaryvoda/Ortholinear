@@ -269,8 +269,9 @@ final class PreviewContainer: UIView, UITextViewDelegate {
                 state.tapShift(at: Date.timeIntervalSinceReferenceDate)
                 autoShifted = false
                 manualShiftContext = textBeforeCaret
-            } else { state.page = state.page == .numbers ? .symbols : .numbers }
+            } else { state.page = KeyboardLayout.page(after: state.page, preferences: keyboard.preferences) }
         case .page: state.page = state.page == .letters ? .numbers : .letters
+        case .layers: state.page = KeyboardLayout.firstLayerPage(keyboard.preferences) ?? .letters
         case .language: state.language = keyboard.preferences.language(after: state.language); state.page = .letters
         case .dismiss: editor.resignFirstResponder()
         default: break

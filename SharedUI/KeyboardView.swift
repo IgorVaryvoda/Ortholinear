@@ -172,8 +172,10 @@ final class KeyboardView: UIControl {
 
     private func title(_ action: KeyAction) -> String {
         switch action {
-        case .text(let text): return displayState.shift == .off ? text : text.shifted
-        case .shift: return displayState.page == .letters ? (displayState.shift == .locked ? "⇪" : "⇧") : (displayState.page == .numbers ? "#+=" : "123")
+        case .text(let text): return displayState.shift == .off || displayState.page.isLayer ? text : text.shifted
+        case .shift:
+            guard displayState.page == .letters else { return KeyboardLayout.pageTitle(nextPage, preferences: preferences) }
+            return displayState.shift == .locked ? "⇪" : "⇧"
         case .backspace: return "⌫"
         case .space:
             let language = displayState.language
@@ -184,20 +186,25 @@ final class KeyboardView: UIControl {
         case .page: return displayState.page == .letters ? "123" : "ABC"
         case .globe: return ""
         case .dismiss: return "⌄"
+        case .layers: return KeyboardLayout.firstLayerPage(preferences).map { KeyboardLayout.pageTitle($0, preferences: preferences) } ?? ""
         }
     }
+
+    /// Where the #+= / 123 key leads from the current non-letter page.
+    private var nextPage: KeyboardPage { KeyboardLayout.page(after: displayState.page, preferences: preferences) }
 
     private var nextLanguage: KeyboardLanguage { preferences.language(after: displayState.language) }
 
     private func accessibilityName(_ action: KeyAction) -> String {
         switch action {
-        case .shift: return displayState.page == .letters ? "Shift" : (displayState.page == .numbers ? "More symbols" : "Numbers")
+        case .shift: return displayState.page == .letters ? "Shift" : KeyboardLayout.pageName(nextPage, preferences: preferences)
         case .backspace: return "Delete"
         case .space: return "Space"
         case .enter: return "Return"
         case .language: return "Switch to \(nextLanguage.title)"
         case .page: return displayState.page == .letters ? "Numbers" : "Letters"
         case .dismiss: return "Dismiss keyboard"
+        case .layers: return KeyboardLayout.firstLayerPage(preferences).map { KeyboardLayout.pageName($0, preferences: preferences) } ?? "Layers"
         default: return title(action)
         }
     }
@@ -219,8 +226,9 @@ final class KeyboardView: UIControl {
         var elements: [Any] = accessibleCells.enumerated().map { index, cell in
             let element = accessibleKeys[index]
             element.frame = cell.hitFrame
-            element.accessibilityLabel = accessibilityName(cell.key.action)
-            element.accessibilityIdentifier = "key-\(accessibilityName(cell.key.action))"
+            let name = cell.key.label ?? accessibilityName(cell.key.action)
+            element.accessibilityLabel = name
+            element.accessibilityIdentifier = "key-\(name)"
             element.accessibilityTraits = [.keyboardKey, .button]
             element.accessibilityValue = nil
             if cell.key.action == .enter && !returnEnabled { element.accessibilityTraits.insert(.notEnabled) }
@@ -315,9 +323,9 @@ final class KeyboardView: UIControl {
             let color = action == .enter && !returnEnabled ? palette.secondary.withAlphaComponent(0.5) : palette.text
             if drawControl(action, in: frame, color: color) { continue }
             let flicked = sessions.values.first { $0.startCell == index && $0.flick != nil }?.flick
-            let label = flicked ?? (action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(action))
+            let label = flicked ?? cell.key.label ?? (action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(action))
             var size: CGFloat = label.count > 2 ? 13 : 19
-            if case .text = action {
+            if case .text = action, cell.key.label == nil {
                 size = min(preferences.validated.letterSize, max(14, frame.width - 3))
             }
             drawText(label, in: frame, font: .systemFont(ofSize: size,

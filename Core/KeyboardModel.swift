@@ -131,7 +131,12 @@ enum InvasionAnswer: String, Codable, Sendable {
     case unanswered, supports, opposes
 }
 
-enum KeyboardPage: Sendable { case letters, numbers, symbols }
+enum KeyboardPage: Hashable, Sendable {
+    case letters, numbers, symbols
+    /// One of the person's own layers, which follow the symbols page.
+    case layer(UUID)
+    var isLayer: Bool { if case .layer = self { true } else { false } }
+}
 /// How digits are reached from the letter page, besides 123.
 enum DigitAccess: String, Codable, CaseIterable, Sendable {
     case flick, numberRow, off
@@ -167,6 +172,8 @@ struct InputState: Sendable {
     }
 
     mutating func consume(_ value: String) -> String {
+        // Layer keys type exactly what they hold: a phrase, or a Greek π, never shifted.
+        if page.isLayer { return value }
         let result = shift == .off ? value : value.shifted
         if value.lowercased() != value.uppercased() {
             if shift == .once { shift = .off }
@@ -183,6 +190,8 @@ extension String {
 
 enum KeyAction: Hashable, Sendable {
     case text(String), shift, backspace, space, enter, language, page, globe, dismiss
+    /// Opens the first of the person's layers from the letter page.
+    case layers
 }
 
 struct Key: Sendable {
@@ -192,6 +201,8 @@ struct Key: Sendable {
     var letterAlternatives: [String] = []
     /// Typed by a short downward flick; top-row digits.
     var flick: String?
+    /// Shown instead of the text, for phrase keys.
+    var label: String?
     var alternatives: [String] {
         guard case .text(let value) = action else { return [] }
         if !letterAlternatives.isEmpty { return letterAlternatives }
@@ -214,10 +225,16 @@ enum KeyboardLayout {
         var result: [[Key]]
         switch state.page {
         case .letters: result = letterKeys(state.language, preferences: preferences)
-        case .numbers:
-            result = textKeys(["1234567890", "-/:;()$&@\"", (state.language == .ukrainian ? ".,?!ʼ" : ".,?!'") + "[]=+%"])
+        case .numbers: result = numberKeys(state.language)
         case .symbols:
             result = textKeys(["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'`:;₴…"])
+        case .layer(let id):
+            // A layer deleted while it was open shows the numbers instead.
+            if let layer = preferences.layers.first(where: { $0.id == id }), layer.isUsable {
+                result = layer.rows.map { row in
+                    row.map { Key(action: .text($0.output), letterAlternatives: $0.alternatives, label: $0.label) }
+                }
+            } else { result = numberKeys(state.language) }
         }
         let digits = "1234567890".map(String.init)
         if state.page == .letters && preferences.digitAccess == .flick {
@@ -234,6 +251,9 @@ enum KeyboardLayout {
                              at: lastLetter.map { $0 + 1 } ?? result[2].endIndex)
         }
         var controls: [Key] = [Key(action: .page, weight: 1.35)]
+        if state.page == .letters && preferences.showLayerKey && firstLayerPage(preferences) != nil {
+            controls.append(Key(action: .layers, weight: 1.25))
+        }
         if state.page == .letters && preferences.shiftPlacement == .beforeLastRow {
             result[2].insert(Key(action: .shift, weight: 0.8), at: 0)
         } else {
@@ -270,6 +290,45 @@ enum KeyboardLayout {
                 Key(action: .text(String(character)),
                     letterAlternatives: letterAlternatives(character, language: language, preferences: preferences))
             }
+        }
+    }
+
+    private static func numberKeys(_ language: KeyboardLanguage) -> [[Key]] {
+        textKeys(["1234567890", "-/:;()$&@\"", (language == .ukrainian ? ".,?!ʼ" : ".,?!'") + "[]=+%"])
+    }
+
+    /// The pages the #+= / 123 key steps through: numbers, symbols, then each usable layer.
+    static func pageCycle(_ preferences: KeyboardPreferences) -> [KeyboardPage] {
+        [.numbers, .symbols] + preferences.layers.filter(\.isUsable).map { .layer($0.id) }
+    }
+
+    static func page(after page: KeyboardPage, preferences: KeyboardPreferences) -> KeyboardPage {
+        let cycle = pageCycle(preferences)
+        guard let index = cycle.firstIndex(of: page) else { return .numbers }
+        return cycle[(index + 1) % cycle.count]
+    }
+
+    static func firstLayerPage(_ preferences: KeyboardPreferences) -> KeyboardPage? {
+        preferences.layers.first(where: \.isUsable).map { .layer($0.id) }
+    }
+
+    /// A page's short name, as the key that opens it shows it.
+    static func pageTitle(_ page: KeyboardPage, preferences: KeyboardPreferences) -> String {
+        switch page {
+        case .letters: "ABC"
+        case .numbers: "123"
+        case .symbols: "#+="
+        case .layer(let id): preferences.layers.first { $0.id == id }?.shortTitle ?? "123"
+        }
+    }
+
+    /// A page's spoken name.
+    static func pageName(_ page: KeyboardPage, preferences: KeyboardPreferences) -> String {
+        switch page {
+        case .letters: "Letters"
+        case .numbers: "Numbers"
+        case .symbols: "More symbols"
+        case .layer(let id): preferences.layers.first { $0.id == id }?.name ?? "Numbers"
         }
     }
 
@@ -420,6 +479,10 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var invasionAnswer: InvasionAnswer = .unanswered
     /// Letter rows the person arranged in the Workshop; languages without one use the built-in rows.
     var customLayouts: [KeyboardLanguage: CustomLetterLayout] = [:]
+    /// Extra pages of keys after the symbols page.
+    var layers: [CustomLayer] = []
+    /// A control-row key that opens the first layer from the letters.
+    var showLayerKey: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
@@ -428,7 +491,7 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         case theme, accent, showLongPressHints
         case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
         case languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer
-        case customLayouts
+        case customLayouts, layers, showLayerKey
     }
 
     var validated: Self {
@@ -469,9 +532,9 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         let appearance = (theme, accent, showLongPressHints)
         let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
         let typing = (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping)
-        let layouts = customLayouts
+        let custom = (customLayouts, layers, showLayerKey)
         self = preset.preferences
-        customLayouts = layouts
+        (customLayouts, layers, showLayerKey) = custom
         (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer) = language
         (theme, accent, showLongPressHints) = appearance
         (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
@@ -521,6 +584,10 @@ extension KeyboardPreferences {
                 if let language = KeyboardLanguage(rawValue: code), let layout = layout.value { customLayouts[language] = layout }
             }
         }
+        if let saved = try? c.decodeIfPresent([Lossy<CustomLayer>].self, forKey: .layers) {
+            layers = Array(saved.compactMap(\.value).prefix(CustomLayer.maximumCount))
+        }
+        showLayerKey = try c.decodeIfPresent(Bool.self, forKey: .showLayerKey) ?? showLayerKey
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated

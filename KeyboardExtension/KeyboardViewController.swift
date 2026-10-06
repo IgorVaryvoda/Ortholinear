@@ -295,13 +295,14 @@ final class KeyboardViewController: UIInputViewController {
                 inputState.tapShift(at: Date.timeIntervalSinceReferenceDate)
                 autoShifted = false
                 manualShiftContext = textDocumentProxy.documentContextBeforeInput ?? ""
-            } else { inputState.page = inputState.page == .numbers ? .symbols : .numbers }
+            } else { inputState.page = KeyboardLayout.page(after: inputState.page, preferences: keyboard.preferences) }
         case .language:
             inputState.language = keyboard.preferences.language(after: inputState.language)
             inputState.page = .letters
             let language = inputState.language, context = languageContext ?? LanguageContext()
             updateMemory { $0.record(language, in: context, chosen: true) }
         case .page: inputState.page = inputState.page == .letters ? .numbers : .letters
+        case .layers: inputState.page = KeyboardLayout.firstLayerPage(keyboard.preferences) ?? .letters
         case .globe: advanceToNextInputMode()
         case .dismiss: dismissKeyboard()
         }

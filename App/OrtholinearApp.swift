@@ -4,6 +4,9 @@ import Security
 @main
 struct OrtholinearApp: App {
     init() {
+        #if PRO
+        ProEdition.install()
+        #endif
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         var preferences = PreferenceStore.load()
@@ -12,6 +15,7 @@ struct OrtholinearApp: App {
         if arguments.contains("-no-auto-capitals") { preferences.autoCapitalize = false }
         if arguments.contains("-auto-capitals") { preferences.autoCapitalize = true }
         if arguments.contains("-reset-custom-layouts") { preferences.customLayouts = [:] }
+        if arguments.contains("-reset-layers") { preferences.layers = []; preferences.showLayerKey = false }
         if preferences != PreferenceStore.load() { try? PreferenceStore.save(preferences) }
         #endif
         // Remove private data left by the retired development-only voice feature.

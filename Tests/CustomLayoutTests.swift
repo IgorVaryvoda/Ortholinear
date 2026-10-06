@@ -211,6 +211,98 @@ final class CustomLayoutTests: XCTestCase {
         let partial = try LayoutFile.read(Data(#"{"format":"ortholinear-layout","version":1,"language":"english","layout":{"rows":\#(rows)}}"#.utf8))
         XCTAssertFalse(partial.layout.isUsable(for: .english))
     }
+
+    private func layer(_ name: String, _ rows: [[CustomKey]]) -> CustomLayer {
+        CustomLayer(name: name, rows: rows)
+    }
+
+    func testLayersFollowSymbolsAndTypeExactlyWhatTheyHold() throws {
+        let math = layer("Math", [[CustomKey("≤"), CustomKey("≥"), CustomKey("π", alternatives: ["Π", "φ"])],
+                                  [CustomKey("×")], [CustomKey("÷")]])
+        let phrases = layer("Phrases", [[CustomKey("me@example.com", label: "email")], [CustomKey("On my way!", label: "omw")], [CustomKey("👍")]])
+        let broken = layer("", [[CustomKey("x")]])
+        var preferences = KeyboardPreferences(layers: [math, broken, phrases])
+
+        XCTAssertEqual(KeyboardLayout.pageCycle(preferences), [.numbers, .symbols, .layer(math.id), .layer(phrases.id)])
+        XCTAssertEqual(KeyboardLayout.page(after: .symbols, preferences: preferences), .layer(math.id))
+        XCTAssertEqual(KeyboardLayout.page(after: .layer(phrases.id), preferences: preferences), .numbers)
+        XCTAssertEqual(KeyboardLayout.page(after: .layer(broken.id), preferences: preferences), .numbers)
+        XCTAssertEqual(KeyboardLayout.page(after: .symbols, preferences: .init()), .numbers)
+        XCTAssertEqual(KeyboardLayout.pageTitle(.layer(math.id), preferences: preferences), "Math")
+        XCTAssertEqual(KeyboardLayout.pageTitle(.layer(phrases.id), preferences: preferences), "Phr")
+        XCTAssertEqual(KeyboardLayout.pageName(.layer(phrases.id), preferences: preferences), "Phrases")
+
+        var state = InputState()
+        state.page = .layer(phrases.id)
+        let rows = KeyboardLayout.rows(state: state, needsGlobe: false, preferences: preferences)
+        XCTAssertEqual(rows[0].first?.action, .text("me@example.com"))
+        XCTAssertEqual(rows[0].first?.label, "email")
+        XCTAssertEqual(rows[3].map(\.action), [.page, .shift, .language, .space, .enter, .backspace])
+
+        state.page = .layer(math.id)
+        state.shift = .once
+        XCTAssertEqual(state.consume("π"), "π")
+        XCTAssertEqual(state.consume("On my way!"), "On my way!")
+        XCTAssertEqual(state.shift, .once, "Layer keys leave Shift for the letters")
+        let mathRows = KeyboardLayout.rows(state: state, needsGlobe: false, preferences: preferences)
+        XCTAssertEqual(mathRows[0][2].alternatives, ["Π", "φ"])
+
+        // The page is as tall as numbers, so switching never makes the keyboard jump.
+        for digits in DigitAccess.allCases {
+            preferences.digitAccess = digits
+            var numbers = InputState(); numbers.page = .numbers
+            XCTAssertEqual(KeyboardGeometry.cells(width: 393, state: state, preferences: preferences, needsGlobe: false).last?.hitFrame.maxY,
+                           KeyboardGeometry.cells(width: 393, state: numbers, preferences: preferences, needsGlobe: false).last?.hitFrame.maxY)
+        }
+
+        // A layer deleted while open falls back to the numbers.
+        preferences.layers = []
+        XCTAssertEqual(texts(KeyboardLayout.rows(state: state, needsGlobe: false, preferences: preferences)),
+                       texts(KeyboardLayout.rows(state: { var s = InputState(); s.page = .numbers; return s }(), needsGlobe: false, preferences: preferences)))
+    }
+
+    func testLayerKeyAppearsOnlyWhenWantedAndUseful() {
+        let math = layer("Math", [[CustomKey("≤")], [CustomKey("≥")], [CustomKey("≠")]])
+        func controls(_ preferences: KeyboardPreferences, page: KeyboardPage = .letters) -> [KeyAction] {
+            var state = InputState(); state.page = page
+            return KeyboardLayout.rows(state: state, needsGlobe: false, preferences: preferences).last?.map(\.action) ?? []
+        }
+        XCTAssertFalse(controls(KeyboardPreferences(layers: [math])).contains(.layers))
+        XCTAssertFalse(controls(KeyboardPreferences(showLayerKey: true)).contains(.layers))
+        XCTAssertEqual(controls(KeyboardPreferences(layers: [math], showLayerKey: true)).prefix(2), [.page, .layers])
+        XCTAssertFalse(controls(KeyboardPreferences(layers: [math], showLayerKey: true), page: .numbers).contains(.layers))
+        XCTAssertEqual(KeyboardLayout.firstLayerPage(KeyboardPreferences(layers: [math])), .layer(math.id))
+    }
+
+    func testLayerProblems() {
+        XCTAssertEqual(layer("Math", [[CustomKey("≤")], [CustomKey("≥")], [CustomKey("≠")]]).problems, [])
+        let long = String(repeating: "a", count: 201)
+        let problems = layer(" ", [[CustomKey(""), CustomKey(long), CustomKey("a\nb"), CustomKey("x", alternatives: ["xy"], label: String(repeating: "l", count: 13))],
+                                   Array(repeating: CustomKey("y"), count: 11)]).problems
+        for expected: CustomLayer.Problem in [.noName, .rowCount(2), .rowLength(row: 1, count: 11), .emptyKey, .phraseTooLong(long),
+                                              .multiline("a\nb"), .labelTooLong(String(repeating: "l", count: 13)), .notOneCharacter("xy")] {
+            XCTAssertTrue(problems.contains(expected), "\(expected)")
+        }
+        XCTAssertTrue(layer(String(repeating: "n", count: 21), [[CustomKey("a")], [CustomKey("b")], [CustomKey("c")]]).problems.contains(.nameTooLong))
+    }
+
+    func testLayersSurviveSavingPresetsAndDamage() throws {
+        let math = layer("Math", [[CustomKey("≤")], [CustomKey("≥")], [CustomKey("≠", label: "neq")]])
+        var preferences = KeyboardPreferences(layers: [math], showLayerKey: true)
+        XCTAssertEqual(try JSONDecoder().decode(KeyboardPreferences.self, from: JSONEncoder().encode(preferences)), preferences)
+        preferences.apply(.balanced)
+        XCTAssertEqual(preferences.layers, [math])
+        XCTAssertTrue(preferences.showLayerKey)
+
+        let id = UUID().uuidString
+        let valid = #"{"id":"\#(id)","name":"Code","rows":[[{"output":"{"}],[{"output":"}"}],[{"output":"`"}]]}"#
+        let json = #"{"keyHeight":60,"layers":[\#(valid),{"name":"no id"},"junk",\#(Array(repeating: valid, count: 9).joined(separator: ","))]}"#
+        let decoded = try JSONDecoder().decode(KeyboardPreferences.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.keyHeight, 60)
+        XCTAssertEqual(decoded.layers.count, CustomLayer.maximumCount)
+        XCTAssertEqual(decoded.layers.first?.name, "Code")
+        XCTAssertFalse(decoded.showLayerKey)
+    }
 }
 
 private extension InputState {
