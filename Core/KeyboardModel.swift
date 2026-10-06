@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-enum KeyboardLanguage: String, Codable, CaseIterable, Sendable {
+enum KeyboardLanguage: String, Codable, CodingKeyRepresentable, CaseIterable, Sendable {
     case ukrainian, english, polish, german, french, spanish, czech, slovak
     case bcms, serbianCyrillic, swedish, norwegian, danish, dutch, russian
     var title: String {
@@ -188,11 +188,13 @@ enum KeyAction: Hashable, Sendable {
 struct Key: Sendable {
     let action: KeyAction
     var weight: Double = 1
+    /// A letter's holds, or a custom key's own; they replace the punctuation defaults below.
     var letterAlternatives: [String] = []
     /// Typed by a short downward flick; top-row digits.
     var flick: String?
     var alternatives: [String] {
         guard case .text(let value) = action else { return [] }
+        if !letterAlternatives.isEmpty { return letterAlternatives }
         switch value {
         case ".": return [".", "…", "!", "?"]
         case ",": return [",", ";", ":"]
@@ -202,37 +204,34 @@ struct Key: Sendable {
         case "-": return ["-", "–", "—", "_"]
         case "\"": return ["\"", "«", "»", "“", "”"]
         case "?": return ["?", "!", "¿"]
-        default: return letterAlternatives
+        default: return []
         }
     }
 }
 
 enum KeyboardLayout {
     static func rows(state: InputState, needsGlobe: Bool, preferences: KeyboardPreferences = .init()) -> [[Key]] {
-        let strings: [String]
+        var result: [[Key]]
         switch state.page {
-        case .letters: strings = letterRows(state.language, preferences: preferences)
+        case .letters: result = letterKeys(state.language, preferences: preferences)
         case .numbers:
-            strings = ["1234567890", "-/:;()$&@\"", (state.language == .ukrainian ? ".,?!ʼ" : ".,?!'") + "[]=+%"]
+            result = textKeys(["1234567890", "-/:;()$&@\"", (state.language == .ukrainian ? ".,?!ʼ" : ".,?!'") + "[]=+%"])
         case .symbols:
-            strings = ["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'`:;₴…"]
-        }
-        var result = strings.map { row in
-            row.map { character in
-                Key(action: .text(String(character)),
-                    letterAlternatives: state.page == .letters ? letterAlternatives(character, language: state.language, preferences: preferences) : [])
-            }
+            result = textKeys(["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'`:;₴…"])
         }
         let digits = "1234567890".map(String.init)
         if state.page == .letters && preferences.digitAccess == .flick {
             for index in result[0].indices.prefix(digits.count) { result[0][index].flick = digits[index] }
         }
-        // Delete follows the last letter, ahead of any optional punctuation.
-        if state.page == .letters, let lastLetter = result[2].lastIndex(where: { key in
-            guard case .text(let value) = key.action else { return false }
-            return value == "'" || value.first?.isLetter == true
-        }) {
-            result[2].insert(Key(action: .backspace, weight: preferences.validated.actionKeyWidth), at: lastLetter + 1)
+        // Delete follows the last letter, ahead of any optional punctuation. A custom
+        // last row of punctuation alone still gets Delete, at its end.
+        if state.page == .letters {
+            let lastLetter = result[2].lastIndex { key in
+                guard case .text(let value) = key.action else { return false }
+                return value == "'" || value.first?.isLetter == true
+            }
+            result[2].insert(Key(action: .backspace, weight: preferences.validated.actionKeyWidth),
+                             at: lastLetter.map { $0 + 1 } ?? result[2].endIndex)
         }
         var controls: [Key] = [Key(action: .page, weight: 1.35)]
         if state.page == .letters && preferences.shiftPlacement == .beforeLastRow {
@@ -256,6 +255,26 @@ enum KeyboardLayout {
             result.insert(digits.map { Key(action: .text($0)) }, at: 0)
         }
         return result
+    }
+
+    /// The person's own layout when it is usable for this language, otherwise the built-in one.
+    /// An unusable layout is kept in the preferences but never shown as a partial grid.
+    static func letterKeys(_ language: KeyboardLanguage, preferences: KeyboardPreferences) -> [[Key]] {
+        if let custom = preferences.customLayouts[language], custom.isUsable(for: language) {
+            return custom.rows.map { row in
+                row.map { Key(action: .text($0.output), letterAlternatives: $0.alternatives) }
+            }
+        }
+        return letterRows(language, preferences: preferences).map { row in
+            row.map { character in
+                Key(action: .text(String(character)),
+                    letterAlternatives: letterAlternatives(character, language: language, preferences: preferences))
+            }
+        }
+    }
+
+    private static func textKeys(_ rows: [String]) -> [[Key]] {
+        rows.map { row in row.map { Key(action: .text(String($0))) } }
     }
 
     static func letterRows(_ language: KeyboardLanguage, preferences: KeyboardPreferences) -> [String] {
@@ -365,7 +384,7 @@ enum KeyboardLayout {
 }
 
 struct KeyboardPreferences: Codable, Equatable, Sendable {
-    let schemaVersion = 3
+    let schemaVersion = 4
     var keyHeight: Double = 72
     var columnSpacing: Double = 2
     var rowSpacing: Double = 3
@@ -399,6 +418,8 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     /// Bumped to make the keyboard forget remembered languages; see LanguageMemory.
     var languageMemoryGeneration: Int = 0
     var invasionAnswer: InvasionAnswer = .unanswered
+    /// Letter rows the person arranged in the Workshop; languages without one use the built-in rows.
+    var customLayouts: [KeyboardLanguage: CustomLetterLayout] = [:]
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
@@ -407,6 +428,7 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         case theme, accent, showLongPressHints
         case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
         case languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer
+        case customLayouts
     }
 
     var validated: Self {
@@ -447,7 +469,9 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         let appearance = (theme, accent, showLongPressHints)
         let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
         let typing = (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping)
+        let layouts = customLayouts
         self = preset.preferences
+        customLayouts = layouts
         (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer) = language
         (theme, accent, showLongPressHints) = appearance
         (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
@@ -491,6 +515,12 @@ extension KeyboardPreferences {
         rememberLanguage = try c.decodeIfPresent(Bool.self, forKey: .rememberLanguage) ?? rememberLanguage
         languageMemoryGeneration = try c.decodeIfPresent(Int.self, forKey: .languageMemoryGeneration) ?? languageMemoryGeneration
         invasionAnswer = (try? c.decodeIfPresent(InvasionAnswer.self, forKey: .invasionAnswer)) ?? invasionAnswer
+        // One damaged layout, or one for a language this version doesn't know, costs only itself.
+        if let saved = try? c.decodeIfPresent([String: Lossy<CustomLetterLayout>].self, forKey: .customLayouts) {
+            for (code, layout) in saved {
+                if let language = KeyboardLanguage(rawValue: code), let layout = layout.value { customLayouts[language] = layout }
+            }
+        }
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated
