@@ -305,6 +305,7 @@ struct GeometrySettings: View {
                         }
                     } icon: { Image(systemName: "square.grid.3x3.square") }
                 }.accessibilityIdentifier("layout-workshop")
+                if let proRows = ProHooks.settingsRows { proRows($preferences) }
             }
             Section("Appearance") {
                 Button { showAppearance = true } label: {
