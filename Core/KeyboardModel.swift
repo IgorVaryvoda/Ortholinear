@@ -230,7 +230,7 @@ enum KeyboardLayout {
             result = textKeys(["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'`:;₴…"])
         case .layer(let id):
             // A layer deleted while it was open shows the numbers instead.
-            if let layer = preferences.layers.first(where: { $0.id == id }), layer.isUsable {
+            if let layer = preferences.shownLayers.first(where: { $0.id == id }) {
                 result = layer.rows.map { row in
                     row.map { Key(action: .text($0.output), letterAlternatives: $0.alternatives, label: $0.label) }
                 }
@@ -299,7 +299,7 @@ enum KeyboardLayout {
 
     /// The pages the #+= / 123 key steps through: numbers, symbols, then each usable layer.
     static func pageCycle(_ preferences: KeyboardPreferences) -> [KeyboardPage] {
-        [.numbers, .symbols] + preferences.layers.filter(\.isUsable).map { .layer($0.id) }
+        [.numbers, .symbols] + preferences.shownLayers.map { .layer($0.id) }
     }
 
     static func page(after page: KeyboardPage, preferences: KeyboardPreferences) -> KeyboardPage {
@@ -309,7 +309,7 @@ enum KeyboardLayout {
     }
 
     static func firstLayerPage(_ preferences: KeyboardPreferences) -> KeyboardPage? {
-        preferences.layers.first(where: \.isUsable).map { .layer($0.id) }
+        preferences.shownLayers.first.map { .layer($0.id) }
     }
 
     /// A page's short name, as the key that opens it shows it.
@@ -483,6 +483,9 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var layers: [CustomLayer] = []
     /// A control-row key that opens the first layer from the letters.
     var showLayerKey: Bool = false
+    /// Whether the keyboard shows layers at all. The app sets it in the copy it publishes,
+    /// so layers can be switched off without deleting them; see docs/PRO-IMPLEMENTATION.md.
+    var layersEnabled: Bool = true
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
@@ -491,7 +494,7 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         case theme, accent, showLongPressHints
         case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
         case languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer
-        case customLayouts, layers, showLayerKey
+        case customLayouts, layers, showLayerKey, layersEnabled
     }
 
     var validated: Self {
@@ -515,6 +518,8 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         guard let index = enabled.firstIndex(of: language) else { return enabled[0] }
         return enabled[(index + 1) % enabled.count]
     }
+    /// The layers the keyboard offers: usable ones, when layers are enabled.
+    var shownLayers: [CustomLayer] { layersEnabled ? layers.filter(\.isUsable) : [] }
     var suggestionHeight: Double { suggestionsEnabled ? 44 : 0 }
     var headerHeight: Double { suggestionHeight + (showHeader ? KeyboardGeometry.ribbonHeight : 0) }
     /// A shorter row: it costs about 45 pt at the default key height.
@@ -532,9 +537,9 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         let appearance = (theme, accent, showLongPressHints)
         let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
         let typing = (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping)
-        let custom = (customLayouts, layers, showLayerKey)
+        let custom = (customLayouts, layers, showLayerKey, layersEnabled)
         self = preset.preferences
-        (customLayouts, layers, showLayerKey) = custom
+        (customLayouts, layers, showLayerKey, layersEnabled) = custom
         (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer) = language
         (theme, accent, showLongPressHints) = appearance
         (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
@@ -588,6 +593,7 @@ extension KeyboardPreferences {
             layers = Array(saved.compactMap(\.value).prefix(CustomLayer.maximumCount))
         }
         showLayerKey = try c.decodeIfPresent(Bool.self, forKey: .showLayerKey) ?? showLayerKey
+        layersEnabled = try c.decodeIfPresent(Bool.self, forKey: .layersEnabled) ?? layersEnabled
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated

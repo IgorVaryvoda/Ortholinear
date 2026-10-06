@@ -272,6 +272,18 @@ final class CustomLayoutTests: XCTestCase {
         XCTAssertEqual(controls(KeyboardPreferences(layers: [math], showLayerKey: true)).prefix(2), [.page, .layers])
         XCTAssertFalse(controls(KeyboardPreferences(layers: [math], showLayerKey: true), page: .numbers).contains(.layers))
         XCTAssertEqual(KeyboardLayout.firstLayerPage(KeyboardPreferences(layers: [math])), .layer(math.id))
+
+        // Switched off, layers stay saved but the keyboard offers none of them.
+        var off = KeyboardPreferences(layers: [math], showLayerKey: true)
+        off.layersEnabled = false
+        XCTAssertEqual(off.layers, [math])
+        XCTAssertFalse(controls(off).contains(.layers))
+        XCTAssertEqual(KeyboardLayout.pageCycle(off), [.numbers, .symbols])
+        XCTAssertNil(KeyboardLayout.firstLayerPage(off))
+        var open = InputState(); open.page = .layer(math.id)
+        XCTAssertEqual(KeyboardLayout.rows(state: open, needsGlobe: false, preferences: off)[0].first?.action, .text("1"))
+        XCTAssertFalse(try JSONDecoder().decode(KeyboardPreferences.self, from: JSONEncoder().encode(off)).layersEnabled)
+        XCTAssertTrue(try JSONDecoder().decode(KeyboardPreferences.self, from: Data("{}".utf8)).layersEnabled)
     }
 
     func testLayerProblems() {
