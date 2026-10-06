@@ -1,126 +1,112 @@
-# Ortholinear Pro: product and trial plan
+# Ortholinear Pro
 
-Status: **proposed, not shipped**. Updated September 26, 2026. This is a product/design specification, not a StoreKit implementation or an App Store configuration change.
+Status: **proposed, not built.** Decisions recorded October 6, 2026. Implementation details are in [PRO-IMPLEMENTATION.md](PRO-IMPLEMENTATION.md).
 
-## Read this proposal
+## Decisions
 
-- [Upgrade flow and screen copy](PRO-UPGRADE-FLOW.md)
-- [Implementation plan, platform risks, and acceptance tests](PRO-IMPLEMENTATION.md)
-- [Interactive upgrade-flow prototype](pro-upgrade-prototype.html): download/open this HTML file in a browser, or serve the repository locally. It has no dependencies, network requests, or real purchases. GitHub's source viewer does not run it.
+- **Free stays the product.** Roughly 80% of customization is free, including a real Layout Workshop that changes the installed keyboard. Pro adds depth for people who want it; Free is never weakened to sell it.
+- **Pro is for keyboard enthusiasts:** alternative-layout users, people who type a lot of symbols, programmers and writers. Ukrainian users are core to the free product but are not the expected buyers. App Store regional pricing handles local price levels; nothing in the app is priced per region.
+- **One non-consumable unlock.** No subscription, no ads, no account, no Full Access. No free trial in v1 (see [Deferred: free trial](#deferred-free-trial)).
+- **Pro source lives in a private package.** The public MIT repository keeps building the complete Free app. See [Licensing](#licensing).
 
-## Decision
+## Free and Pro
 
-Keep today's keyboard free. Sell **Ortholinear Pro**, a keyboard-building toolkit: Layout Workshop, custom layers, and saved/shareable profiles. Offer every eligible user an **explicitly started seven-day trial of all released Pro features**, followed by an optional **one-time purchase**. No subscription, automatic charge, account registration, or Full Access requirement.
-
-The initial pricing hypothesis is **EUR 9.99 once**, subject to approval and App Store price-point configuration. The production interface must display StoreKit's localized price; it must never hard-code EUR 9.99 or imply a recurring charge. There is one paid edition, not separate feature packs. Advanced thumb/split arrangements are a later candidate, not something to advertise as available at launch.
-
-Positioning: **Put every key where you want it.** The reason to buy is control over the keyboard, not the removal of annoyances deliberately added to Free.
-
-## Existing Free baseline
-
-The current [README](../README.md), [app](../App/ContentView.swift), and [preferences store](../SharedUI/PreferenceStore.swift) document an already functional keyboard with size/spacing controls, themes, languages, alternative English layouts, English/Ukrainian glide typing, suggestions, and local configuration sharing. Those existing capabilities stay free. Do not retroactively put current users' settings behind a purchase.
-
-| Capability | Free | Seven-day trial | Purchased Pro |
-| --- | --- | --- | --- |
-| Existing keyboard, built-in languages/layouts, typing and accessibility | Yes | Yes | Yes |
-| Existing size, spacing, appearance and typing settings | Yes | Yes | Yes |
-| Unsaved in-app demonstration of Workshop | Yes | Yes | Yes |
-| Create/edit/apply custom key arrangements | No | Yes | Yes |
-| Create/edit/use custom symbol and phrase layers | No | Yes | Yes |
-| Save, duplicate, import and switch custom profiles | No | Yes | Yes |
-| Inspect/delete/export previously created personal configurations | Yes | Yes | Yes |
-| Private typing without Full Access | Yes | Yes | Yes |
-
-Exporting one's existing work remains free after expiry; importing or activating a Pro configuration requires access. The unsaved demonstration never modifies the installed keyboard or saves an activatable profile without access. Keeping a saved configuration is not the same as keeping permission to activate it.
-
-## Launch bundle
-
-### 1. Layout Workshop
-
-Start by duplicating a built-in layout. Keep a live test surface above an inspector. Select a key, change its output or long-press alternatives, move it within/between supported rows, or adjust its relative width. Offer direct controls and accessible move actions as well as drag-and-drop.
-
-Example: a Ukrainian user makes ґ a separate key, puts ї on long-press і, and moves an apostrophe beside Space. An English user places frequently used punctuation on the main page.
-
-V1 is a constrained grid editor, not a freeform graphics canvas. Support custom character placement, row membership, per-key width, and long-press characters. Do not introduce arbitrary scripts, app launch actions, or firmware-style configuration. Geometry must be validated at supported widths; required navigation and typing controls cannot become unreachable. Provide Undo, Revert to base layout, and an explicit Apply action. Saving a draft must not silently replace the installed keyboard.
-
-The new layout must be used by touch mapping, nearby-key suggestion ranking and glide decoding, not only rendering. A visually correct layout with stale input coordinates is a release blocker. Language support and missing required characters must be surfaced during validation; do not silently remove a language's reachable alphabet.
-
-**Acceptance:** a person can modify a built-in layout, test it, save it, apply it, and recover their previous configuration without editing JSON.
-
-### 2. Custom layers
-
-Let people create named extra pages of keys. Supply editable starting points for Writing, Math, Symbols and Phrases; all belong to the same Pro purchase.
-
-| Starter | Examples | Benefit |
+| Capability | Free | Pro |
 | --- | --- | --- |
-| Writing | —, …, « », quotation marks and Markdown punctuation | Familiar punctuation in predictable positions |
-| Math | ≤, ≥, ≠, ×, ÷, π and Greek letters | Direct access to notation |
-| Symbols | Brackets, braces, backticks, slash, backslash and pipe | Less hunting through symbol pages |
-| Phrases | A labelled email-address key or a recurring short reply | Intentional reusable text, not typing-history capture |
+| Everything the app does today: languages, layouts, sizes, themes, glide, suggestions, field memory | Yes | Yes |
+| Layout Workshop: rearrange letters, put punctuation on the letter page, edit long-press characters | Yes | Yes |
+| One custom letter layout per language, applied to the installed keyboard | Yes | Yes |
+| Export and import a single letter layout file | Yes | Yes |
+| Custom layers: extra key pages with starters for Writing, Math, Code and Phrases | | Yes |
+| Phrase keys: a labelled key that types a saved line of text | | Yes |
+| Several saved setups, switched from the app | | Yes |
+| Export and import a complete setup (layouts, layers and settings) | | Yes |
 
-V1 actions are literal text insertion and navigation between the keyboard's own layers. Phrase keys insert only after a deliberate tap. Start with single-line phrases; multiline snippets, cursor macros, clipboard integrations and dynamic template variables require separate design and host-field testing. No action may secretly submit a form, open an app or transmit text.
+Single-layout files are free on purpose: shared layouts are how a keyboard like this spreads, and someone who receives one should be able to use it without paying.
 
-Layer entry must coexist with today's 123 hold/slide, digit flicks and glide typing. Prefer a dedicated optional layer control over stealing established gestures. Always retain a reliable way back to letters. Avoid promising that this makes the keyboard a universal terminal keyboard: host apps decide how input is interpreted.
+Later candidates, not part of the launch promise: split or thumb-zone geometry, and separate portrait/landscape layouts. Basic readability, key size and accessibility are never Pro.
 
-**Acceptance:** create a Writing layer, add a custom symbol and a labelled phrase, reach them while typing, and return to letters without changing the current language.
+## Not obnoxious
 
-### 3. Saved and shareable profiles
+- Never present Pro on its own: not on first launch, after an update, or after some number of uses.
+- One **Ortholinear Pro** row in Settings. Pro features appear where they belong (for example, **Layers** under the Workshop) with a small Pro label. Tapping one opens the same short sheet; closing it returns to where the person was.
+- Free features carry no badges, delays, watermarks or reduced versions.
+- The keyboard extension has no commercial UI at all. Apple requires this anyway (App Review Guideline 4.4.1).
+- Losing Pro, for example after a refund, never deletes anything. Saved layers and setups stay in the app; the installed keyboard keeps the Free part of the current setup.
+- **Restore purchases** lives in the Pro row in Settings.
 
-A profile combines a base language/layout, custom key definitions, layers and relevant geometry overrides. Names such as Everyday and Writing are user-chosen, not separate editions.
+## Layout Workshop (Free)
 
-Support save, duplicate, rename, delete with confirmation, import/export a versioned data file, and deliberate profile selection. Exports contain only the configuration the person selected, never purchase evidence, trial dates, typed text, learned words or telemetry. Phrase keys may contain personal information: show an export preview/warning and offer to omit phrases before sharing. A file picker may use a user's cloud provider; do not describe user-initiated export as guaranteed to stay on the device.
+Start from the current built-in layout for a language. A live test field sits above the editor and uses the same renderer as the extension. Select a key to change what it types and its long-press characters, or move it within or between the three letter rows. Movement works by drag and by explicit Move left/right/up/down actions for VoiceOver and Switch Control.
 
-Imported files are data, not executable code. Validate schema, sizes, identifiers, output lengths, required keys, geometry and supported actions before accepting them. Invalid imports leave existing settings untouched. Importing somebody else's profile never imports their entitlement.
+Constraints for v1:
 
-Manual switching in the extension may persist a chosen profile ID in the extension's own container; profile definitions are written only by the containing app. Do not promise that this local choice automatically syncs back into the app. The app's explicit Apply action publishes a new selection generation that takes precedence on the next keyboard presentation.
+- Three letter rows, up to 12 keys each. Letter keys in a row keep equal widths. Per-letter widths would break the grid the app is named after and would skew suggestion and glide distances.
+- Delete, Shift, 123, the language key, Space and Return keep their positions. Digit flicks and the number row apply to the first row, whatever it contains.
+- Every letter in the language's alphabet must stay reachable, directly or by holding a key. The editor shows what is missing and blocks Apply until it is fixed.
+- Undo, **Revert to built-in**, and an explicit **Apply**. Editing never changes the installed keyboard until Apply.
 
-**Acceptance:** export a profile, import it on another eligible device, review its contents, apply it, and recover cleanly from malformed or unsupported files.
+Example: a Ukrainian user gives ґ its own key and puts ʼ next to ю. An English user puts `.` and `,` on the bottom row and moves `'` beside L.
 
-## Later, not part of the initial sales promise
+## Layers (Pro)
 
-Advanced thumb arrangements could add split key groups, an adjustable centre gap, constrained left/right placement and separate portrait/landscape geometry. Prototype and test real typing comfort first. Basic readability, large-key settings and current accessibility are not premium upsells.
+A layer is a named extra page of keys, reached after the symbols page and, optionally, from a dedicated key in the control row. The ABC key always returns to letters in the current language. Starters:
 
-Do not promise automatic app/chat-specific profiles. The current [language-memory documentation](../README.md#languages-layouts-and-field-memory) explains the distinction between remembering a field kind and identifying an app or conversation. Do not build a community marketplace, cloud accounts, subscription, AI writing service or new language paywall merely to enlarge the Pro checklist.
-
-## Trial contract
-
-| Question | Product rule |
+| Starter | Contents |
 | --- | --- |
-| When does it begin? | After the user chooses Start 7-day free trial and the zero-price StoreKit transaction is successfully verified. Never on download, update, opening Settings, previewing, or keyboard activation. |
-| How long? | 168 elapsed hours from the original verified trial transaction timestamp. Store an absolute expiry; use localized date/time only for display. No reset at midnight or on timezone changes. |
-| What is included? | The same released capabilities as purchased Pro. No reduced save limits or watered-down demo during the trial. |
-| Is there an automatic charge? | No. A separate, explicit one-time purchase is required. There is no cancellation task and no recurring product. |
-| Can the user skip it? | Yes. Continue with Free is always available; buying directly is also an option, not the default. |
-| Can it be restarted? | Not by reinstalling, restoring purchases, upgrading the app or moving to another device using the same purchase account. Use the original transaction, not a local installation date. No promise of perfect anti-abuse across different Apple Accounts or modified binaries. |
-| Does starting require internet? | Expect an App Store connection and possible Apple authentication. Say No charge, not No Apple sign-in needed. Existing validated access works offline within its time bounds. |
-| What happens to work at expiry? | Drafts/profiles/layers remain locally stored, inspectable, deletable and exportable. Pro editing, importing and new activation stop. |
-| What happens while typing? | Do not replace keys or interrupt a touch/word mid-presentation. On the next keyboard presentation after expiry, use the user's latest valid Free configuration. No upgrade advertising in the extension. |
-| What happens after payment? | Unlock editing and activation, retain all work, and offer Apply saved keyboard. Do not silently activate an old profile over newer Free choices. |
+| Writing | — … « » „ “ ” ‘ ’ and Markdown punctuation |
+| Math | ≤ ≥ ≠ ≈ × ÷ ± √ ∞ π and common Greek letters |
+| Code | ( ) [ ] { } < > \` \| \\ ~ ^ $ # and paired-quote keys |
+| Phrases | Empty, ready for phrase keys |
 
-Keep the latest **Free baseline** separately from Pro overrides. Free settings changed during the trial must survive its end. Expiry is not permission to reset everything to factory defaults.
+A phrase key has a short label and types one line of text (up to 200 characters) when tapped. There are no macros, cursor actions, clipboard access, auto-send or app launching. Phrases can contain personal details, so exports show a preview and offer to leave them out.
 
-Seven days is the entitlement window. Finishing an already-open keyboard presentation is a deliberate continuity exception, not a new trial. New premium edit/apply/import actions in the containing app are checked against the actual expiry and blocked immediately. An in-flight gesture or text insertion is allowed to complete without corrupting the host text.
+## Saved setups (Pro)
 
-## Upgrade experience principles
+A setup is a named snapshot of everything that shapes the keyboard: custom layouts, layers, sizes and appearance. Save, rename, duplicate, delete with confirmation, and switch in the app. Switching takes effect the next time the keyboard opens. Setup files are versioned data, validated on import. Invalid files change nothing. Files never contain purchase information, typed text or learned words.
 
-Let people enable and use the normal keyboard first. Place Pro discovery below the primary setup/test-drive actions and inside Settings. A person can explore an unsaved Workshop example before starting the timer. Ask at a meaningful boundary, such as Apply custom keyboard, and return them to that exact task after activation.
+## Purchase sheet
 
-Show the duration, optional one-time price, lack of auto-charge, and expiry consequences before starting the trial. During the trial, use a quiet status row in the app with the exact ending date, not repeated modals. Do not send push notifications or email reminders in V1. After expiry, preserve work and provide both Buy Pro and Continue with Free. Restore purchases is available on every commercial screen and in Settings.
+> **Ortholinear Pro**
+>
+> Layers for symbols, code and phrases. Saved setups you can switch between and share.
+>
+> **{localizedPrice}, once.** No subscription.
+>
+> **Unlock Pro**
+>
+> Restore purchases · Privacy
 
-All commercial UI belongs to the containing app. Apple prohibits marketing and purchases in extensions, and keyboard extensions cannot launch other apps besides Settings. Do not add an Upgrade key or an Open Ortholinear deep-link workaround. [S1]
+Show `Product.displayPrice`; never hard-code a price. While the product is loading or unavailable, show that state and keep the sheet closable. Cancelled, pending (Ask to Buy) and failed purchases return to the previous screen without unlocking anything or retrying automatically.
 
-## Delivery and validation
+After purchase: **Pro unlocked. Thank you.** and return to the feature the person tapped.
 
-Implementation sequence: (1) platform/billing feasibility spike, (2) entitlement and settings foundations, (3) Workshop, (4) layers/profiles, (5) purchase/trial UX, (6) real-device, sandbox and review verification. Shipping switches stay off until the advertised Pro features actually exist and both products work in sandbox.
+## Price
 
-Use voluntary testers to validate two outcomes: they can understand the trial without fearing a surprise charge, and they can still recover their work after expiry. V1 adds no analytics SDK, keyboard activity collection or developer backend. App-side debug diagnostics may record synthetic state transitions without personal text and remain local. Aggregate commercial performance must not be presented as a tracked install-to-trial funnel unless measurement actually supports it.
+One price point. Working hypothesis: between EUR 4.99 and 9.99, decided before the product is created in App Store Connect.
 
-The implementation plan includes purchase errors, pending approval, restore, refunds, offline use, clock changes, migration and Full Access-off tests. Price and App Store product configuration remain release-owner tasks; this documentation does not create products or authorize a production release.
+Family Sharing: recommended **on**, as it suits the generous positioning. Apple does not let you turn it off again for a product once it is on, so this needs a deliberate decision.
 
-## Sources and scope of certainty
+## Measuring
 
-Repository baseline reviewed at commit `084be310671f366540fec1d23711ccc6d2643c34`. Features above are proposals; demand, conversion and pricing are hypotheses, not established measurements.
+No analytics SDK is needed. App Store Connect reports downloads (App Analytics) and units sold of the Pro product. Those two numbers per version are the conversion rate. Ratings, reviews and support email show whether the Pro boundary feels fair.
 
-- **S1:** [Apple App Review Guidelines, 3.1.1 and 4.4–4.4.1](https://developer.apple.com/app-store/review/guidelines/) (checked September 26, 2026). Apple describes zero-price non-consumable trials for non-subscription apps and requires clear disclosures. Guideline compliance still requires implementation and review; this is not a promise of approval.
-- **S2:** [Apple: configuring open access for a custom keyboard](https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard). Documents read-only shared-container access without Full Access and restrictions on purchase participation. The feasibility spike must address both the technical path and these restrictions before monetization ships.
-- **S3:** [Apple: Transaction](https://developer.apple.com/documentation/storekit/transaction). StoreKit transaction verification, current entitlements, history, updates and delivery/finishing responsibilities.
+## Licensing
+
+- Public, MIT: the Free app and the keyboard engine, including rendering and validating custom layouts and layers. The extension has to render any setup the app publishes, so this code is public.
+- Private: the layer editor, phrase keys, saved setups, setup import/export, the purchase sheet and StoreKit.
+
+Code already published under MIT stays MIT. Someone can still fork the engine and build their own editors; the private package means they have to rebuild the editors instead of flipping a flag. It is a speed bump, not DRM, and the plan does not try to be more than that.
+
+## Deferred: free trial
+
+v1 has no trial. The Free Workshop already lets people try the main idea, a keyboard laid out the way they want, in real apps. Layers can be explored in the in-app test field before buying, and Apple handles refund requests.
+
+If reviews or support email show that people won't buy without trying, the App Review Guideline 3.1.1 route is a zero-price non-consumable named "7-day Trial". It would add: a second product, a time window derived from the original trial transaction, an expiry check in the extension, and trial status screens. The September 2026 draft of this proposal specifies that design in detail; it is in this branch's history.
+
+## Sources
+
+- [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), 3.1.1 (in-app purchase and non-subscription trials) and 4.4.1 (keyboard extensions).
+- [Configuring open access for a custom keyboard](https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard).
+- [StoreKit `Transaction`](https://developer.apple.com/documentation/storekit/transaction) and [`AppStore.sync()`](https://developer.apple.com/documentation/storekit/appstore/sync()).
+- [Family Sharing for in-app purchases](https://developer.apple.com/help/app-store-connect/manage-in-app-purchases/turn-on-family-sharing-for-in-app-purchases).
