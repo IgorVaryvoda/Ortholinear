@@ -95,4 +95,16 @@ final class PunctuationSpacingTests: XCTestCase {
         _ = spacing.edit(for: ".", before: "Hello", enabled: true)
         XCTAssertEqual(spacing.edit(for: "!", before: "Hello. ", enabled: false), .init(text: "!"))
     }
+
+    func testShortcutMarksThatStartAWordGetNoSpace() {
+        var spacing = PunctuationSpacing()
+        let starts: Set<String> = [";"]
+        XCTAssertEqual(spacing.edit(for: ";", before: "", enabled: true, shortcutStarts: starts), .init(text: ";"), "Start of the text: ;mail")
+        XCTAssertEqual(spacing.edit(for: ";", before: "write to ", enabled: true, shortcutStarts: starts), .init(text: ";"))
+        XCTAssertEqual(spacing.edit(for: ";", before: "word", enabled: true, shortcutStarts: starts), .init(text: "; "), "After a word, as before")
+        XCTAssertEqual(spacing.edit(for: "!", before: "Bonjour ", enabled: true, shortcutStarts: starts), .init(text: "! "),
+                       "French spacing before ! is untouched")
+        XCTAssertEqual(spacing.edit(for: ";", before: "", enabled: true), .init(text: "; "), "Without such shortcuts, as before")
+        XCTAssertEqual(spacing.edit(for: ";", before: nil, enabled: true, shortcutStarts: starts), .init(text: "; "), "Unknown text keeps the old behavior")
+    }
 }

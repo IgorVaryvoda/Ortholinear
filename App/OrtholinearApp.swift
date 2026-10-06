@@ -16,6 +16,9 @@ struct OrtholinearApp: App {
         if arguments.contains("-auto-capitals") { preferences.autoCapitalize = true }
         if arguments.contains("-reset-custom-layouts") { preferences.customLayouts = [:] }
         if arguments.contains("-reset-layers") { preferences.layers = []; preferences.showLayerKey = false }
+        if arguments.contains("-reset-extras") {
+            (preferences.layers, preferences.showLayerKey, preferences.keycaps, preferences.expansions) = ([], false, nil, [])
+        }
         if preferences != PreferenceStore.load() { try? KeyboardPublisher.publish(preferences) }
         #endif
         // Remove private data left by the retired development-only voice feature.

@@ -6,7 +6,8 @@ private let paper = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
     : UIColor(red: 0.96, green: 0.95, blue: 0.92, alpha: 1) })
 
 struct ContentView: View {
-    @State private var preferences = PreferenceStore.load()
+    /// The app's own copy keeps every extra on; the published copy is what the edition allows.
+    @State private var preferences = { var loaded = PreferenceStore.load(); loaded.extrasEnabled = true; return loaded }()
     @State private var showGeometry = false
     @State private var showSetup = false
     @State private var showSystemTest = false
@@ -279,7 +280,7 @@ struct GeometrySettings: View {
                     .accessibilityIdentifier("preview-language")
                 }
             }.padding(.horizontal, 16)
-            SettingsKeyboardPreview(preferences: preferences, language: previewLanguage)
+            SettingsKeyboardPreview(preferences: KeyboardPublisher.published(preferences), language: previewLanguage)
                 .frame(height: maxHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .padding(.horizontal, 8)
@@ -309,7 +310,9 @@ struct GeometrySettings: View {
                         }
                     } icon: { Image(systemName: "square.grid.3x3.square") }
                 }.accessibilityIdentifier("layout-workshop")
-                if let proRows = ProHooks.settingsRows { proRows($preferences) }
+            }
+            if let proRows = ProHooks.settingsRows {
+                Section("Ortholinear Pro") { proRows($preferences) }
             }
             Section("Appearance") {
                 Button { showAppearance = true } label: {

@@ -5,8 +5,13 @@ import SwiftUI
 /// docs/PRO-IMPLEMENTATION.md.
 @MainActor
 enum ProHooks {
-    /// Extra rows for Keyboard settings, below Languages and the Layout Workshop.
+    /// Rows for Keyboard settings' own Pro section, after Languages.
     static var settingsRows: ((Binding<KeyboardPreferences>) -> AnyView)?
+    /// A section at the top of Theme and colors.
+    static var appearanceSection: ((Binding<KeyboardPreferences>) -> AnyView)?
+    /// Sections in the Layout Workshop: for the selected key, and for the whole draft.
+    static var workshopKeySection: ((Binding<CustomKey>) -> AnyView)?
+    static var workshopLayoutSection: ((Binding<CustomLetterLayout>) -> AnyView)?
     /// Adjusts the copy of the preferences the keyboard reads, such as switching layers off.
     static var prepareForKeyboard: (@MainActor (KeyboardPreferences) -> KeyboardPreferences)?
     /// Posted when what `prepareForKeyboard` allows changes, so the app publishes again.

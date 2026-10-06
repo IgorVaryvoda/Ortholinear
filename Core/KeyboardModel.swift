@@ -131,6 +131,19 @@ enum InvasionAnswer: String, Codable, Sendable {
     case unanswered, supports, opposes
 }
 
+/// Which way a short swipe on a key goes.
+enum FlickDirection: String, Codable, CodingKeyRepresentable, CaseIterable, Sendable {
+    case up, down, left, right
+    var arrow: String {
+        switch self {
+        case .up: "↑"
+        case .down: "↓"
+        case .left: "←"
+        case .right: "→"
+        }
+    }
+}
+
 enum KeyboardPage: Hashable, Sendable {
     case letters, numbers, symbols
     /// One of the person's own layers, which follow the symbols page.
@@ -192,6 +205,10 @@ enum KeyAction: Hashable, Sendable {
     case text(String), shift, backspace, space, enter, language, page, globe, dismiss
     /// Opens the first of the person's layers from the letter page.
     case layers
+    /// Moves the cursor or deletes, from a navigation layer.
+    case command(KeyCommand)
+    /// Types text, then moves the cursor back into it, as `()` leaves it between the brackets.
+    case pair(String, cursorBack: Int)
 }
 
 struct Key: Sendable {
@@ -199,8 +216,13 @@ struct Key: Sendable {
     var weight: Double = 1
     /// A letter's holds, or a custom key's own; they replace the punctuation defaults below.
     var letterAlternatives: [String] = []
-    /// Typed by a short downward flick; top-row digits.
-    var flick: String?
+    /// Typed by a short swipe in each direction: top-row digits down, or the person's own.
+    var flicks: [FlickDirection: String] = [:]
+    /// The downward flick, where top-row digits live.
+    var flick: String? {
+        get { flicks[.down] }
+        set { flicks[.down] = newValue }
+    }
     /// Shown instead of the text, for phrase keys.
     var label: String?
     var alternatives: [String] {
@@ -231,14 +253,15 @@ enum KeyboardLayout {
         case .layer(let id):
             // A layer deleted while it was open shows the numbers instead.
             if let layer = preferences.shownLayers.first(where: { $0.id == id }) {
-                result = layer.rows.map { row in
-                    row.map { Key(action: .text($0.output), letterAlternatives: $0.alternatives, label: $0.label) }
-                }
+                result = layer.rows.map { row in row.map(\.layerKey) }
             } else { result = numberKeys(state.language) }
         }
         let digits = "1234567890".map(String.init)
         if state.page == .letters && preferences.digitAccess == .flick {
-            for index in result[0].indices.prefix(digits.count) { result[0][index].flick = digits[index] }
+            // A down flick the person set on a key wins over its digit.
+            for index in result[0].indices.prefix(digits.count) where result[0][index].flick == nil {
+                result[0][index].flick = digits[index]
+            }
         }
         // Delete follows the last letter, ahead of any optional punctuation. A custom
         // last row of punctuation alone still gets Delete, at its end.
@@ -282,7 +305,8 @@ enum KeyboardLayout {
     static func letterKeys(_ language: KeyboardLanguage, preferences: KeyboardPreferences) -> [[Key]] {
         if let custom = preferences.customLayouts[language], custom.isUsable(for: language) {
             return custom.rows.map { row in
-                row.map { Key(action: .text($0.output), letterAlternatives: $0.alternatives) }
+                row.map { Key(action: .text($0.output), letterAlternatives: $0.alternatives,
+                              flicks: preferences.extrasEnabled ? $0.usableFlicks : [:]) }
             }
         }
         return letterRows(language, preferences: preferences).map { row in
@@ -483,9 +507,14 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     var layers: [CustomLayer] = []
     /// A control-row key that opens the first layer from the letters.
     var showLayerKey: Bool = false
-    /// Whether the keyboard shows layers at all. The app sets it in the copy it publishes,
-    /// so layers can be switched off without deleting them; see docs/PRO-IMPLEMENTATION.md.
-    var layersEnabled: Bool = true
+    /// A colorway that replaces the theme's colors.
+    var keycaps: KeycapStyle?
+    /// Shortcuts that become longer text, such as ";mail".
+    var expansions: [TextExpansion] = []
+    /// Whether the keyboard uses the extras: layers, keycap colorways and text expansions. The app sets it in
+    /// the copy it publishes, so they can be switched off without deleting them; see
+    /// docs/PRO-IMPLEMENTATION.md.
+    var extrasEnabled: Bool = true
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion, keyHeight, columnSpacing, rowSpacing, fillGaps, defaultLanguage
@@ -494,7 +523,7 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         case theme, accent, showLongPressHints
         case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
         case languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer
-        case customLayouts, layers, showLayerKey, layersEnabled
+        case customLayouts, layers, showLayerKey, keycaps, expansions, extrasEnabled
     }
 
     var validated: Self {
@@ -519,7 +548,10 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         return enabled[(index + 1) % enabled.count]
     }
     /// The layers the keyboard offers: usable ones, when layers are enabled.
-    var shownLayers: [CustomLayer] { layersEnabled ? layers.filter(\.isUsable) : [] }
+    var shownLayers: [CustomLayer] { extrasEnabled ? layers.filter(\.isUsable) : [] }
+    /// The colorway the keyboard draws, when extras are enabled.
+    var shownKeycaps: KeycapStyle? { extrasEnabled ? keycaps : nil }
+    var shownExpansions: [TextExpansion] { extrasEnabled ? expansions.filter(\.isUsable) : [] }
     var suggestionHeight: Double { suggestionsEnabled ? 44 : 0 }
     var headerHeight: Double { suggestionHeight + (showHeader ? KeyboardGeometry.ribbonHeight : 0) }
     /// A shorter row: it costs about 45 pt at the default key height.
@@ -537,9 +569,9 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         let appearance = (theme, accent, showLongPressHints)
         let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
         let typing = (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping)
-        let custom = (customLayouts, layers, showLayerKey, layersEnabled)
+        let custom = (customLayouts, layers, showLayerKey, keycaps, expansions, extrasEnabled)
         self = preset.preferences
-        (customLayouts, layers, showLayerKey, layersEnabled) = custom
+        (customLayouts, layers, showLayerKey, keycaps, expansions, extrasEnabled) = custom
         (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer) = language
         (theme, accent, showLongPressHints) = appearance
         (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
@@ -593,7 +625,11 @@ extension KeyboardPreferences {
             layers = Array(saved.compactMap(\.value).prefix(CustomLayer.maximumCount))
         }
         showLayerKey = try c.decodeIfPresent(Bool.self, forKey: .showLayerKey) ?? showLayerKey
-        layersEnabled = try c.decodeIfPresent(Bool.self, forKey: .layersEnabled) ?? layersEnabled
+        keycaps = try? c.decodeIfPresent(KeycapStyle.self, forKey: .keycaps)
+        if let saved = try? c.decodeIfPresent([Lossy<TextExpansion>].self, forKey: .expansions) {
+            expansions = Array(saved.compactMap(\.value).prefix(TextExpansion.maximumCount))
+        }
+        extrasEnabled = try c.decodeIfPresent(Bool.self, forKey: .extrasEnabled) ?? extrasEnabled
         // Upgrade the old default height; keep heights the user actually customized.
         if !c.contains(.schemaVersion), keyHeight == 48 { keyHeight = 72 }
         self = validated
@@ -667,5 +703,21 @@ enum KeyboardGeometry {
 
     static func hit(at point: CGPoint, cells: [KeyCell]) -> Int? {
         cells.firstIndex { $0.hitFrame.contains(point) }
+    }
+
+    /// At least this far in one direction, and not much across it, types a key's flick.
+    static let flickDistance: CGFloat = 18
+    static let flickDrift: CGFloat = 22
+
+    /// The flick a swipe from `start` to `point` makes on `cell`, if any. Past the glide
+    /// threshold a swipe is left to glide typing, so flicks never swallow a glided word.
+    static func flick(on cell: KeyCell, from start: CGPoint, to point: CGPoint) -> (direction: FlickDirection, value: String)? {
+        let dx = point.x - start.x, dy = point.y - start.y
+        let horizontal = abs(dx) > abs(dy)
+        let along = horizontal ? abs(dx) : abs(dy), across = horizontal ? abs(dy) : abs(dx)
+        let limit = horizontal ? max(36, cell.hitFrame.width * 1.1) : max(48, cell.hitFrame.height * 0.8)
+        guard along >= flickDistance, across < flickDrift, along < limit else { return nil }
+        let direction: FlickDirection = horizontal ? (dx < 0 ? .left : .right) : (dy < 0 ? .up : .down)
+        return cell.key.flicks[direction].map { (direction, $0) }
     }
 }
