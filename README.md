@@ -72,7 +72,7 @@ Other controls occupy a fourth row. Character touch cells have equal widths with
 
 ## Privacy and shared settings
 
-`RequestsOpenAccess` is **false**. The app and extension make no network requests. There are no analytics SDKs, typed-text logging, or network prediction services. Optional suggestions use bundled dictionaries and small local context tables. Preview text lives only in memory. Geometry, typing preferences, and starting language are stored locally. See [privacy details](PRIVACY.md).
+`RequestsOpenAccess` is **false**. The keyboard extension makes no network requests; the App Store release of the app contacts Apple's App Store only for the optional Pro purchase. There are no analytics SDKs, typed-text logging, or network prediction services. Optional suggestions use bundled dictionaries and small local context tables. Preview text lives only in memory. Geometry, typing preferences, and starting language are stored locally. See [privacy details](PRIVACY.md).
 
 The containing app atomically writes `geometry.json` into the App Group. The extension only reads it, on appearance. Apple explicitly permits [read-only access to the containing app's shared container without Full Access](https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard). This is why settings work without giving the keyboard network access. A missing or malformed file falls back to validated defaults.
 
