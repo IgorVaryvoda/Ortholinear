@@ -7,11 +7,30 @@ struct CustomKey: Codable, Equatable, Sendable {
     var alternatives: [String] = []
     /// What a phrase key shows instead of its text. Letter keys have none.
     var label: String?
+    /// On a layer: a cursor or deletion command instead of text.
+    var command: KeyCommand?
+    /// On a layer: after typing, move the cursor this many characters back, as `()` puts it
+    /// between the brackets.
+    var cursorBack: Int = 0
+    /// What a short swipe in each direction types. Never counted as a way to reach a letter,
+    /// since flicks are an extra that can be switched off.
+    var flicks: [FlickDirection: String] = [:]
 
-    init(_ output: String, alternatives: [String] = [], label: String? = nil) {
+    static let maximumFlickLength = 8
+
+    init(_ output: String, alternatives: [String] = [], label: String? = nil,
+         command: KeyCommand? = nil, cursorBack: Int = 0, flicks: [FlickDirection: String] = [:]) {
         self.output = output
         self.alternatives = alternatives
         self.label = label
+        self.command = command
+        self.cursorBack = cursorBack
+        self.flicks = flicks
+    }
+
+    /// Flicks that type something short on one line; anything else is ignored.
+    var usableFlicks: [FlickDirection: String] {
+        flicks.filter { !$0.value.isEmpty && $0.value.count <= Self.maximumFlickLength && !$0.value.contains(where: \.isNewline) }
     }
 
     init(from decoder: any Decoder) throws {
@@ -19,6 +38,23 @@ struct CustomKey: Codable, Equatable, Sendable {
         output = try c.decode(String.self, forKey: .output)
         alternatives = try c.decodeIfPresent([String].self, forKey: .alternatives) ?? []
         label = try c.decodeIfPresent(String.self, forKey: .label)
+        command = try? c.decodeIfPresent(KeyCommand.self, forKey: .command)
+        cursorBack = max(0, (try? c.decodeIfPresent(Int.self, forKey: .cursorBack)) ?? 0)
+        if let saved = try? c.decodeIfPresent([String: String].self, forKey: .flicks) {
+            for (direction, value) in saved {
+                if let direction = FlickDirection(rawValue: direction) { flicks[direction] = value }
+            }
+        }
+    }
+
+    /// The keyboard key for a layer: a command, a pair that leaves the cursor inside, or text.
+    var layerKey: Key {
+        // Without a label of its own, the key draws the command's symbol and is announced by name.
+        if let command { return Key(action: .command(command), label: label) }
+        if cursorBack > 0 {
+            return Key(action: .pair(output, cursorBack: cursorBack), letterAlternatives: alternatives, flicks: usableFlicks, label: label)
+        }
+        return Key(action: .text(output), letterAlternatives: alternatives, flicks: usableFlicks, label: label)
     }
 }
 
@@ -110,6 +146,8 @@ struct CustomLayer: KeyRows, Codable, Equatable, Sendable, Identifiable {
         case labelTooLong(String)
         case tooManyAlternatives(String)
         case notOneCharacter(String)
+        /// A cursor-back count larger than the text it would move through.
+        case cursorOutside(String)
     }
 
     var problems: [Problem] {
@@ -122,7 +160,8 @@ struct CustomLayer: KeyRows, Codable, Equatable, Sendable, Identifiable {
             problems.append(.rowLength(row: index, count: row.count))
         }
         for key in rows.joined() {
-            if key.output.isEmpty { problems.append(.emptyKey) }
+            if key.output.isEmpty && key.command == nil { problems.append(.emptyKey) }
+            if key.command == nil, key.cursorBack > key.output.count { problems.append(.cursorOutside(key.output)) }
             if key.output.count > Self.maximumPhraseLength { problems.append(.phraseTooLong(key.output)) }
             if key.output.contains(where: \.isNewline) { problems.append(.multiline(key.output)) }
             if let label = key.label, label.count > Self.maximumLabelLength { problems.append(.labelTooLong(label)) }

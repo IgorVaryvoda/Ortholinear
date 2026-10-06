@@ -43,7 +43,9 @@ struct LayoutWorkshop: View {
             }
             if let selection, draft.contains(selection) {
                 keySection(selection)
+                if let extra = ProHooks.workshopKeySection { extra(keyBinding(selection)) }
             }
+            if let extra = ProHooks.workshopLayoutSection { extra(draftBinding) }
             Section("Check") {
                 if problems.isEmpty {
                     Label("Every letter is reachable", systemImage: "checkmark.circle")
@@ -180,6 +182,18 @@ struct LayoutWorkshop: View {
             let values = CustomKey.characters(in: text.lowercased()).prefix(CustomLetterLayout.maximumAlternatives)
             edit { if $0.contains(position) { $0[position].alternatives = Array(values) } }
         }
+    }
+
+    private func keyBinding(_ position: KeyPosition) -> Binding<CustomKey> {
+        Binding {
+            draft.contains(position) ? draft[position] : CustomKey("")
+        } set: { key in
+            edit { if $0.contains(position) { $0[position] = key } }
+        }
+    }
+
+    private var draftBinding: Binding<CustomLetterLayout> {
+        Binding { draft } set: { layout in edit { $0 = layout } }
     }
 
     private func tap(_ position: KeyPosition) {
@@ -347,7 +361,7 @@ struct KeyGrid: View {
         let key = rows[position.row][position.column]
         let selected = position == selection
         return Button { tap(position) } label: {
-            Text(key.label ?? (key.output.isEmpty ? "?" : key.output))
+            Text(key.label ?? key.command?.symbol ?? (key.output.isEmpty ? "?" : key.output))
                 .lineLimit(1).minimumScaleFactor(0.5)
                 .font(.system(size: 19, weight: .medium, design: .rounded))
                 .foregroundStyle(key.output.isEmpty ? .secondary : .primary)
@@ -367,7 +381,7 @@ struct KeyGrid: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(key.label ?? (key.output.isEmpty ? "Empty key" : key.output))
+        .accessibilityLabel(key.label ?? key.command?.title ?? (key.output.isEmpty ? "Empty key" : key.output))
         .accessibilityValue(key.alternatives.isEmpty ? "" : "Holds \(key.alternatives.joined(separator: " "))")
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("workshop-key-\(position.row)-\(position.column)")

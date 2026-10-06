@@ -23,8 +23,11 @@ struct PunctuationSpacing {
         spaceAfterWord = (String(context.suffix(32)), time)
     }
 
+    /// `shortcutStarts` are marks that begin a text-expansion shortcut, such as the ; in ;mail.
+    /// Typed at the start of a word, they get no automatic space, so the shortcut stays whole.
     mutating func edit(for value: String, before context: String?, enabled: Bool,
-                       doubleSpacePeriod: Bool = false, at time: TimeInterval = 0) -> Edit {
+                       doubleSpacePeriod: Bool = false, at time: TimeInterval = 0,
+                       shortcutStarts: Set<String> = []) -> Edit {
         let pendingSpace = spaceAfterWord
         if doubleSpacePeriod, value == " ", let pendingSpace, let context, context.hasSuffix(pendingSpace.suffix),
            time >= pendingSpace.time, time - pendingSpace.time < Self.doubleSpaceWindow {
@@ -50,8 +53,10 @@ struct PunctuationSpacing {
         reset()
         // A deliberate space after punctuation accepts the automatic space once.
         if ownsSpace && value == " " { return Edit(text: "") }
-        let output = value + (marks.contains(value) ? " " : "")
-        if marks.contains(value), let context {
+        let before = removeSpace ? context.map { String($0.dropLast()) } : context
+        let startsWord = shortcutStarts.contains(value) && (before.map { $0.last?.isWhitespace ?? true } ?? false)
+        let output = value + (marks.contains(value) && !startsWord ? " " : "")
+        if marks.contains(value), !startsWord, let context {
             expectedSuffix = String((removeSpace ? String(context.dropLast()) : context).suffix(32)) + output
             punctuation = value
         }

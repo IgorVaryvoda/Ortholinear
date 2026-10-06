@@ -5,6 +5,7 @@ final class KeyboardViewController: UIInputViewController {
     private var heightConstraint: NSLayoutConstraint?
     private var inputState = InputState()
     private var punctuationSpacing = PunctuationSpacing()
+    private var expander = TextExpander()
     private var lastKeyboardType: UIKeyboardType?
     private var reportedLanguage: KeyboardLanguage?
     /// iOS builds a new controller each time the keyboard appears and may unload the
@@ -126,6 +127,7 @@ final class KeyboardViewController: UIInputViewController {
         applyingSuggestion = true
         defer { applyingSuggestion = false }
         punctuationSpacing.reset()
+        expander.forget()
         if edit.moveRight != 0 {
             textDocumentProxy.adjustTextPosition(byCharacterOffset: edit.moveRight)
             // Some hosts don't honor cursor movement. Never delete from the old caret.
@@ -151,6 +153,7 @@ final class KeyboardViewController: UIInputViewController {
         case .locked: text = word.uppercased()
         case .off: break
         }
+        expander.forget()
         // Glides are whole words: separate them from the word or mark before.
         let needsSpace = textDocumentProxy.documentContextBeforeInput?.last.map { !$0.isWhitespace && !"([{«„“'\"".contains($0) } ?? false
         punctuationSpacing.reset()
@@ -286,10 +289,24 @@ final class KeyboardViewController: UIInputViewController {
 
     private func handle(_ action: KeyAction) {
         switch action {
-        case .text(let value): insert(inputState.consume(value))
-        case .space: insert(" ")
-        case .backspace: punctuationSpacing.reset(); textDocumentProxy.deleteBackward()
-        case .enter: insert("\n")
+        case .text, .space, .enter, .backspace: break
+        default: expander.forget()
+        }
+        switch action {
+        case .text(let value):
+            let typed = inputState.consume(value)
+            expand(before: typed)
+            insert(typed)
+        case .space: expand(before: " "); insert(" ")
+        case .backspace:
+            punctuationSpacing.reset()
+            if let edit = expander.revert(before: textDocumentProxy.documentContextBeforeInput ?? "") {
+                for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
+                textDocumentProxy.insertText(edit.insert)
+            } else {
+                textDocumentProxy.deleteBackward()
+            }
+        case .enter: expand(before: "\n"); insert("\n")
         case .shift:
             if inputState.page == .letters {
                 inputState.tapShift(at: Date.timeIntervalSinceReferenceDate)
@@ -303,6 +320,18 @@ final class KeyboardViewController: UIInputViewController {
             updateMemory { $0.record(language, in: context, chosen: true) }
         case .page: inputState.page = inputState.page == .letters ? .numbers : .letters
         case .layers: inputState.page = KeyboardLayout.firstLayerPage(keyboard.preferences) ?? .letters
+        case .command(let command):
+            punctuationSpacing.reset()
+            switch TextNavigation.edit(for: command, before: textDocumentProxy.documentContextBeforeInput ?? "",
+                                       after: textDocumentProxy.documentContextAfterInput ?? "") {
+            case .move(let offset): textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
+            case .deleteBackward(let count): for _ in 0..<count { textDocumentProxy.deleteBackward() }
+            case nil: break
+            }
+        case .pair(let text, let back):
+            punctuationSpacing.reset()
+            textDocumentProxy.insertText(text)
+            textDocumentProxy.adjustTextPosition(byCharacterOffset: -String(text.suffix(back)).utf16.count)
         case .globe: advanceToNextInputMode()
         case .dismiss: dismissKeyboard()
         }
@@ -313,13 +342,23 @@ final class KeyboardViewController: UIInputViewController {
         suggestions.refresh()
     }
 
+    /// Swaps a just-finished shortcut for its expansion, before `trigger` is typed after it.
+    private func expand(before trigger: String) {
+        guard let edit = expander.expand(before: textDocumentProxy.documentContextBeforeInput ?? "", trigger: trigger,
+                                         expansions: keyboard.preferences.shownExpansions) else { return }
+        for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
+        textDocumentProxy.insertText(edit.insert)
+        punctuationSpacing.reset()
+    }
+
     private func insert(_ value: String) {
         let literal = Self.literalTypes.contains(textDocumentProxy.keyboardType ?? .default)
         let preferences = keyboard.preferences
         let edit = punctuationSpacing.edit(for: value, before: textDocumentProxy.documentContextBeforeInput,
                                            enabled: preferences.autoSpacePunctuation && !literal,
                                            doubleSpacePeriod: preferences.doubleSpacePeriod && !literal,
-                                           at: ProcessInfo.processInfo.systemUptime)
+                                           at: ProcessInfo.processInfo.systemUptime,
+                                           shortcutStarts: preferences.shownExpansions.shortcutStarts)
         if edit.deleteBackward { textDocumentProxy.deleteBackward() }
         if !edit.text.isEmpty { textDocumentProxy.insertText(edit.text) }
     }

@@ -91,6 +91,15 @@ The app writes and the extension only reads `geometry.json` (`SharedUI/Preferenc
 
 The extension has no idea Pro exists. It renders whatever valid configuration it reads. Without Full Access or StoreKit in the extension, a refund takes effect the next time the app runs. That is acceptable.
 
+## 4a. Extras added after the first round
+
+All of these are public engine code that the keyboard renders, plus private editors. `extrasEnabled` switches all of them off in the published copy while Pro is locked.
+
+- **Flicks:** `Key.flicks` maps a `FlickDirection` to text. The top row's digits are its down flicks unless the person set their own. `KeyboardGeometry.flick` decides from the swipe: at least 18 pt along one axis and under 22 pt across it. A swipe is no longer a flick past the glide threshold (horizontal) or 80% of a key's height (vertical), which also lets straight-down glides from the top row through. Custom flicks live on `CustomKey` in letter layouts and layers. They never count towards letter reachability, so losing Pro can't strand a letter. The Workshop's per-key and whole-layout sections come from `ProHooks.workshopKeySection` and `workshopLayoutSection`.
+- **Keycap colorways:** `KeyboardPreferences.keycaps` (`KeycapStyle`): background, letter, modifier and accent keycaps, each with a legend color; accent Return; legend font; flat, outlined or sculpted keycaps. `KeyboardColors.resolve(keycaps:)` feeds the existing palette. Choosing a theme clears the colorway. The presets and studio are private, and a test keeps every preset legend at 4.5:1 or better. Flick hints fall back to the hint color when the accent is too faint on a keycap.
+- **Navigation keys:** `KeyCommand` (left, right, word left/right, line start/end, delete word, delete to line start) as `KeyAction.command`, and `KeyAction.pair` for text that leaves the cursor `cursorBack` characters in. `TextNavigation` computes UTF-16 moves and character deletes from the text around the cursor, so emoji and combining marks move as one. Keyboards without Full Access can't select text or use the clipboard, so there are no selection or copy keys.
+- **Text expansions:** `KeyboardPreferences.expansions` and `TextExpander`. A shortcut expands when followed by a space, a new line or `.,!?:;`, matching regardless of case and only at the start of a word. Delete right after puts the shortcut back. A mark that begins someone's shortcut gets no automatic space when it starts a word, so `;mail` isn't split into `; mail`; French spacing before `!` is unaffected. Setup files leave expansions out unless the person opts in, as with phrase keys.
+
 ## 5. StoreKit (private)
 
 - One non-consumable, placeholder ID `com.varyvoda.Ortholinear.pro`.

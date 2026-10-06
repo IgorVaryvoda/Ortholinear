@@ -85,10 +85,6 @@ final class KeyboardView: UIControl {
         }
     }
 
-    /// Down at least this far, and not much sideways, from a top-row key types its digit.
-    static let flickDistance: CGFloat = 18
-    static let flickDrift: CGFloat = 22
-
     override init(frame: CGRect) {
         super.init(frame: frame)
         isMultipleTouchEnabled = true
@@ -187,6 +183,8 @@ final class KeyboardView: UIControl {
         case .globe: return ""
         case .dismiss: return "⌄"
         case .layers: return KeyboardLayout.firstLayerPage(preferences).map { KeyboardLayout.pageTitle($0, preferences: preferences) } ?? ""
+        case .command(let command): return command.symbol
+        case .pair(let text, _): return text
         }
     }
 
@@ -205,6 +203,7 @@ final class KeyboardView: UIControl {
         case .page: return displayState.page == .letters ? "Numbers" : "Letters"
         case .dismiss: return "Dismiss keyboard"
         case .layers: return KeyboardLayout.firstLayerPage(preferences).map { KeyboardLayout.pageName($0, preferences: preferences) } ?? "Layers"
+        case .command(let command): return command.title
         default: return title(action)
         }
     }
@@ -236,7 +235,8 @@ final class KeyboardView: UIControl {
                 element.accessibilityValue = displayState.shift == .locked ? "Caps lock" : "On"
             }
             element.activate = { [weak self] in self?.emit(cell.key.action) }
-            element.accessibilityCustomActions = (cell.key.alternatives + [cell.key.flick].compactMap { $0 }).map { value in
+            let flicks = FlickDirection.allCases.compactMap { cell.key.flicks[$0] }
+            element.accessibilityCustomActions = (cell.key.alternatives + flicks).map { value in
                 UIAccessibilityCustomAction(name: "Type \(title(.text(value)))") { [weak self] _ in
                     self?.emit(.text(value)); return true
                 }
@@ -289,9 +289,14 @@ final class KeyboardView: UIControl {
     }
 
     private var palette: KeyboardPalette {
-        KeyboardPalette(colors: .resolve(theme: preferences.theme, accent: preferences.accent,
-                                         systemDark: traitCollection.userInterfaceStyle == .dark,
-                                         increasedContrast: traitCollection.accessibilityContrast == .high))
+        let increasedContrast = traitCollection.accessibilityContrast == .high
+        if let keycaps = preferences.shownKeycaps {
+            return KeyboardPalette(colors: .resolve(keycaps: keycaps, increasedContrast: increasedContrast),
+                                   font: keycaps.font, shape: keycaps.shape)
+        }
+        return KeyboardPalette(colors: .resolve(theme: preferences.theme, accent: preferences.accent,
+                                                systemDark: traitCollection.userInterfaceStyle == .dark,
+                                                increasedContrast: increasedContrast))
     }
 
     override func draw(_ rect: CGRect) {
@@ -305,13 +310,26 @@ final class KeyboardView: UIControl {
         for (index, cell) in cells.enumerated() {
             let action = cell.key.action
             let isText: Bool
-            if case .text = action { isText = true } else { isText = action == .space }
+            switch action {
+            case .text, .pair, .space: isText = true
+            default: isText = false
+            }
             let selectedShift = action == .shift && displayState.page == .letters && inputState.shift != .off
             let pressed = active.contains(index) || selectedShift
             let frame = cell.visualFrame.insetBy(dx: 0.25, dy: 0.25)
             let radius = min(8, frame.width / 4)
-            let path = UIBezierPath(roundedRect: frame, cornerRadius: radius)
-            (isText ? palette.key : palette.control).setFill()
+            let accentKey = action == .enter ? palette.colors.accentKey.map(UIColor.init(keyboardHex:)) : nil
+            let fill = accentKey ?? (isText ? palette.key : palette.control)
+            var path = UIBezierPath(roundedRect: frame, cornerRadius: radius)
+            var face = frame
+            if palette.shape == .sculpted, frame.height > 12 {
+                // A darker skirt under a slightly shorter top, like a keycap seen from above.
+                fill.darkened(by: 0.22).setFill()
+                path.fill()
+                face.size.height -= 3
+                path = UIBezierPath(roundedRect: face, cornerRadius: radius)
+            }
+            fill.setFill()
             path.fill()
             let highlight = pressed ? 1 : feedbackOpacity(for: action)
             palette.accent.withAlphaComponent(highlight * palette.highlightOpacity).setFill()
@@ -320,25 +338,40 @@ final class KeyboardView: UIControl {
             path.lineWidth = pressed ? max(1, palette.borderWidth) : palette.borderWidth
             path.stroke()
 
-            let color = action == .enter && !returnEnabled ? palette.secondary.withAlphaComponent(0.5) : palette.text
-            if drawControl(action, in: frame, color: color) { continue }
+            let legend = accentKey != nil ? UIColor(keyboardHex: palette.colors.accentKeyText ?? palette.colors.text)
+                : (isText ? palette.text : palette.controlText)
+            let color = action == .enter && !returnEnabled ? legend.withAlphaComponent(0.5) : legend
+            if drawControl(action, in: face, color: color) { continue }
             let flicked = sessions.values.first { $0.startCell == index && $0.flick != nil }?.flick
             let label = flicked ?? cell.key.label ?? (action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(action))
             var size: CGFloat = label.count > 2 ? 13 : 19
             if case .text = action, cell.key.label == nil {
                 size = min(preferences.validated.letterSize, max(14, frame.width - 3))
             }
-            drawText(label, in: frame, font: .systemFont(ofSize: size,
-                     weight: isText ? .regular : .medium), color: flicked == nil ? color : palette.accent)
+            drawText(label, in: face, font: palette.legend(ofSize: size, weight: isText ? .regular : .medium),
+                     color: flicked == nil ? color : palette.accent)
             if preferences.showLongPressHints, case .text(let letter) = action,
                letter.first?.isLetter == true, let hint = cell.key.alternatives.first {
                 let hintFrame = CGRect(x: frame.maxX - 13, y: frame.minY + 3, width: 10, height: 12)
                 drawText(title(.text(hint)), in: hintFrame,
                          font: .systemFont(ofSize: 10, weight: .medium), color: palette.secondary)
             }
-            if preferences.showLongPressHints, let digit = cell.key.flick {
-                drawText(digit, in: CGRect(x: frame.minX + 3, y: frame.minY + 3, width: 10, height: 12),
-                         font: .systemFont(ofSize: 10, weight: .semibold), color: palette.accent, alignment: .left)
+            if preferences.showLongPressHints, !cell.key.flicks.isEmpty {
+                // An accent that doesn't stand out on the keycap, as in some colorways, gives way to the hint color.
+                let flickColor = KeyboardColors.contrast(palette.colors.accent, palette.colors.key) >= 3 ? palette.accent : palette.secondary
+                let font = UIFont.systemFont(ofSize: 10, weight: .semibold)
+                // Down keeps the digit's top-left corner; the others sit on the edge they point to.
+                for (direction, value) in cell.key.flicks {
+                    let hint: CGRect
+                    switch direction {
+                    case .down: hint = CGRect(x: face.minX + 3, y: face.minY + 3, width: 12, height: 12)
+                    case .up: hint = CGRect(x: face.midX - 8, y: face.minY + 2, width: 16, height: 12)
+                    case .left: hint = CGRect(x: face.minX + 2, y: face.midY + 6, width: 12, height: 12)
+                    case .right: hint = CGRect(x: face.maxX - 14, y: face.midY + 6, width: 12, height: 12)
+                    }
+                    drawText(value, in: hint, font: font, color: flickColor,
+                             alignment: direction == .right ? .right : (direction == .up ? .center : .left))
+                }
             }
         }
         for session in sessions.values where session.glide {
@@ -365,7 +398,7 @@ final class KeyboardView: UIControl {
                 }
                 (index == popup.selected ? palette.accent : palette.border).setStroke()
                 path.lineWidth = max(1, palette.borderWidth); path.stroke()
-                drawText(title(.text(value)), in: frame, font: .systemFont(ofSize: 22), color: palette.text)
+                drawText(title(.text(value)), in: frame, font: palette.legend(ofSize: 22, weight: .regular), color: palette.text)
             }
         } else if preferences.showHeader {
             palette.accent.withAlphaComponent((dismissButton.isHighlighted ? 1 : feedbackOpacity(for: .dismiss)) * palette.highlightOpacity).setFill()
@@ -544,12 +577,11 @@ final class KeyboardView: UIControl {
                     session.trace = trace.count > 600 ? stride(from: 0, to: trace.count, by: 2).map { trace[$0] } : trace
                 }
             }
-            if !session.glide, cells.indices.contains(session.startCell), let digit = cells[session.startCell].key.flick {
-                let dx = point.x - session.start.x, dy = point.y - session.start.y
-                if dy >= Self.flickDistance && abs(dx) < Self.flickDrift {
+            if !session.glide, cells.indices.contains(session.startCell), !cells[session.startCell].key.flicks.isEmpty {
+                if let (_, value) = KeyboardGeometry.flick(on: cells[session.startCell], from: session.start, to: point) {
                     session.timer?.invalidate()
                     session.timer = nil
-                    session.flick = digit
+                    session.flick = value
                     session.cell = session.startCell
                     sessions[id] = session
                     continue
@@ -631,5 +663,14 @@ final class KeyboardView: UIControl {
             if popup?.owner == id { popup = nil }
         }
         setNeedsDisplay()
+    }
+}
+
+private extension UIColor {
+    /// The same color with less light, for a keycap's skirt.
+    func darkened(by amount: CGFloat) -> UIColor {
+        var (hue, saturation, brightness, alpha): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+        guard getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) else { return self }
+        return UIColor(hue: hue, saturation: saturation, brightness: brightness * (1 - amount), alpha: alpha)
     }
 }

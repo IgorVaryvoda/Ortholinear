@@ -65,6 +65,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     private let placeholder = UILabel()
     private var state = InputState()
     private var punctuationSpacing = PunctuationSpacing()
+    private var expander = TextExpander()
     private var height: NSLayoutConstraint!
     private let documentID = UUID()
     private lazy var suggestions = SuggestionCoordinator(keyboard: keyboard)
@@ -220,6 +221,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         case .locked: text = word.uppercased()
         case .off: break
         }
+        expander.forget()
         let needsSpace = textBeforeCaret.last.map { !$0.isWhitespace && !"([{«„“'\"".contains($0) } ?? false
         punctuationSpacing.reset()
         editor.insertText((needsSpace ? " " : "") + text)
@@ -241,6 +243,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         applyingSuggestion = true
         defer { applyingSuggestion = false }
         punctuationSpacing.reset()
+        expander.forget()
         let prefix = String(snapshot.before.dropLast(target.leftCount))
         let range = NSRange(location: prefix.utf16.count, length: target.word.utf16.count)
         guard let start = editor.position(from: editor.beginningOfDocument, offset: range.location),
@@ -260,10 +263,24 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         applyingSuggestion = true
         defer { applyingSuggestion = false }
         switch action {
-        case .text(let value): insert(state.consume(value))
-        case .space: insert(" ")
-        case .enter: insert("\n")
-        case .backspace: punctuationSpacing.reset(); editor.deleteBackward()
+        case .text, .space, .enter, .backspace: break
+        default: expander.forget()
+        }
+        switch action {
+        case .text(let value):
+            let typed = state.consume(value)
+            expand(before: typed)
+            insert(typed)
+        case .space: expand(before: " "); insert(" ")
+        case .enter: expand(before: "\n"); insert("\n")
+        case .backspace:
+            punctuationSpacing.reset()
+            if let edit = expander.revert(before: textBeforeCaret) {
+                for _ in 0..<edit.deleteCount { editor.deleteBackward() }
+                editor.insertText(edit.insert)
+            } else {
+                editor.deleteBackward()
+            }
         case .shift:
             if state.page == .letters {
                 state.tapShift(at: Date.timeIntervalSinceReferenceDate)
@@ -272,6 +289,22 @@ final class PreviewContainer: UIView, UITextViewDelegate {
             } else { state.page = KeyboardLayout.page(after: state.page, preferences: keyboard.preferences) }
         case .page: state.page = state.page == .letters ? .numbers : .letters
         case .layers: state.page = KeyboardLayout.firstLayerPage(keyboard.preferences) ?? .letters
+        case .command(let command):
+            punctuationSpacing.reset()
+            let text = editor.text as NSString, range = editor.selectedRange
+            switch TextNavigation.edit(for: command, before: text.substring(to: range.location),
+                                       after: text.substring(from: NSMaxRange(range))) {
+            case .move(let offset):
+                let location = max(0, min(text.length, (offset < 0 ? range.location : NSMaxRange(range)) + offset))
+                editor.selectedRange = NSRange(location: location, length: 0)
+            case .deleteBackward(let count): for _ in 0..<count { editor.deleteBackward() }
+            case nil: break
+            }
+        case .pair(let text, let back):
+            punctuationSpacing.reset()
+            editor.insertText(text)
+            let location = editor.selectedRange.location - String(text.suffix(back)).utf16.count
+            editor.selectedRange = NSRange(location: max(0, location), length: 0)
         case .language: state.language = keyboard.preferences.language(after: state.language); state.page = .letters
         case .dismiss: editor.resignFirstResponder()
         default: break
@@ -282,13 +315,23 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         if isActive { suggestions.refresh() }
     }
 
+    /// Swaps a just-finished shortcut for its expansion, before `trigger` is typed after it.
+    private func expand(before trigger: String) {
+        guard let edit = expander.expand(before: textBeforeCaret, trigger: trigger,
+                                         expansions: keyboard.preferences.shownExpansions) else { return }
+        for _ in 0..<edit.deleteCount { editor.deleteBackward() }
+        editor.insertText(edit.insert)
+        punctuationSpacing.reset()
+    }
+
     private func insert(_ value: String) {
         let selection = editor.selectedRange
         if selection.length > 0 { punctuationSpacing.reset() }
         let context = (editor.text as NSString).substring(to: selection.location)
         let edit = punctuationSpacing.edit(for: value, before: context, enabled: keyboard.preferences.autoSpacePunctuation,
                                            doubleSpacePeriod: keyboard.preferences.doubleSpacePeriod,
-                                           at: ProcessInfo.processInfo.systemUptime)
+                                           at: ProcessInfo.processInfo.systemUptime,
+                                           shortcutStarts: keyboard.preferences.shownExpansions.shortcutStarts)
         if edit.deleteBackward { editor.deleteBackward() }
         if !edit.text.isEmpty { editor.insertText(edit.text) }
     }

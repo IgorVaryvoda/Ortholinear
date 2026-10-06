@@ -17,14 +17,20 @@ Status: **proposed, not built.** Decisions recorded October 6, 2026. Implementat
 | Layout Workshop: rearrange letters, put punctuation on the letter page, edit long-press characters | Yes | Yes |
 | One custom letter layout per language, applied to the installed keyboard | Yes | Yes |
 | Export and import a single letter layout file | Yes | Yes |
-| Custom layers: extra key pages with starters for Writing, Math, Code and Phrases | | Yes |
+| Flicks on any key: swipe up, down, left or right for a symbol; one tap fills swipe-up with symbols | | Yes |
+| Keycap colorways: eight sets plus a studio for keycap and legend colors, legend font and keycap shape | | Yes |
+| Text expansions: shortcuts such as ;mail that become longer text; Delete right after undoes | | Yes |
+| Custom layers: extra key pages with starters for Navigate, Writing, Math, Code and Phrases | | Yes |
+| Navigation keys: move by word or line, delete words, pairs such as ( ) that leave the cursor inside | | Yes |
 | Phrase keys: a labelled key that types a saved line of text | | Yes |
 | Several saved setups, switched from the app | | Yes |
-| Export and import a complete setup (layouts, layers and settings) | | Yes |
+| Export and import a complete setup (layouts, layers and settings; phrases and expansions only if chosen) | | Yes |
 
 Single-layout files are free on purpose: shared layouts are how a keyboard like this spreads, and someone who receives one should be able to use it without paying.
 
 Later candidates, not part of the launch promise: split or thumb-zone geometry, and separate portrait/landscape layouts. Basic readability, key size and accessibility are never Pro.
+
+Ruled out because they need Full Access, which the app never asks for: key sounds (custom mechanical sounds, and even the system click), haptics and clipboard history.
 
 ## Not obnoxious
 

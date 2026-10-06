@@ -53,6 +53,44 @@ final class KeyboardAppearanceTests: XCTestCase {
         XCTAssertEqual(legacy.keyHeight, 65)
     }
 
+    func testColorwaysColorEachRoleAndSurviveSaving() throws {
+        let style = KeycapStyle(background: 0x1B1B1F, alpha: 0xF2E8D5, alphaLegend: 0x2A2A2E, modifier: 0x2A2A2E,
+                                modifierLegend: 0xF2E8D5, accent: 0xE8A0B0, accentLegend: 0x2A2A2E, font: .rounded, shape: .sculpted)
+        let colors = KeyboardColors.resolve(keycaps: style)
+        XCTAssertEqual(colors.key, 0xF2E8D5)
+        XCTAssertEqual(colors.control, 0x2A2A2E)
+        XCTAssertEqual(colors.controlText, 0xF2E8D5)
+        XCTAssertEqual(colors.accentKey, 0xE8A0B0)
+        XCTAssertTrue(colors.isDark, "Judged by the background")
+        XCTAssertGreaterThanOrEqual(contrast(colors.secondary, colors.key), 3, "Hints stay readable on the keycap")
+        XCTAssertEqual(style.lowContrast, [])
+        var plain = style
+        plain.accentReturn = false
+        XCTAssertNil(KeyboardColors.resolve(keycaps: plain).accentKey)
+        let increased = KeyboardColors.resolve(keycaps: style, increasedContrast: true)
+        XCTAssertEqual(increased.border, increased.text)
+
+        var faint = style
+        faint.alphaLegend = 0xE0D6C3
+        XCTAssertEqual(faint.lowContrast, ["Letters"])
+
+        var preferences = KeyboardPreferences()
+        preferences.keycaps = style
+        XCTAssertEqual(try JSONDecoder().decode(KeyboardPreferences.self, from: JSONEncoder().encode(preferences)), preferences)
+        preferences.apply(.balanced)
+        XCTAssertEqual(preferences.keycaps, style, "Presets change geometry, not the colorway")
+        preferences.extrasEnabled = false
+        XCTAssertNil(preferences.shownKeycaps)
+
+        let damaged = try JSONDecoder().decode(KeyboardPreferences.self, from: Data(#"{"keyHeight":60,"keycaps":{"alpha":1}}"#.utf8))
+        XCTAssertNil(damaged.keycaps)
+        XCTAssertEqual(damaged.keyHeight, 60)
+        let partial = try JSONDecoder().decode(KeycapStyle.self, from: Data(#"{"background":4294967295,"alpha":1,"alphaLegend":2,"modifier":3,"modifierLegend":4,"accent":5,"accentLegend":6,"font":"comic"}"#.utf8))
+        XCTAssertEqual(partial.background, 0xFFFFFF, "Colors are masked to RGB")
+        XCTAssertEqual(partial.font, .system)
+        XCTAssertEqual(partial.shape, .sculpted)
+    }
+
     private func contrast(_ a: UInt32, _ b: UInt32) -> Double {
         let values = [luminance(a), luminance(b)].sorted()
         return (values[1] + 0.05) / (values[0] + 0.05)

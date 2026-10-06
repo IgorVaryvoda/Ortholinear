@@ -31,6 +31,7 @@ struct AppearanceSettings: View {
 
     private var controls: some View {
         Form {
+            if let section = ProHooks.appearanceSection { section($preferences) }
             Section {
                 // Automatic spans the top, so the six fixed themes fill the grid evenly.
                 VStack(spacing: 10) {
@@ -82,8 +83,9 @@ struct AppearanceSettings: View {
 
     private func themeCard(_ theme: KeyboardTheme) -> some View {
         let colors = KeyboardColors.resolve(theme: theme, systemDark: colorScheme == .dark)
-        let selected = preferences.theme == theme
-        return Button { preferences.theme = theme } label: {
+        // A colorway replaces the theme, so no theme shows as chosen while one is on.
+        let selected = preferences.theme == theme && preferences.keycaps == nil
+        return Button { preferences.theme = theme; preferences.keycaps = nil } label: {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 3) {
                     ForEach(["й", "ц", "у", "a", "⌫"], id: \.self) { letter in
@@ -117,7 +119,7 @@ struct AppearanceSettings: View {
     private func preview(height: CGFloat) -> some View {
         VStack(spacing: 8) {
             HStack {
-                Text(preferences.theme.title).font(.subheadline.weight(.semibold))
+                Text(preferences.keycaps == nil ? preferences.theme.title : "Your colorway").font(.subheadline.weight(.semibold))
                 Spacer()
                 Text("Live preview").font(.caption).foregroundStyle(.secondary)
             }.padding(.horizontal, 16)

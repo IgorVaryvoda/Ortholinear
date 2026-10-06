@@ -357,7 +357,8 @@ final class KeyboardUITests: XCTestCase {
     @MainActor
     private func launchApp(landscape: Bool = false, arguments: [String] = ["-no-auto-capitals", "-no-keyboard-tips"]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = arguments
+        // Custom layouts and extras from other test runs would change the keys these tests expect.
+        app.launchArguments = arguments + ["-reset-custom-layouts", "-reset-extras"]
         app.launch()
         XCUIDevice.shared.orientation = landscape ? .landscapeLeft : .portrait
         let orientation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
