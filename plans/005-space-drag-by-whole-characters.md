@@ -6,8 +6,9 @@
 > report — do not improvise.
 >
 > **Drift check (run first)**: `git diff --stat 56c6fc1..HEAD -- Core/TextNavigation.swift Tests/TextNavigationTests.swift KeyboardExtension/KeyboardViewController.swift App/PreviewSurface.swift`
-> Plans 001–003 changed the typing and suggestion paths of `KeyboardViewController.swift` and
-> `PreviewSurface.swift`; that drift is expected. If the `keyboard.onCursor` closures or
+> Plans 001–003 and 009 changed `KeyboardViewController.swift` and `PreviewSurface.swift`; that
+> drift is expected. Plan 009 added a `suggestions.cancelGlide()` call to both `onCursor` closures;
+> the excerpts below already show that. If the `keyboard.onCursor` closures or
 > `Core/TextNavigation.swift` differ from the excerpts below, STOP.
 
 ## Status
@@ -15,7 +16,7 @@
 - **Priority**: P3
 - **Effort**: S
 - **Risk**: MED
-- **Depends on**: plans/003-exact-suggestion-replacements.md (same files; run after)
+- **Depends on**: plans/009-cancel-glides-on-any-input.md (same files; run after)
 - **Category**: bug
 - **Planned at**: commit `56c6fc1`, 2026-10-09
 
@@ -36,6 +37,7 @@ uses `.utf16.count` of whole characters).
 - `KeyboardExtension/KeyboardViewController.swift` `viewDidLoad`:
   ```swift
   keyboard.onCursor = { [weak self] in
+      self?.suggestions.cancelGlide()
       self?.punctuationSpacing.reset()
       self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0)
       self?.updateAutoShift()
@@ -45,7 +47,9 @@ uses `.utf16.count` of whole characters).
 - `App/PreviewSurface.swift` `init`:
   ```swift
   keyboard.onCursor = { [weak self] offset in
-      guard let self, let selection = self.editor.selectedTextRange,
+      guard let self else { return }
+      self.suggestions.cancelGlide()
+      guard let selection = self.editor.selectedTextRange,
             let position = self.editor.position(from: selection.start, offset: offset) else { return }
       self.punctuationSpacing.reset()
       self.editor.selectedTextRange = self.editor.textRange(from: position, to: position)
@@ -117,7 +121,7 @@ In `Tests/TextNavigationTests.swift` add `testCursorStepsCrossWholeCharacters`:
 ### Step 3: Use it in both keyboards
 
 - Extension: `adjustTextPosition(byCharacterOffset: TextNavigation.offset(steps: $0, before: proxy.documentContextBeforeInput ?? "", after: proxy.documentContextAfterInput ?? ""))`
-  (read `textDocumentProxy` once into a local; keep the closure's other lines).
+  (read `textDocumentProxy` once into a local; keep the closure's other lines, including `cancelGlide()` first).
 - Preview: compute `before`/`after` from `editor.text as NSString` split at
   `editor.selectedRange.location` (guard `location != NSNotFound` and `<= length`), and pass
   `TextNavigation.offset(steps: offset, before:, after:)` to `editor.position(from: selection.start, offset:)`.
