@@ -506,9 +506,29 @@ struct SystemKeyboardTest: View {
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
     @State private var email = ""
+    @State private var fields = [String](repeating: "", count: 6)
+    @FocusState private var focused: Int?
     var body: some View {
         NavigationStack {
             Form {
+                // Kinds of fields that change the keyboard's page and behavior under it. Only on
+                // request: they would push the email field under the keyboard for other tests.
+                if ProcessInfo.processInfo.arguments.contains("-field-types") {
+                    Section("Field types") {
+                        HStack {
+                            field(0, "Next ⏎", .default).submitLabel(.next).onSubmit { focused = 1 }
+                            field(1, "Number", .numberPad)
+                            field(2, "Decimal", .decimalPad)
+                        }
+                        // No secure field: iOS would take the URL field for a login's username
+                        // and give both its own keyboard.
+                        HStack {
+                            field(3, "Phone", .phonePad)
+                            field(4, "URL", .URL)
+                            field(5, "Numbers & punctuation", .numbersAndPunctuation)
+                        }
+                    }
+                }
                 Section("Use the globe to choose Ortholinear") {
                     TextEditor(text: $text).frame(minHeight: 150).accessibilityIdentifier("system-editor")
                 }
@@ -520,5 +540,10 @@ struct SystemKeyboardTest: View {
             .navigationTitle("System keyboard test").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+    }
+
+    private func field(_ index: Int, _ title: String, _ type: UIKeyboardType) -> some View {
+        TextField(title, text: $fields[index]).keyboardType(type).textInputAutocapitalization(.never)
+            .autocorrectionDisabled().focused($focused, equals: index).accessibilityIdentifier("field-\(index)")
     }
 }
