@@ -11,7 +11,7 @@ or `Core/Suggestions.swift`. Reviewers maintain this index; executors don't edit
 |------|-------|----------|--------|------------|--------|
 | 001 | Typing over selected text replaces it | P1 | S | — | DONE (dbaac78) |
 | 002 | Expansions and closing quotes work with auto-spacing | P1 | S | 001 | DONE (cfd9df3) |
-| 003 | Accepting a suggestion replaces exactly the intended text | P1 | M | 002 | TODO |
+| 003 | Accepting a suggestion replaces exactly the intended text | P1 | M | 002 | DONE (0d8f6d3) |
 | 004 | A glided word is never typed after its moment has passed | P2 | M | 003 | BLOCKED — retired after 2 scrutiny rounds; snapshot comparison can't prove the insertion point. Replaced by 009 |
 | 009 | Any input cancels a glide that hasn't been typed yet | P2 | M | 003 | TODO |
 | 005 | Dragging on Space moves by whole characters | P3 | S | 003 | TODO |
