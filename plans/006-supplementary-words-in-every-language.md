@@ -6,8 +6,8 @@
 > report — do not improvise.
 >
 > **Drift check (run first)**: `git diff --stat 56c6fc1..HEAD -- SharedUI/SuggestionBar.swift Core/Suggestions.swift Tests/SuggestionTests.swift`
-> Plans 003–004 changed `SuggestionCoordinator` (`onSelect`, `glideOffer`, `glide(_:)`,
-> `glideTask`) and `SuggestionEdit`. That drift is expected. If `SupplementaryWords`,
+> Plans 003 and 009 changed `SuggestionCoordinator` (`onSelect`, `glideOffer`, `glide(_:)`,
+> `glideTask`, `cancelGlide`, `GlideContext`) and `SuggestionEdit`. That drift is expected. If `SupplementaryWords`,
 > `SuggestionWorker.suggest`, or `refresh(force:)` differ from the excerpts below, STOP.
 
 ## Status
@@ -15,7 +15,7 @@
 - **Priority**: P2
 - **Effort**: S
 - **Risk**: LOW
-- **Depends on**: plans/004-drop-stale-glides.md (same file; run after)
+- **Depends on**: plans/009-cancel-glides-on-any-input.md (same file; run after)
 - **Category**: bug
 - **Planned at**: commit `56c6fc1`, 2026-10-09
 
@@ -119,7 +119,8 @@ logic with `query = SuggestionText.normalize(target.word)`.
 - `SuggestionWorker.suggest`: replace its `names:` and `shortcut:` parameters with a
   `supplementary: SupplementaryWords` parameter and replace the quoted block with
   `words = supplementary.merged(into: words, target: target, language: snapshot.language)`.
-- `refresh(force:)`: pass `supplementary` to the worker instead of the precomputed
+- `refresh(force:)`: capture `let supplementary = self.supplementary` before creating either `Task`
+  (the worker task holds `self` weakly), and pass that local to the worker instead of the precomputed
   `shortcut`/`names` (delete those two locals). In the checker branch, capture
   `let supplementary = self.supplementary` before the `Task` and change the words line to
   `current.target.map { supplementary.merged(into: SystemSuggestions.suggest(...), target: $0, language: current.language) } ?? []`.

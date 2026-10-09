@@ -1,5 +1,9 @@
 # Plan 004: A glided word is never typed after its moment has passed
 
+> **RETIRED — do not execute.** Two scrutiny rounds showed comparing context snapshots alone can't
+> prove the insertion point is unchanged (hidden host context, nil document ids, preview dismissal).
+> Superseded by `plans/009-cancel-glides-on-any-input.md`.
+
 > **Executor instructions**: Follow this plan step by step. Run every
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and

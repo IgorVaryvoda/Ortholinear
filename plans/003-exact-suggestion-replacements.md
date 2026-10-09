@@ -148,8 +148,8 @@ Add two stored properties to `SuggestionEdit`: `var left: String` (text deleted 
 caret) and `var right: String` (text the caret moves over, then deleted). Define:
 - `moveRight` = `right.utf16.count` (UTF-16 units, for `adjustTextPosition`)
 - `deleteCount` = `left.count + right.count` (graphemes, one `deleteBackward` each)
-Keep `moveRight`, `deleteCount`, `replaceSelection`, `text` available with these meanings
-(stored or computed — your choice, but `Equatable` must still work).
+Make `moveRight` and `deleteCount` **computed** properties derived from `left`/`right` (so they can
+never disagree); `replaceSelection`, `text`, `left`, `right` are stored. `Equatable` stays synthesized.
 In `make`: `left = target.selected ? "" : String(current.before.suffix(target.leftCount))`,
 `right = target.selected ? "" : String(current.after.prefix(target.rightCount))`.
 

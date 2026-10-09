@@ -181,7 +181,7 @@ In both `KeyboardExtension/KeyboardViewController.swift` and `App/PreviewSurface
 Add to `Tests/TextExpansionTests.swift` a test `testUndoAfterPunctuationThatGotASpace` that
 simulates the controller: expand `brb` with trigger `.`, apply the edit to a string, run
 `PunctuationSpacing().edit(for: ".", before: text, enabled: true)` and append its `text`, call
-`triggerTyped(as:)` with it, and assert `revert(before: "be right back. ")` equals
+`triggerTyped(as:)` with it, assert the built string is exactly `"be right back. "`, and assert `revert(before: <that built string>)` equals
 `.init(deleteCount: 15, insert: "brb")`. Also assert that without `triggerTyped` (raw trigger
 ` `) the existing behavior still holds.
 

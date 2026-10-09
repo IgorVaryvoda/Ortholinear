@@ -12,15 +12,18 @@ or `Core/Suggestions.swift`. Reviewers maintain this index; executors don't edit
 | 001 | Typing over selected text replaces it | P1 | S | — | TODO |
 | 002 | Expansions and closing quotes work with auto-spacing | P1 | S | 001 | TODO |
 | 003 | Accepting a suggestion replaces exactly the intended text | P1 | M | 002 | TODO |
-| 004 | A glided word is never typed after its moment has passed | P2 | M | 003 | TODO |
+| 004 | A glided word is never typed after its moment has passed | P2 | M | 003 | BLOCKED — retired after 2 scrutiny rounds; snapshot comparison can't prove the insertion point. Replaced by 009 |
+| 009 | Any input cancels a glide that hasn't been typed yet | P2 | M | 003 | TODO |
 | 005 | Dragging on Space moves by whole characters | P3 | S | 003 | TODO |
-| 006 | Text replacements and contact names in every language | P2 | S | 004 | TODO |
+| 006 | Text replacements and contact names in every language | P2 | S | 009 | TODO |
 | 007 | Letters held on any custom key are placed | P3 | S | 006 | TODO |
 | 008 | Wrong-layout example and suggestion-row docs match | P2 | S | 006 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (reason) | REJECTED (rationale)
 
 ## Dependency notes
+
+- Execution order: 001, 002, 003, 009, 005, 006, 007, 008.
 
 - Dependencies are file-overlap ordering, not logical: 001→002 share `TextExpansion.swift`
   and the typing paths; 003→004→006 share `SuggestionCoordinator`; 003/006/007/008 share
