@@ -300,7 +300,8 @@ final class KeyboardViewController: UIInputViewController {
         case .space: expand(before: " "); insert(" ")
         case .backspace:
             punctuationSpacing.reset()
-            if let edit = expander.revert(before: textDocumentProxy.documentContextBeforeInput ?? "") {
+            if let edit = expander.revert(before: textDocumentProxy.documentContextBeforeInput ?? "",
+                                           selected: textDocumentProxy.selectedText ?? "") {
                 for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
                 textDocumentProxy.insertText(edit.insert)
             } else {
@@ -342,16 +343,20 @@ final class KeyboardViewController: UIInputViewController {
         suggestions.refresh()
     }
 
+    private var hasSelection: Bool { !(textDocumentProxy.selectedText ?? "").isEmpty }
+
     /// Swaps a just-finished shortcut for its expansion, before `trigger` is typed after it.
     private func expand(before trigger: String) {
         guard let edit = expander.expand(before: textDocumentProxy.documentContextBeforeInput ?? "", trigger: trigger,
-                                         expansions: keyboard.preferences.shownExpansions) else { return }
+                                         expansions: keyboard.preferences.shownExpansions,
+                                         selected: textDocumentProxy.selectedText ?? "") else { return }
         for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
         textDocumentProxy.insertText(edit.insert)
         punctuationSpacing.reset()
     }
 
     private func insert(_ value: String) {
+        if hasSelection { punctuationSpacing.reset() }
         let literal = Self.literalTypes.contains(textDocumentProxy.keyboardType ?? .default)
         let preferences = keyboard.preferences
         let edit = punctuationSpacing.edit(for: value, before: textDocumentProxy.documentContextBeforeInput,

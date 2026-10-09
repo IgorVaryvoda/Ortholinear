@@ -275,7 +275,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         case .enter: expand(before: "\n"); insert("\n")
         case .backspace:
             punctuationSpacing.reset()
-            if let edit = expander.revert(before: textBeforeCaret) {
+            if let edit = expander.revert(before: textBeforeCaret, selected: selectedText) {
                 for _ in 0..<edit.deleteCount { editor.deleteBackward() }
                 editor.insertText(edit.insert)
             } else {
@@ -315,10 +315,16 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         if isActive { suggestions.refresh() }
     }
 
+    private var selectedText: String {
+        let text = editor.text as NSString, range = editor.selectedRange
+        guard range.location != NSNotFound && NSMaxRange(range) <= text.length else { return "" }
+        return text.substring(with: range)
+    }
+
     /// Swaps a just-finished shortcut for its expansion, before `trigger` is typed after it.
     private func expand(before trigger: String) {
         guard let edit = expander.expand(before: textBeforeCaret, trigger: trigger,
-                                         expansions: keyboard.preferences.shownExpansions) else { return }
+                                         expansions: keyboard.preferences.shownExpansions, selected: selectedText) else { return }
         for _ in 0..<edit.deleteCount { editor.deleteBackward() }
         editor.insertText(edit.insert)
         punctuationSpacing.reset()

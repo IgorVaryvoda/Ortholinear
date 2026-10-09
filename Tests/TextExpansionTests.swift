@@ -36,6 +36,14 @@ final class TextExpansionTests: XCTestCase {
         XCTAssertNil(expander.revert(before: "be right back x"), "The text changed some other way")
     }
 
+    func testSelectionIsNeverExpandedOrReverted() {
+        var expander = TextExpander()
+        XCTAssertNil(expander.expand(before: "brb", trigger: " ", expansions: expansions, selected: "XYZ"))
+        XCTAssertNotNil(expander.expand(before: "brb", trigger: " ", expansions: expansions))
+        XCTAssertNil(expander.revert(before: "be right back ", selected: "x"))
+        XCTAssertNil(expander.revert(before: "be right back "), "The chance to revert is gone")
+    }
+
     func testExpansionsSaveAndSurviveDamage() throws {
         var preferences = KeyboardPreferences()
         preferences.expansions = expansions

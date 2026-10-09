@@ -53,8 +53,9 @@ struct TextExpander: Sendable {
 
     /// Before `trigger` is typed: the edit that swaps a finished shortcut for its expansion.
     /// Shortcuts match regardless of case, so an automatic capital doesn't stop them.
-    mutating func expand(before: String, trigger: String, expansions: [TextExpansion]) -> Edit? {
+    mutating func expand(before: String, trigger: String, expansions: [TextExpansion], selected: String = "") -> Edit? {
         undo = nil
+        guard selected.isEmpty else { return nil }
         guard Self.triggers.contains(trigger) else { return nil }
         let lowered = before.lowercased()
         let candidates = expansions.filter(\.isUsable).sorted { $0.abbreviation.count > $1.abbreviation.count }
@@ -69,8 +70,9 @@ struct TextExpander: Sendable {
     }
 
     /// When Delete comes right after an expansion: the edit that puts the shortcut back.
-    mutating func revert(before: String) -> Edit? {
+    mutating func revert(before: String, selected: String = "") -> Edit? {
         defer { undo = nil }
+        guard selected.isEmpty else { return nil }
         guard let undo, before.hasSuffix(undo.inserted) else { return nil }
         return Edit(deleteCount: undo.inserted.count, insert: undo.typed)
     }
