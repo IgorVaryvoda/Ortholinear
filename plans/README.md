@@ -17,7 +17,7 @@ or `Core/Suggestions.swift`. Reviewers maintain this index; executors don't edit
 | 005 | Dragging on Space moves by whole characters | P3 | S | 009 | DONE (4c97140) |
 | 006 | Text replacements and contact names in every language | P2 | S | 009 | DONE (b60134c) |
 | 007 | Letters held on any custom key are placed | P3 | S | 006 | DONE (ede5d11) |
-| 008 | Wrong-layout example and suggestion-row docs match | P2 | S | 006 | TODO |
+| 008 | Wrong-layout example and suggestion-row docs match | P2 | S | 006 | DONE (753e613) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (reason) | REJECTED (rationale)
 
