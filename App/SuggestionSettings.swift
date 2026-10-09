@@ -19,7 +19,7 @@ struct SuggestionSettings: View {
                     .foregroundStyle(.secondary)
             }
             Section("Wrong layout") {
-                Label("Typed “ghbdsn” in English? Tap “привіт ⇄” to fix the word and switch to Ukrainian.", systemImage: "arrow.left.arrow.right")
+                Label("Typed “ghvdsb” in English? Tap “привіт ⇄” to fix the word and switch to Ukrainian.", systemImage: "arrow.left.arrow.right")
                 Text("Offered when both English and Ukrainian are on and the word only makes sense in the other layout.")
                     .foregroundStyle(.secondary)
             }

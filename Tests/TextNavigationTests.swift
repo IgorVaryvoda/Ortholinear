@@ -7,6 +7,18 @@ final class TextNavigationTests: XCTestCase {
         return TextNavigation.edit(for: command, before: parts[0], after: parts[1])
     }
 
+    func testCursorStepsCrossWholeCharacters() {
+        XCTAssertEqual(TextNavigation.offset(steps: -1, before: "ok👍🏽", after: ""), -4)
+        XCTAssertEqual(TextNavigation.offset(steps: -2, before: "ok👍🏽", after: ""), -5)
+        XCTAssertEqual(TextNavigation.offset(steps: 1, before: "", after: "e\u{301}x"), 2)
+        XCTAssertEqual(TextNavigation.offset(steps: 2, before: "", after: "ab"), 2)
+        XCTAssertEqual(TextNavigation.offset(steps: -3, before: "a", after: ""), -3)
+        XCTAssertEqual(TextNavigation.offset(steps: 0, before: "abc", after: "def"), 0)
+        XCTAssertEqual(TextNavigation.offset(steps: 3, before: "", after: "a"), 3)
+        XCTAssertEqual(TextNavigation.offset(steps: -2, before: "", after: ""), -2)
+        XCTAssertEqual(TextNavigation.offset(steps: 2, before: "", after: ""), 2)
+    }
+
     func testMovesByCharacterWordAndLine() {
         XCTAssertEqual(edit(.left, "ab|c"), .move(-1))
         XCTAssertEqual(edit(.left, "a👍🏽|c"), .move(-4), "One emoji with a skin tone is four UTF-16 units")

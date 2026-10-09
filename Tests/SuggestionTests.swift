@@ -32,6 +32,47 @@ final class SuggestionTests: XCTestCase {
         XCTAssertNil(snapshot("abc123").target)
         XCTAssertNil(snapshot(String(repeating: "a", count: 25)).target)
     }
+    func testSupplementaryWordsJoinAnyLanguage() throws {
+        let words = SupplementaryWords(entries: [("omw", "On my way!"), ("Marie", "Marie")])
+        let shortcut = try XCTUnwrap(snapshot("omw", language: .french).target)
+        let replacements = words.merged(into: [WordSuggestion(word: "omg", kind: .correction)],
+                                        target: shortcut, language: .french)
+        XCTAssertEqual(replacements.first, WordSuggestion(word: "On my way!", kind: .replacement))
+
+        let french = try XCTUnwrap(snapshot("mar", language: .french).target)
+        XCTAssertTrue(words.merged(into: [], target: french, language: .french)
+            .contains(WordSuggestion(word: "Marie", kind: .completion)))
+
+        let ukrainian = try XCTUnwrap(snapshot("mar", language: .ukrainian).target)
+        XCTAssertFalse(words.merged(into: [], target: ukrainian, language: .ukrainian)
+            .contains { $0.word == "Marie" })
+    }
+
+    func testMovementCountsUTF16Units() throws {
+        let current = snapshot("ca", after: "fe\u{301}")
+        _ = try XCTUnwrap(current.target)
+        let correction = WordSuggestion(word: "cafe", kind: .correction)
+        let edit = try XCTUnwrap(SuggestionEdit.make(suggestion: correction, offered: current, current: current))
+        XCTAssertEqual(edit.moveRight, 3)
+        XCTAssertEqual(edit.deleteCount, 4)
+        XCTAssertEqual(edit.right, "fe\u{301}")
+        XCTAssertEqual(edit.left, "ca")
+    }
+    func testGlideAlternativesReplaceOnlyTheGlidedWord() throws {
+        let s = snapshot("the hello", after: "cat")
+        let correction = WordSuggestion(word: "help", kind: .correction)
+        let edit = try XCTUnwrap(SuggestionEdit.replacingGlide(correction, inserted: "hello", offered: s, current: s))
+        XCTAssertEqual(edit.deleteCount, 5)
+        XCTAssertEqual(edit.moveRight, 0)
+        XCTAssertEqual(edit.left, "hello")
+        XCTAssertEqual(edit.text, "help")
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "world", offered: s, current: s))
+        let selected = snapshot("the hello", after: "cat", selected: "word")
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "hello", offered: selected, current: selected))
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "hello", offered: s, current: snapshot("hello")))
+        let decomposed = snapshot("the \u{0456}\u{0308}де")
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "\u{0457}де", offered: decomposed, current: decomposed))
+    }
     func testSpacesAndPunctuationStayExplicit() throws {
         let typo = snapshot("teh", after: ".")
         let correction = WordSuggestion(word: "the", kind: .correction)
@@ -125,6 +166,17 @@ final class SuggestionTests: XCTestCase {
             }
             timings.sort()
             print("SUGGESTION_BENCHMARK \(language.badge) load=\(load) baseline=\(plainHits)/\(pairs.count) geometry=\(rankedHits)/\(pairs.count) p50_ms=\(timings[timings.count/2]) p95_ms=\(timings[Int(Double(timings.count-1)*0.95)])")
+        }
+    }
+
+    func testDocumentedWrongLayoutExampleRecovers() throws {
+        let ukrainian = try SuggestionResources.engine(language: .ukrainian)
+        let preferences = KeyboardPreferences()
+        for width in [375.0, 393.0, 430.0, 820.0] {
+            let en = SuggestionGeometry(language: .english, preferences: preferences, width: width)
+            let uk = SuggestionGeometry(language: .ukrainian, preferences: preferences, width: width)
+            XCTAssertEqual(LayoutRecovery.recover("ghvdsb", from: en, to: uk, lexicon: ukrainian.lexicon), "привіт",
+                           "Documented example should recover at width \(width)")
         }
     }
 

@@ -114,7 +114,8 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         suggestions.insertWord = { [weak self] in self?.insertGlided($0) }
         suggestions.glideContext = { [weak self] in
             guard let self, self.isActive else { return nil }
-            return (self.state.language, self.textBeforeCaret)
+            return GlideContext(language: self.state.language, before: self.textBeforeCaret,
+                                selection: self.selectedText, document: self.documentID)
         }
         suggestions.switchLanguage = { [weak self] language in
             guard let self, self.keyboard.preferences.validated.languages.contains(language) else { return }
@@ -124,10 +125,19 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         }
         keyboard.onGesture = { [weak self] in self?.onGesture?($0) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
-        keyboard.onDismiss = { [weak self] in self?.editor.resignFirstResponder() }
+        keyboard.onDismiss = { [weak self] in self?.suggestions.cancelGlide(); self?.editor.resignFirstResponder() }
         keyboard.onCursor = { [weak self] offset in
-            guard let self, let selection = self.editor.selectedTextRange,
-                  let position = self.editor.position(from: selection.start, offset: offset) else { return }
+            guard let self else { return }
+            self.suggestions.cancelGlide()
+            let text = self.editor.text as NSString
+            let location = self.editor.selectedRange.location
+            guard location != NSNotFound, location <= text.length else { return }
+            let before = text.substring(to: location)
+            let after = text.substring(from: location)
+            guard let selection = self.editor.selectedTextRange,
+                  let position = self.editor.position(from: selection.start, offset: TextNavigation.offset(
+                    steps: offset, before: before, after: after
+                  )) else { return }
             self.punctuationSpacing.reset()
             self.editor.selectedTextRange = self.editor.textRange(from: position, to: position)
             self.updateAutoShift()
@@ -169,6 +179,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
 
     @objc private func clear() {
+        suggestions.cancelGlide()
         punctuationSpacing.reset()
         editor.text = ""
         placeholder.isHidden = false
@@ -183,11 +194,14 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
     func textViewDidChangeSelection(_ textView: UITextView) {
         guard !applyingSuggestion else { return }
+        suggestions.cancelGlide()
         punctuationSpacing.reset()
         updateAutoShift()
         keyboard.inputState = state
         suggestions.refresh()
     }
+
+    func textViewDidEndEditing(_ textView: UITextView) { suggestions.cancelGlide() }
 
     private var textBeforeCaret: String {
         let range = editor.selectedRange
@@ -239,13 +253,20 @@ final class PreviewContainer: UIView, UITextViewDelegate {
                      after: text.substring(from: NSMaxRange(range)), selection: text.substring(with: range), language: state.language)
     }
     private func applySuggestion(_ edit: SuggestionEdit, snapshot: SuggestionSnapshot) {
-        guard suggestionSnapshot() == snapshot, let target = snapshot.target else { return }
+        guard suggestionSnapshot() == snapshot,
+              snapshot.before.unicodeScalars.reversed().starts(with: edit.left.unicodeScalars.reversed()),
+              snapshot.after.unicodeScalars.starts(with: edit.right.unicodeScalars) else { return }
         applyingSuggestion = true
         defer { applyingSuggestion = false }
         punctuationSpacing.reset()
         expander.forget()
-        let prefix = String(snapshot.before.dropLast(target.leftCount))
-        let range = NSRange(location: prefix.utf16.count, length: target.word.utf16.count)
+        let range: NSRange
+        if edit.replaceSelection {
+            range = NSRange(location: snapshot.before.utf16.count, length: snapshot.selection.utf16.count)
+        } else {
+            range = NSRange(location: snapshot.before.utf16.count - edit.left.utf16.count,
+                            length: edit.left.utf16.count + edit.right.utf16.count)
+        }
         guard let start = editor.position(from: editor.beginningOfDocument, offset: range.location),
               let end = editor.position(from: start, offset: range.length),
               let selection = editor.textRange(from: start, to: end) else { return }
@@ -260,6 +281,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
 
     private func handle(_ action: KeyAction) {
+        suggestions.cancelGlide()
         applyingSuggestion = true
         defer { applyingSuggestion = false }
         switch action {
@@ -270,12 +292,12 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         case .text(let value):
             let typed = state.consume(value)
             expand(before: typed)
-            insert(typed)
-        case .space: expand(before: " "); insert(" ")
-        case .enter: expand(before: "\n"); insert("\n")
+            expander.triggerTyped(as: insert(typed))
+        case .space: expand(before: " "); expander.triggerTyped(as: insert(" "))
+        case .enter: expand(before: "\n"); expander.triggerTyped(as: insert("\n"))
         case .backspace:
             punctuationSpacing.reset()
-            if let edit = expander.revert(before: textBeforeCaret) {
+            if let edit = expander.revert(before: textBeforeCaret, selected: selectedText) {
                 for _ in 0..<edit.deleteCount { editor.deleteBackward() }
                 editor.insertText(edit.insert)
             } else {
@@ -315,16 +337,23 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         if isActive { suggestions.refresh() }
     }
 
+    private var selectedText: String {
+        let text = editor.text as NSString, range = editor.selectedRange
+        guard range.location != NSNotFound && NSMaxRange(range) <= text.length else { return "" }
+        return text.substring(with: range)
+    }
+
     /// Swaps a just-finished shortcut for its expansion, before `trigger` is typed after it.
     private func expand(before trigger: String) {
         guard let edit = expander.expand(before: textBeforeCaret, trigger: trigger,
-                                         expansions: keyboard.preferences.shownExpansions) else { return }
+                                         expansions: keyboard.preferences.shownExpansions, selected: selectedText) else { return }
         for _ in 0..<edit.deleteCount { editor.deleteBackward() }
         editor.insertText(edit.insert)
         punctuationSpacing.reset()
     }
 
-    private func insert(_ value: String) {
+    @discardableResult
+    private func insert(_ value: String) -> String {
         let selection = editor.selectedRange
         if selection.length > 0 { punctuationSpacing.reset() }
         let context = (editor.text as NSString).substring(to: selection.location)
@@ -334,5 +363,6 @@ final class PreviewContainer: UIView, UITextViewDelegate {
                                            shortcutStarts: keyboard.preferences.shownExpansions.shortcutStarts)
         if edit.deleteBackward { editor.deleteBackward() }
         if !edit.text.isEmpty { editor.insertText(edit.text) }
+        return edit.text
     }
 }

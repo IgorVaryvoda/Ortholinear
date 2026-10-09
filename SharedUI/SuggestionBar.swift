@@ -197,24 +197,6 @@ enum TaughtWordStore {
     }
 }
 
-/// Text replacements and contact names from requestSupplementaryLexicon, which needs no Full Access.
-struct SupplementaryWords: Sendable {
-    var shortcuts: [String: String] = [:]
-    var names: [String] = []
-
-    init() {}
-    /// Entries whose input equals their text are names; the others are text replacements.
-    init(entries: [(input: String, text: String)]) {
-        for (input, text) in entries {
-            if input == text {
-                if SuggestionText.isWord(text) { names.append(text) }
-            } else if SuggestionText.isWord(input) {
-                shortcuts[SuggestionText.normalize(input)] = text
-            }
-        }
-    }
-}
-
 private struct SuggestionResponse: Sendable {
     var words: [WordSuggestion]
     var diagnostics: String = ""
@@ -247,8 +229,8 @@ private actor SuggestionWorker {
         return engine
     }
 
-    func suggest(snapshot: SuggestionSnapshot, learned: [String], names: [String], preferences: KeyboardPreferences, width: Double,
-                 alternate: KeyboardLanguage?, shortcut: String?) throws -> SuggestionResponse {
+    func suggest(snapshot: SuggestionSnapshot, learned: [String], supplementary: SupplementaryWords, preferences: KeyboardPreferences, width: Double,
+                 alternate: KeyboardLanguage?) throws -> SuggestionResponse {
         try Task.checkCancellation()
         let engine = try engine(snapshot.language)
         try Task.checkCancellation()
@@ -271,16 +253,7 @@ private actor SuggestionWorker {
                 words = [WordSuggestion(word: cased, kind: .correction, language: alternate)] + words.prefix(2)
             }
         }
-        // Contact names fill spare slots as completions, keeping their capitals; they never correct.
-        if words.count < 3, query.count >= 2, !target.selected, target.rightCount == 0 {
-            let taken = Set(words.map { SuggestionText.normalize($0.word) })
-            let matches = names.filter {
-                let name = SuggestionText.normalize($0)
-                return name.hasPrefix(query) && name != query && !taken.contains(name)
-            }
-            words += matches.sorted().prefix(3 - words.count).map { WordSuggestion(word: $0, kind: .completion) }
-        }
-        if let shortcut { words = [WordSuggestion(word: shortcut, kind: .replacement)] + words.prefix(2) }
+        words = supplementary.merged(into: words, target: target, language: snapshot.language)
         var response = SuggestionResponse(words: words)
         #if DEBUG
         timings.append((Date.timeIntervalSinceReferenceDate - began) * 1000)
@@ -312,23 +285,32 @@ private actor SuggestionWorker {
     func unload() { engines.removeAll() }
 }
 
+/// Where a glide will type. A decoded word goes in only if all of this is unchanged.
+struct GlideContext: Equatable {
+    var language: KeyboardLanguage
+    var before: String
+    var selection: String
+    var document: UUID?
+}
+
 @MainActor
 final class SuggestionCoordinator {
     private let worker = SuggestionWorker()
     private weak var keyboard: KeyboardView?
     private var task: Task<Void, Never>?
+    private var glideTask: Task<Void, Never>?
     private var generation = 0
     private var offered: SuggestionSnapshot?
     private var requested: SuggestionSnapshot?
     private var preferences: KeyboardPreferences?
     /// Alternatives to a glided word, offered while the text is exactly as it was inserted.
-    private var glideOffer: (snapshot: SuggestionSnapshot, words: [WordSuggestion])?
+    private var glideOffer: (snapshot: SuggestionSnapshot, inserted: String, words: [WordSuggestion])?
     private var sessionTip: KeyboardTip?
     private var tipChosen = false
     var snapshot: (() -> SuggestionSnapshot?)?
     /// Glide needs only the language and the text before the caret. Hosts report no context
     /// at all in an empty field, which rules out a suggestion snapshot but not a glide.
-    var glideContext: (() -> (language: KeyboardLanguage, before: String)?)?
+    var glideContext: (() -> GlideContext?)?
     var apply: ((SuggestionEdit, SuggestionSnapshot) -> Void)?
     /// Inserts a glided word with the host's spacing and Shift state; returns the text inserted.
     var insertWord: ((String) -> String?)?
@@ -338,8 +320,16 @@ final class SuggestionCoordinator {
     init(keyboard: KeyboardView) {
         self.keyboard = keyboard
         keyboard.suggestionBar.onSelect = { [weak self] suggestion in
-            guard let self, let offered = self.offered, let current = self.snapshot?(),
-                  let edit = SuggestionEdit.make(suggestion: suggestion, offered: offered, current: current) else { return }
+            guard let self else { return }
+            self.cancelGlide()
+            guard let offered = self.offered, let current = self.snapshot?() else { return }
+            let edit: SuggestionEdit?
+            if let offer = self.glideOffer, offer.snapshot == offered, offer.words.contains(suggestion) {
+                edit = SuggestionEdit.replacingGlide(suggestion, inserted: offer.inserted, offered: offered, current: current)
+            } else {
+                edit = SuggestionEdit.make(suggestion: suggestion, offered: offered, current: current)
+            }
+            guard let edit else { return }
             self.cancel()
             self.glideOffer = nil
             self.apply?(edit, current)
@@ -362,7 +352,10 @@ final class SuggestionCoordinator {
     }
 
     /// A new keyboard appearance may show a tip again, up to its limit.
-    func beginSession() { tipChosen = false; sessionTip = nil }
+    func beginSession() { cancelGlide(); tipChosen = false; sessionTip = nil }
+
+    /// Any input, or the keyboard leaving, makes a glide still being decoded land in the wrong place.
+    func cancelGlide() { glideTask?.cancel(); glideTask = nil }
 
     func suspend() {
         task?.cancel(); task = nil; generation += 1; offered = nil; requested = nil
@@ -372,6 +365,7 @@ final class SuggestionCoordinator {
         keyboard?.suggestionBar.show([], word: nil, learned: [])
     }
     func releaseMemory() {
+        cancelGlide()
         suspend()
         glideOffer = nil
         Task { await worker.unload() }
@@ -424,6 +418,7 @@ final class SuggestionCoordinator {
         let teachable = word.flatMap { SuggestionText.belongs($0, to: current.language) ? $0 : nil }
         let tip = tip(for: current, preferences: preferences)
         let token = generation, width = keyboard.bounds.width
+        let supplementary = self.supplementary
         guard current.language.dictionaryCode != nil else {
             // Apple's checker covers the other layouts, on the main actor it requires.
             task = Task { [weak self] in
@@ -431,7 +426,8 @@ final class SuggestionCoordinator {
                 guard let self, token == self.generation, self.snapshot?() == current, let keyboard = self.keyboard else { return }
                 let geometry = SuggestionGeometry(language: current.language, preferences: preferences, width: width)
                 let words = current.target.map {
-                    SystemSuggestions.suggest(target: $0, language: current.language, learned: learned, geometry: geometry)
+                    supplementary.merged(into: SystemSuggestions.suggest(target: $0, language: current.language, learned: learned, geometry: geometry),
+                                         target: $0, language: current.language)
                 } ?? []
                 self.offered = current
                 keyboard.suggestionBar.show(words, word: teachable, learned: learned, tip: tip)
@@ -439,13 +435,11 @@ final class SuggestionCoordinator {
             return
         }
         let alternate = alternate(to: current.language, preferences: preferences)
-        let shortcut = word.flatMap { supplementary.shortcuts[SuggestionText.normalize($0)] }
-        let names = supplementary.names.filter { SuggestionText.belongs($0, to: current.language) }
         task = Task { [weak self, worker] in
             do {
                 try await Task.sleep(for: .milliseconds(30))
-                let result = try await worker.suggest(snapshot: current, learned: learned, names: names, preferences: preferences,
-                                                      width: width, alternate: alternate, shortcut: shortcut)
+                let result = try await worker.suggest(snapshot: current, learned: learned, supplementary: supplementary, preferences: preferences,
+                                                      width: width, alternate: alternate)
                 try Task.checkCancellation()
                 guard let self, token == self.generation, self.snapshot?() == current else { return }
                 self.offered = current
@@ -459,23 +453,24 @@ final class SuggestionCoordinator {
     }
 
     private func glide(_ points: [CGPoint]) {
+        cancelGlide()
         guard let keyboard, let current = glideContext?(), current.language.dictionaryCode != nil else { return }
         let learned = TaughtWordStore.words(current.language)
         let preferences = keyboard.preferences, width = keyboard.bounds.width
         suspend()
         glideOffer = nil
-        Task { [weak self, worker] in
+        glideTask = Task { [weak self, worker] in
             guard let words = try? await worker.glide(points, language: current.language, learned: learned,
                                                       context: SuggestionText.context(current.before),
                                                       preferences: preferences, width: width),
-                  let self, let best = words.first,
+                  !Task.isCancelled, let self, self.glideContext?() == current, let best = words.first,
                   let inserted = self.insertWord?(best.word) else { return }
             // Alternatives need a snapshot to replace safely; without host context, only the word goes in.
             guard let after = self.snapshot?() else { self.refresh(force: true); return }
             let alternatives = words.dropFirst().map {
                 WordSuggestion(word: SuggestionText.cased($0.word, like: inserted, language: current.language), kind: .correction)
             }
-            if !alternatives.isEmpty { self.glideOffer = (after, Array(alternatives.prefix(3))) }
+            if !alternatives.isEmpty { self.glideOffer = (after, inserted, Array(alternatives.prefix(3))) }
             self.refresh(force: true)
         }
     }

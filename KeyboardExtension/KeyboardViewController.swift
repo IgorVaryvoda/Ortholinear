@@ -48,12 +48,18 @@ final class KeyboardViewController: UIInputViewController {
         suggestions.switchLanguage = { [weak self] in self?.switchLanguage(to: $0) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
         keyboard.onCursor = { [weak self] in
+            self?.suggestions.cancelGlide()
             self?.punctuationSpacing.reset()
-            self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0)
+            guard let proxy = self?.textDocumentProxy else { return }
+            proxy.adjustTextPosition(byCharacterOffset: TextNavigation.offset(
+                steps: $0,
+                before: proxy.documentContextBeforeInput ?? "",
+                after: proxy.documentContextAfterInput ?? ""
+            ))
             self?.updateAutoShift()
             self?.suggestions.refresh()
         }
-        keyboard.onDismiss = { [weak self] in self?.dismissKeyboard() }
+        keyboard.onDismiss = { [weak self] in self?.suggestions.cancelGlide(); self?.dismissKeyboard() }
         adoptLanguageSettings(PreferenceStore.load())
         inputState.language = Self.memory.fallback
         keyboard.inputState = inputState
@@ -88,9 +94,10 @@ final class KeyboardViewController: UIInputViewController {
         if keyboard.needsGlobe != needsInputModeSwitchKey { keyboard.needsGlobe = needsInputModeSwitchKey }
     }
 
-    override func textDidChange(_ textInput: (any UITextInput)?) { if !applyingSuggestion { synchronize() } }
+    override func textDidChange(_ textInput: (any UITextInput)?) { if !applyingSuggestion { suggestions.cancelGlide(); synchronize() } }
     override func selectionDidChange(_ textInput: (any UITextInput)?) {
         guard !applyingSuggestion else { return }
+        suggestions.cancelGlide()
         updateAutoShift()
         keyboard.inputState = inputState
         suggestions.refresh()
@@ -109,17 +116,27 @@ final class KeyboardViewController: UIInputViewController {
         let after = textDocumentProxy.documentContextAfterInput
         let selected = textDocumentProxy.selectedText ?? ""
         // A completely unavailable context is not a safe replacement target.
-        guard before != nil || after != nil || !selected.isEmpty else { return nil }
-        return .init(document: textDocumentProxy.documentIdentifier, before: before ?? "", after: after ?? "",
+        guard before != nil || after != nil || !selected.isEmpty, let document = documentIdentifier else { return nil }
+        return .init(document: document, before: before ?? "", after: after ?? "",
                      selection: selected, language: inputState.language)
     }
 
-    private func glideContext() -> (language: KeyboardLanguage, before: String)? {
+    /// documentIdentifier is nil while the proxy is between documents, despite its nonoptional
+    /// Swift type, and bridging that nil to UUID traps. Asking through Objective-C allows nil.
+    private var documentIdentifier: UUID? {
+        let getter = #selector(getter: UITextDocumentProxy.documentIdentifier)
+        guard textDocumentProxy.responds(to: getter) else { return nil }
+        return textDocumentProxy.perform(getter)?.takeUnretainedValue() as? UUID
+    }
+
+    private func glideContext() -> GlideContext? {
         guard isViewLoaded, view.window != nil, lastKeyboardType != nil else { return nil }
         let allowed = Self.suggestionTypes
         guard allowed.contains(textDocumentProxy.keyboardType ?? .default),
               textDocumentProxy.isSecureTextEntry != true else { return nil }
-        return (inputState.language, textDocumentProxy.documentContextBeforeInput ?? "")
+        return GlideContext(language: inputState.language,
+                            before: textDocumentProxy.documentContextBeforeInput ?? "",
+                            selection: textDocumentProxy.selectedText ?? "", document: documentIdentifier)
     }
 
     private func applySuggestion(_ edit: SuggestionEdit, snapshot: SuggestionSnapshot) {
@@ -131,7 +148,7 @@ final class KeyboardViewController: UIInputViewController {
         if edit.moveRight != 0 {
             textDocumentProxy.adjustTextPosition(byCharacterOffset: edit.moveRight)
             // Some hosts don't honor cursor movement. Never delete from the old caret.
-            let expected = snapshot.before + snapshot.after.prefix(edit.moveRight)
+            let expected = snapshot.before + edit.right
             guard textDocumentProxy.documentContextBeforeInput?.hasSuffix(expected.suffix(24)) == true else { return }
         }
         for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
@@ -288,6 +305,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func handle(_ action: KeyAction) {
+        suggestions.cancelGlide()
         switch action {
         case .text, .space, .enter, .backspace: break
         default: expander.forget()
@@ -296,17 +314,18 @@ final class KeyboardViewController: UIInputViewController {
         case .text(let value):
             let typed = inputState.consume(value)
             expand(before: typed)
-            insert(typed)
-        case .space: expand(before: " "); insert(" ")
+            expander.triggerTyped(as: insert(typed))
+        case .space: expand(before: " "); expander.triggerTyped(as: insert(" "))
         case .backspace:
             punctuationSpacing.reset()
-            if let edit = expander.revert(before: textDocumentProxy.documentContextBeforeInput ?? "") {
+            if let edit = expander.revert(before: textDocumentProxy.documentContextBeforeInput ?? "",
+                                           selected: textDocumentProxy.selectedText ?? "") {
                 for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
                 textDocumentProxy.insertText(edit.insert)
             } else {
                 textDocumentProxy.deleteBackward()
             }
-        case .enter: expand(before: "\n"); insert("\n")
+        case .enter: expand(before: "\n"); expander.triggerTyped(as: insert("\n"))
         case .shift:
             if inputState.page == .letters {
                 inputState.tapShift(at: Date.timeIntervalSinceReferenceDate)
@@ -342,16 +361,21 @@ final class KeyboardViewController: UIInputViewController {
         suggestions.refresh()
     }
 
+    private var hasSelection: Bool { !(textDocumentProxy.selectedText ?? "").isEmpty }
+
     /// Swaps a just-finished shortcut for its expansion, before `trigger` is typed after it.
     private func expand(before trigger: String) {
         guard let edit = expander.expand(before: textDocumentProxy.documentContextBeforeInput ?? "", trigger: trigger,
-                                         expansions: keyboard.preferences.shownExpansions) else { return }
+                                         expansions: keyboard.preferences.shownExpansions,
+                                         selected: textDocumentProxy.selectedText ?? "") else { return }
         for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }
         textDocumentProxy.insertText(edit.insert)
         punctuationSpacing.reset()
     }
 
-    private func insert(_ value: String) {
+    @discardableResult
+    private func insert(_ value: String) -> String {
+        if hasSelection { punctuationSpacing.reset() }
         let literal = Self.literalTypes.contains(textDocumentProxy.keyboardType ?? .default)
         let preferences = keyboard.preferences
         let edit = punctuationSpacing.edit(for: value, before: textDocumentProxy.documentContextBeforeInput,
@@ -361,6 +385,7 @@ final class KeyboardViewController: UIInputViewController {
                                            shortcutStarts: preferences.shownExpansions.shortcutStarts)
         if edit.deleteBackward { textDocumentProxy.deleteBackward() }
         if !edit.text.isEmpty { textDocumentProxy.insertText(edit.text) }
+        return edit.text
     }
 }
 
