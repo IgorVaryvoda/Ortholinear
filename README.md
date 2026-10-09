@@ -89,15 +89,16 @@ xcodebuild -project Ortholinear.xcodeproj -scheme Ortholinear \
 
 Core tests cover the complete Ukrainian alphabet, presets and preference migration, Shift and page-switch placement, action-key sizes, exhaustive sampled hit coverage across 320–1024 pt widths, visible-gap mode, and shift/caps transitions. UI tests exercise actual touch delivery in the preview, customization persistence, language switching, symbols, hold/quick symbol slides and cancellation, return, delete hold, cursor drag, punctuation hold, caps lock, onboarding, and landscape layout.
 
-For the separate system-extension integration test, use an English-language disposable simulator and turn off **Simulator → I/O → Keyboard → Connect Hardware Keyboard** so the software keyboard is visible:
+For the separate system-extension integration test, use an English-language disposable simulator and turn off **Simulator → I/O → Keyboard → Connect Hardware Keyboard** so the software keyboard is visible. A simulator run without Simulator.app ignores that setting and may minimize the keyboard off-screen; keep it up there instead:
 
 ```sh
+xcrun simctl spawn <udid> defaults write com.apple.keyboard.preferences AutomaticMinimizationEnabled -bool NO
 xcodebuild -project Ortholinear.xcodeproj -scheme OrtholinearSystemTests \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   -derivedDataPath build test
 ```
 
-This test enables Ortholinear in Settings, selects it with the system globe picker, types into a real host field, and verifies that the extension reads a changed key height from the app's shared container. It leaves the extension enabled and retains its test preferences on that disposable simulator.
+This test enables Ortholinear in Settings, selects it with the system globe picker, types into a real host field, moves between number, decimal, phone, URL and text fields with the keyboard open, and verifies that the extension reads a changed key height from the app's shared container. It leaves the extension enabled and retains its test preferences on that disposable simulator.
 
 See [device checks](docs/DEVICE-CHECKS.md) for the remaining checks before distribution.
 

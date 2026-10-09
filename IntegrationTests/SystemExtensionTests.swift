@@ -182,6 +182,92 @@ final class SystemExtensionTests: XCTestCase {
         app.buttons["Done"].tap()
     }
 
+    /// Moving between kinds of fields with the keyboard open, including fields iOS gives its
+    /// own keyboard, while a suggestion lookup may still be in flight.
+    @MainActor
+    func testInstalledKeyboardSurvivesFieldTypes() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-no-auto-capitals", "-no-keyboard-tips", "-field-types"]
+        app.launch()
+        XCUIDevice.shared.orientation = .portrait
+        tapOnMainPage("system-test", in: app)
+        let surface = app.otherElements["system-keyboard-surface"]
+        let editor = app.textViews["system-editor"]
+        let next = app.textFields["field-0"], number = app.textFields["field-1"], decimal = app.textFields["field-2"]
+        let phone = app.textFields["field-3"], url = app.textFields["field-4"], mixed = app.textFields["field-5"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        func chooseOrtholinear() {
+            guard !surface.waitForExistence(timeout: 2) else { return }
+            app.buttons["Next keyboard"].press(forDuration: 1)
+            let option = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Ortholinear'")).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
+            option.tap()
+            XCTAssertTrue(surface.waitForExistence(timeout: 8), app.debugDescription)
+        }
+        editor.tap()
+        chooseOrtholinear()
+        if surface.buttons["key-Switch to English"].exists { surface.buttons["key-Switch to English"].tap() }
+        func alive(_ message: String, file: StaticString = #filePath, line: UInt = #line) {
+            XCTAssertTrue(surface.waitForExistence(timeout: 5), "The keyboard went away: \(message)", file: file, line: line)
+        }
+        func type(_ text: String) { for key in text { surface.buttons["key-\(key)"].tap() } }
+
+        // A word in progress loads the dictionary and leaves a lookup pending as focus moves.
+        type("hel")
+        number.tap()
+        alive("Number field after typing a word")
+        XCTAssertTrue(surface.buttons["key-1"].waitForExistence(timeout: 3), "A number field opens on the numbers page")
+        type("42")
+        XCTAssertEqual(number.value as? String, "42")
+        surface.buttons["key-Letters"].tap()
+        type("a")
+        surface.buttons["key-Delete"].tap()
+        XCTAssertEqual(number.value as? String, "42")
+
+        decimal.tap()
+        alive("Decimal field")
+        type("3.5")
+        XCTAssertEqual(decimal.value as? String, "3.5")
+
+        // Return moving focus into a number field reconfigures the keyboard mid-keystroke.
+        next.tap()
+        alive("Text field")
+        type("ab")
+        surface.buttons["key-Return"].tap()
+        alive("Return moved focus into the number field")
+        XCTAssertTrue(surface.buttons["key-1"].waitForExistence(timeout: 3), "Focus moved to a number field")
+        type("7")
+
+        // Quick hops with lookups pending.
+        for round in 0..<6 {
+            editor.tap()
+            alive("Editor, round \(round)")
+            if surface.buttons["key-Letters"].exists { surface.buttons["key-Letters"].tap() }
+            type("th")
+            [number, decimal, url, mixed, next][round % 5].tap()
+            alive("Hop \(round)")
+            surface.buttons["key-Delete"].press(forDuration: 0.8)
+        }
+
+        // iOS shows its own keyboard for phone fields, and may keep it for the next field.
+        // Ortholinear must still work once chosen again.
+        phone.tap()
+        url.tap()
+        chooseOrtholinear()
+        alive("URL field after the phone pad")
+        type("a")
+        XCTAssertEqual(url.value as? String, "a")
+        editor.tap()
+        alive("Editor at the end")
+        // Leave the editor's remembered language as the other tests expect it.
+        if surface.buttons["key-Switch to Українська"].exists { surface.buttons["key-Switch to Українська"].tap() }
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Keyboard after field hopping"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["Done"].tap()
+    }
+
     @MainActor
     private func forgetRememberedLanguages(in app: XCUIApplication) {
         func scroll(to element: XCUIElement, in form: XCUIElement) {
@@ -278,7 +364,10 @@ final class SystemExtensionTests: XCTestCase {
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
         editor.tap()
         let surface = app.otherElements["system-keyboard-surface"]
-        if surface.buttons["key-Switch to Українська"].exists { surface.buttons["key-Switch to Українська"].tap() }
+        // The editor may remember English from an earlier test; check once the keyboard is up.
+        if surface.waitForExistence(timeout: 3), surface.buttons["key-Switch to Українська"].exists {
+            surface.buttons["key-Switch to Українська"].tap()
+        }
         let ukrainianKey = surface.buttons["key-ф"]
         if !ukrainianKey.waitForExistence(timeout: 2) {
             let globe = app.buttons["Next keyboard"]
