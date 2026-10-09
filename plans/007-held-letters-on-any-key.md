@@ -55,6 +55,10 @@ init(language: KeyboardLanguage, preferences: KeyboardPreferences, width: Double
 - `Key.alternatives` (`Core/KeyboardModel.swift`) returns a custom key's own holds when given.
 - `Core/GlideDecoder.swift` rejects a candidate whose alphabetic scalars have no key position.
 - `Core/LayoutRecovery.swift` excludes `heldLetters` from nearest-key targets (keep that).
+- Known side effect: built-in apostrophe keys hold `ʼ` (U+02BC, a modifier *letter*), so after this
+  change `ʼ` gets the apostrophe key's center in layouts that have that key (e.g. French). Typing
+  behavior is unaffected because suggestion text is normalized (`ʼ` → `'`); the STOP condition below is
+  about accuracy/benchmark assertions, not geometry identity.
 - Test pattern: `Tests/CustomLayoutTests.swift` `testCustomLayoutDrivesTouchSuggestionsAndGlide`:
   ```swift
   var layout = CustomLetterLayout(builtIn: .english)
@@ -104,6 +108,12 @@ Add `testLettersHeldOnPunctuationKeysArePlaced` to `Tests/CustomLayoutTests.swif
 - `XCTAssertTrue(layout.isUsable(for: .english))`.
 - `custom.centers["q"] == builtIn.centers["q"]`, `custom.isAlternative("q")` is true.
 - `GlideDecoder.keyPath("quit", geometry: custom)` is not nil.
+- Hold precedence (letter-key holds beat non-letter-key holds even when the non-letter key comes
+  first in row order — a single row-order pass would get this wrong): start from
+  `CustomLetterLayout(builtIn: .english)`; set `layout.rows[0][0] = CustomKey("@", alternatives: ["q", "x"])`
+  (row 0, before everything); remove the `x` key from its row (`layout.rows[r].removeAll { $0.output == "x" }`);
+  replace the `m` key with `CustomKey("m", alternatives: ["m", "x"])`. Assert the layout is usable and
+  `custom.centers["x"] == custom.centers["m"]` (the letter key's center, not the `@` key's).
 - A letter that has its own key AND is held on a `#` key keeps its own key's center
   (e.g. also add `"e"` to the `#` key's alternatives and assert `custom.centers["e"] == builtIn.centers["e"]`
   and `custom.isAlternative("e")` is false).
@@ -123,7 +133,7 @@ layouts); commit; `git status --porcelain` → empty.
 ## STOP conditions
 
 - The init doesn't match the excerpt.
-- Any accuracy or benchmark assertion in `GlideTests`, `SuggestionTests` or `KeyboardCoreTests`
+- Any accuracy, benchmark, or other pre-existing assertion in `GlideTests`, `SuggestionTests` or `KeyboardCoreTests`
   fails after the change (built-in layouts must be unaffected — their held letters are all on letter keys).
 - `CustomKey("#", alternatives: ["q"])` layout is not usable (validation disagrees with this plan's premise).
 

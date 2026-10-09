@@ -109,6 +109,8 @@ In `Tests/TextNavigationTests.swift` add `testCursorStepsCrossWholeCharacters`:
 - `offset(steps: 2, before: "", after: "ab")` == `2`
 - `offset(steps: -3, before: "a", after: "")` == `-3` (1 known + 2 fallback units)
 - `offset(steps: 0, before: "abc", after: "def")` == `0`
+- `offset(steps: 3, before: "", after: "a")` == `3` (rightward fallback)
+- `offset(steps: -2, before: "", after: "")` == `-2` and `offset(steps: 2, before: "", after: "")` == `2` (no context: today's behavior)
 
 **Verify**: `swift test --filter TextNavigationTests` → exit 0.
 
@@ -137,8 +139,10 @@ In `Tests/TextNavigationTests.swift` add `testCursorStepsCrossWholeCharacters`:
 
 - Excerpts don't match beyond expected drift.
 - If xcodebuild fails for environment reasons (sandbox denial, missing SDK, cannot write
-  outside the worktree) rather than compile errors in files you touched, do NOT stop: record the
-  exact error in NOTES and continue.
+  outside the worktree) rather than compile errors in files you touched, do NOT stop: finish the
+  remaining steps and commit, then in NOTES write `BUILD UNVERIFIED:` followed by the exact error.
+  The plan is not accepted until the reviewer gets a successful xcodebuild; NOTES belong in your
+  final report, not in any file.
 
 ## Maintenance notes
 

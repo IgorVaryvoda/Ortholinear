@@ -164,10 +164,13 @@ Add to `SuggestionEdit`:
 static func replacingGlide(_ suggestion: WordSuggestion, inserted: String,
                            offered: SuggestionSnapshot, current: SuggestionSnapshot) -> Self?
 ```
-Return nil unless `offered == current`, `current.selection.isEmpty`, `!inserted.isEmpty`,
-`current.before.hasSuffix(inserted)`, and `SuggestionText.isWord(suggestion.word)`. Otherwise
-return an edit with `left = inserted`, `right = ""`, `replaceSelection = false`,
-`text = suggestion.word` (no added space).
+Return nil unless `offered == current`, `current.selection.isEmpty`, `!inserted.isEmpty`, and
+`SuggestionText.isWord(suggestion.word)`. Then take the document's own text:
+`let left = String(current.before.suffix(inserted.count))` and return nil unless
+`left.unicodeScalars.elementsEqual(inserted.unicodeScalars)` — compare scalars, not `==`/`hasSuffix`,
+because Swift string equality is canonical (`ї` equals `і`+U+0308) while their UTF-16 lengths differ,
+and the preview converts `left` to a UTF-16 range. Return an edit with this `left`, `right = ""`,
+`replaceSelection = false`, `text = suggestion.word` (no added space).
 
 **Verify**: `swift test --filter SuggestionTests` → exit 0.
 
@@ -195,7 +198,10 @@ In `SharedUI/SuggestionBar.swift`:
   `length = edit.left.utf16.count + edit.right.utf16.count`. Guard
   `snapshot.before.hasSuffix(edit.left) && snapshot.after.hasPrefix(edit.right)`; keep the
   `suggestionSnapshot() == snapshot` guard; drop the now-unused `target` binding.
-  Keep the caret placement after `range.location + edit.text.utf16.count`.
+  Keep the caret placement after `range.location + edit.text.utf16.count`. Use scalar-wise
+  comparison for these two guards too (`snapshot.before.unicodeScalars.reversed().starts(with: edit.left.unicodeScalars.reversed())`,
+  `snapshot.after.unicodeScalars.starts(with: edit.right.unicodeScalars)`), since `make` derives `left`/`right`
+  from the snapshot itself and they must match its exact encoding.
 
 **Verify**: xcodebuild command → exit 0.
 
@@ -207,8 +213,9 @@ In `Tests/SuggestionTests.swift` add:
   `left == "ca"`. (If `snapshot("ca", after: "fe\u{301}").target` turns out nil, STOP and report.)
 - `testGlideAlternativesReplaceOnlyTheGlidedWord`: `let s = snapshot("the hello", after: "cat")`;
   `replacingGlide(WordSuggestion(word: "help", kind: .correction), inserted: "hello", offered: s, current: s)`
-  → `deleteCount == 5`, `moveRight == 0`, `text == "help"`. Nil when `inserted: "world"`, when the
-  snapshot has a selection, and when `offered != current`.
+  → `deleteCount == 5`, `moveRight == 0`, `left == "hello"`, `text == "help"`. Nil when `inserted: "world"`, when the
+  snapshot has a selection, and when `offered != current`. Nil when the document holds a canonically equal
+  but differently encoded word: `snapshot("the \u{0456}\u{0308}де")` with `inserted: "\u{0457}де"`.
 
 **Verify**: `swift test --filter SuggestionTests` → exit 0 with the new tests.
 
@@ -229,8 +236,10 @@ In `Tests/SuggestionTests.swift` add:
 - Excerpts don't match (beyond the expected plan 001–002 drift).
 - The `left`/`right` change forces edits to `SuggestionSnapshot.target` or other out-of-scope code.
 - If xcodebuild fails for environment reasons (sandbox denial, missing SDK, cannot write
-  outside the worktree) rather than compile errors in files you touched, do NOT stop: record the
-  exact error in NOTES and continue.
+  outside the worktree) rather than compile errors in files you touched, do NOT stop: finish the
+  remaining steps and commit, then in NOTES write `BUILD UNVERIFIED:` followed by the exact error.
+  The plan is not accepted until the reviewer gets a successful xcodebuild; NOTES belong in your
+  final report, not in any file.
 
 ## Maintenance notes
 

@@ -34,7 +34,7 @@ Automatic punctuation spacing is on by default. It breaks three documented behav
    `(;shrug` to expand), but spacing only skips the automatic space after `;` at the start of the
    text or after whitespace. Probe: `edit(for: ";", before: "(", enabled: true, shortcutStarts: [";"]).text`
    is `"; "`, so `(;mail` becomes `(; mail` and never expands.
-3. **Closing quotes after a suggestion's space.** README: "Between words, the suggestion row
+3. **Closing guillemets/quotes after a suggestion's space.** README: "Between words, the suggestion row
    shows `. , ? ! :` and `« »` (Cyrillic) or `- "` (Latin) ... Marks attach to the word, even
    after a suggestion added a space." Accepting a suggestion inside `«прив` gives `«привіт `
    (the keyboard owns that space); tapping `»` then gives `«привіт »` because `»` is not in the
@@ -159,11 +159,11 @@ mutating func triggerTyped(as output: String) {
 
 In `PunctuationSpacing.edit`, treat a *closing* mark like this: when `ownsSpace` is true and the
 value is a closer, remove the owned space (`deleteBackward: true`) and output the mark with no
-added space and no new ownership. Closers: `»`, `”`, and `"` only when the context before
-(after dropping the owned space) contains an odd number of `"` on its current line (text after
-the last `"\n"`), i.e. it closes an open quote. Implement as a small private helper, e.g.
-`private static func closes(_ value: String, after text: String) -> Bool`.
-Everything else (including the hyphen and an opening `"`) behaves exactly as today.
+added space and no new ownership. Closers are exactly `»` and `”` — marks that can only close.
+The straight `"` is NOT a closer: whether it opens or closes can't be told safely from context a
+host may truncate, and wrongly treating an opening `"` as closing would delete a real space.
+Use a small `private static let closers: Set<String> = ["»", "”"]`.
+Everything else (including the hyphen and `"`) behaves exactly as today.
 
 **Verify**: `swift test --filter PunctuationSpacingTests` → exit 0.
 
@@ -190,8 +190,9 @@ Add to `Tests/PunctuationSpacingTests.swift`:
   `"«"` and `"\""` before, while `before: "x"` still gives `"; "`.
 - After `adoptSpace(before: "«привіт ")`, `edit(for: "»", before: "«привіт ", enabled: true)` ==
   `.init(deleteBackward: true, text: "»")`.
-- After `adoptSpace(before: "say \"hello ")`, `edit(for: "\"", ...)` removes the space;
-  after `adoptSpace(before: "say hello ")`, `edit(for: "\"", ...)` == `.init(deleteBackward: false, text: "\"")`.
+- After `adoptSpace(before: "say “hello ")`, `edit(for: "”", ...)` == `.init(deleteBackward: true, text: "”")`.
+- After `adoptSpace(before: "say \"hello ")`, `edit(for: "\"", ...)` == `.init(deleteBackward: false, text: "\"")` (straight quote unchanged).
+- With no owned space (`PunctuationSpacing()` fresh), `edit(for: "»", before: "привіт ", enabled: true)` == `.init(deleteBackward: false, text: "»")`.
 - After `adoptSpace(before: "word ")`, `edit(for: "-", ...)` == `.init(deleteBackward: false, text: "-")` (unchanged).
 - After `adoptSpace(before: "привіт ")`, `edit(for: "«", ...)` keeps the space (`deleteBackward: false`).
 
@@ -215,12 +216,14 @@ Add to `Tests/PunctuationSpacingTests.swift`:
 - The live code doesn't match the excerpts (beyond plan 001's expected changes).
 - Any pre-existing test in `PunctuationSpacingTests` or `TextExpansionTests` must be changed to pass — stop, that means behavior beyond this plan changed.
 - If xcodebuild fails for environment reasons (sandbox denial, missing SDK, cannot write
-  outside the worktree) rather than compile errors in files you touched, do NOT stop: record the
-  exact error in NOTES and continue.
+  outside the worktree) rather than compile errors in files you touched, do NOT stop: finish the
+  remaining steps and commit, then in NOTES write `BUILD UNVERIFIED:` followed by the exact error.
+  The plan is not accepted until the reviewer gets a successful xcodebuild; NOTES belong in your
+  final report, not in any file.
 
 ## Maintenance notes
 
 - `TextExpander.isShortcutBoundary` is now the single definition of where a shortcut may start;
   spacing and expansion must keep agreeing.
-- The `"` closer rule is a heuristic (odd count on the current line). Hosts may share truncated
-  context; worst case is today's behavior (space kept).
+- Only unambiguous closers (`»`, `”`) attach; the straight `"` keeps today's behavior because
+  its role can't be determined from possibly truncated host context.

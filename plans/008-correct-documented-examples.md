@@ -80,7 +80,7 @@ in `[375.0, 393.0, 430.0, 820.0]`, with default `KeyboardPreferences()`,
 
 Replace `ghbdsn` with `ghvdsb` in the four places quoted above. In `README.md:50` and
 `SUPPORT.md:25`, add a short clause that recovery follows key positions on this keyboard, e.g.
-"such as “ghvdsb” (the keys where привіт sits) while English is active". Keep the in-app string
+"such as “ghvdsb” (the keys where привіт sits on the default layout) while English is active". Keep the in-app string
 short; just swap the word.
 
 **Verify**: `grep -rn "ghbdsn" README.md SUPPORT.md App Core` → no matches;
@@ -88,7 +88,7 @@ short; just swap the word.
 
 ### Step 3: Describe the suggestion row accurately
 
-Rewrite `README.md:47` so it says: with no word suggestions, the row shows `. , ? ! :` and
+Rewrite `README.md:47` so it says: when the row is otherwise idle (no words, tip, or message), it shows `. , ? ! :` and
 `« »` (Cyrillic) or `- "` (Latin); while next-word predictions show, `. , ?` stay at the right so
 a period is still one tap. Keep the final sentence about marks attaching to the word.
 
@@ -109,6 +109,9 @@ xcodebuild → exit 0; commit; `git status --porcelain` → empty.
 
 - `recover("ghvdsb", ...)` is not `"привіт"` at any listed width.
 - Any in-scope file differs from the quoted lines (other than expected test additions).
+- If xcodebuild fails for environment reasons (sandbox denial, missing SDK, cannot write
+  outside the worktree), do NOT stop: finish and commit, then in NOTES write `BUILD UNVERIFIED:` and
+  the exact error. The plan is not accepted until the reviewer gets a successful xcodebuild.
 
 ## Maintenance notes
 

@@ -159,8 +159,10 @@ and a second glide (previous task cancelled).
 - The excerpts don't match beyond plan 003's expected changes.
 - Swift 6 concurrency errors appear that can't be fixed inside `SuggestionCoordinator`.
 - If xcodebuild fails for environment reasons (sandbox denial, missing SDK, cannot write
-  outside the worktree) rather than compile errors in files you touched, do NOT stop: record the
-  exact error in NOTES and continue.
+  outside the worktree) rather than compile errors in files you touched, do NOT stop: finish the
+  remaining steps and commit, then in NOTES write `BUILD UNVERIFIED:` followed by the exact error.
+  The plan is not accepted until the reviewer gets a successful xcodebuild; NOTES belong in your
+  final report, not in any file.
 
 ## Maintenance notes
 

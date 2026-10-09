@@ -134,7 +134,8 @@ In `Tests/SuggestionTests.swift` add `testSupplementaryWordsJoinAnyLanguage`:
   starts with `WordSuggestion(word: "On my way!", kind: .replacement)`.
 - With `snapshot("mar", language: .french).target!` and `into: []`, the result contains
   `WordSuggestion(word: "Marie", kind: .completion)`.
-- With `snapshot("мар", language: .ukrainian).target!` and `into: []`, the result is empty (`Marie` is not in that alphabet).
+- With `snapshot("mar", language: .ukrainian).target!` and `into: []`, the result does not contain `Marie`
+  (the prefix matches, so only the alphabet filter can exclude it). If that snapshot has no target, STOP.
 
 **Verify**: `swift test --filter SuggestionTests` → exit 0.
 
@@ -155,8 +156,10 @@ In `Tests/SuggestionTests.swift` add `testSupplementaryWordsJoinAnyLanguage`:
 - Excerpts don't match beyond expected drift.
 - Existing suggestion tests change results (the English/Ukrainian behavior must be identical).
 - If xcodebuild fails for environment reasons (sandbox denial, missing SDK, cannot write
-  outside the worktree) rather than compile errors in files you touched, do NOT stop: record the
-  exact error in NOTES and continue.
+  outside the worktree) rather than compile errors in files you touched, do NOT stop: finish the
+  remaining steps and commit, then in NOTES write `BUILD UNVERIFIED:` followed by the exact error.
+  The plan is not accepted until the reviewer gets a successful xcodebuild; NOTES belong in your
+  final report, not in any file.
 
 ## Maintenance notes
 

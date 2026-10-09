@@ -186,8 +186,10 @@ and to `expander.revert` (in `.backspace`), using
 - Making the change appears to require editing `Core/PunctuationSpacing.swift` or any out-of-scope file.
 - An existing test in `TextExpansionTests` or `PunctuationSpacingTests` fails after your change and the fix is not obvious.
 - If xcodebuild fails for environment reasons (sandbox denial, missing SDK, cannot write
-  outside the worktree) rather than compile errors in files you touched, do NOT stop: record the
-  exact error in NOTES and continue.
+  outside the worktree) rather than compile errors in files you touched, do NOT stop: finish the
+  remaining steps and commit, then in NOTES write `BUILD UNVERIFIED:` followed by the exact error.
+  The plan is not accepted until the reviewer gets a successful xcodebuild; NOTES belong in your
+  final report, not in any file.
 
 ## Maintenance notes
 
