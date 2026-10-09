@@ -44,12 +44,18 @@ struct TextExpander: Sendable {
     /// What may come right before a shortcut, besides the start of the text and white space.
     private static let openers: Set<Character> = ["(", "[", "{", "\"", "'", "«", "„", "“", "‘"]
 
+    /// What may come right before a shortcut: the start of the text, white space, or an opener.
+    static func isShortcutBoundary(_ character: Character?) -> Bool {
+        guard let character else { return true }
+        return character.isWhitespace || openers.contains(character)
+    }
+
     struct Edit: Equatable, Sendable {
         let deleteCount: Int
         let insert: String
     }
 
-    private var undo: (typed: String, inserted: String)?
+    private var undo: (typed: String, expansion: String, inserted: String)?
 
     /// Before `trigger` is typed: the edit that swaps a finished shortcut for its expansion.
     /// Shortcuts match regardless of case, so an automatic capital doesn't stop them.
@@ -62,11 +68,17 @@ struct TextExpander: Sendable {
         for expansion in candidates where lowered.hasSuffix(expansion.abbreviation.lowercased()) {
             let typed = String(before.suffix(expansion.abbreviation.count))
             let boundary = before.dropLast(typed.count).last
-            guard boundary == nil || boundary!.isWhitespace || Self.openers.contains(boundary!) else { continue }
-            undo = (typed, expansion.expansion + trigger)
+            guard Self.isShortcutBoundary(boundary) else { continue }
+            undo = (typed, expansion.expansion, expansion.expansion + trigger)
             return Edit(deleteCount: typed.count, insert: expansion.expansion)
         }
         return nil
+    }
+
+    /// The trigger as it actually went in, such as ". " once automatic spacing added a space.
+    mutating func triggerTyped(as output: String) {
+        guard let pending = undo else { return }
+        undo = (pending.typed, pending.expansion, pending.expansion + output)
     }
 
     /// When Delete comes right after an expansion: the edit that puts the shortcut back.

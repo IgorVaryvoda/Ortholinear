@@ -296,8 +296,8 @@ final class KeyboardViewController: UIInputViewController {
         case .text(let value):
             let typed = inputState.consume(value)
             expand(before: typed)
-            insert(typed)
-        case .space: expand(before: " "); insert(" ")
+            expander.triggerTyped(as: insert(typed))
+        case .space: expand(before: " "); expander.triggerTyped(as: insert(" "))
         case .backspace:
             punctuationSpacing.reset()
             if let edit = expander.revert(before: textDocumentProxy.documentContextBeforeInput ?? "",
@@ -307,7 +307,7 @@ final class KeyboardViewController: UIInputViewController {
             } else {
                 textDocumentProxy.deleteBackward()
             }
-        case .enter: expand(before: "\n"); insert("\n")
+        case .enter: expand(before: "\n"); expander.triggerTyped(as: insert("\n"))
         case .shift:
             if inputState.page == .letters {
                 inputState.tapShift(at: Date.timeIntervalSinceReferenceDate)
@@ -355,7 +355,8 @@ final class KeyboardViewController: UIInputViewController {
         punctuationSpacing.reset()
     }
 
-    private func insert(_ value: String) {
+    @discardableResult
+    private func insert(_ value: String) -> String {
         if hasSelection { punctuationSpacing.reset() }
         let literal = Self.literalTypes.contains(textDocumentProxy.keyboardType ?? .default)
         let preferences = keyboard.preferences
@@ -366,6 +367,7 @@ final class KeyboardViewController: UIInputViewController {
                                            shortcutStarts: preferences.shownExpansions.shortcutStarts)
         if edit.deleteBackward { textDocumentProxy.deleteBackward() }
         if !edit.text.isEmpty { textDocumentProxy.insertText(edit.text) }
+        return edit.text
     }
 }
 

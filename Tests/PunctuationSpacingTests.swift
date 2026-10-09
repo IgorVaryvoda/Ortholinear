@@ -72,6 +72,37 @@ final class PunctuationSpacingTests: XCTestCase {
         XCTAssertEqual(spacing.edit(for: ".", before: "Hello ", enabled: false), .init(text: "."), "Automatic spacing off")
     }
 
+    func testClosingQuotesAttachOnlyToOwnedSpaces() {
+        var spacing = PunctuationSpacing()
+        spacing.adoptSpace(before: "«привіт ")
+        XCTAssertEqual(spacing.edit(for: "»", before: "«привіт ", enabled: true),
+                       .init(deleteBackward: true, text: "»"))
+        spacing.adoptSpace(before: "say “hello ")
+        XCTAssertEqual(spacing.edit(for: "”", before: "say “hello ", enabled: true),
+                       .init(deleteBackward: true, text: "”"))
+        spacing.adoptSpace(before: "say \"hello ")
+        XCTAssertEqual(spacing.edit(for: "\"", before: "say \"hello ", enabled: true),
+                       .init(deleteBackward: false, text: "\""))
+
+        var fresh = PunctuationSpacing()
+        XCTAssertEqual(fresh.edit(for: "»", before: "привіт ", enabled: true),
+                       .init(deleteBackward: false, text: "»"))
+        spacing.adoptSpace(before: "word ")
+        XCTAssertEqual(spacing.edit(for: "-", before: "word ", enabled: true),
+                       .init(deleteBackward: false, text: "-"))
+        spacing.adoptSpace(before: "привіт ")
+        XCTAssertEqual(spacing.edit(for: "«", before: "привіт ", enabled: true),
+                       .init(deleteBackward: false, text: "«"))
+    }
+
+    func testShortcutMarksAfterOpenersGetNoSpace() {
+        var spacing = PunctuationSpacing()
+        for before in ["(", "«", "\""] {
+            XCTAssertEqual(spacing.edit(for: ";", before: before, enabled: true, shortcutStarts: [";"]).text, ";")
+        }
+        XCTAssertEqual(spacing.edit(for: ";", before: "x", enabled: true, shortcutStarts: [";"]).text, "; ")
+    }
+
     func testAutomaticCapitalsFollowTheFieldTrait() {
         let sentences = AutoCapitalization.sentences
         for before in [nil, "", "Так. ", "Що?  ", "Ура! ", "Line\n", "One.\n  ", "“Так.” ", "(so.) ", "   "] as [String?] {

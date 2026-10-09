@@ -36,6 +36,23 @@ final class TextExpansionTests: XCTestCase {
         XCTAssertNil(expander.revert(before: "be right back x"), "The text changed some other way")
     }
 
+    func testUndoAfterPunctuationThatGotASpace() throws {
+        var expander = TextExpander()
+        var text = "brb"
+        let expansion = try XCTUnwrap(expander.expand(before: text, trigger: ".", expansions: expansions))
+        text = String(text.dropLast(expansion.deleteCount)) + expansion.insert
+        var spacing = PunctuationSpacing()
+        let trigger = spacing.edit(for: ".", before: text, enabled: true)
+        if trigger.deleteBackward { text.removeLast() }
+        text += trigger.text
+        expander.triggerTyped(as: trigger.text)
+        XCTAssertEqual(text, "be right back. ")
+        XCTAssertEqual(expander.revert(before: text), .init(deleteCount: 15, insert: "brb"))
+
+        _ = expander.expand(before: "brb", trigger: " ", expansions: expansions)
+        XCTAssertEqual(expander.revert(before: "be right back "), .init(deleteCount: 14, insert: "brb"))
+    }
+
     func testSelectionIsNeverExpandedOrReverted() {
         var expander = TextExpander()
         XCTAssertNil(expander.expand(before: "brb", trigger: " ", expansions: expansions, selected: "XYZ"))

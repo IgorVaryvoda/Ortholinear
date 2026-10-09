@@ -270,9 +270,9 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         case .text(let value):
             let typed = state.consume(value)
             expand(before: typed)
-            insert(typed)
-        case .space: expand(before: " "); insert(" ")
-        case .enter: expand(before: "\n"); insert("\n")
+            expander.triggerTyped(as: insert(typed))
+        case .space: expand(before: " "); expander.triggerTyped(as: insert(" "))
+        case .enter: expand(before: "\n"); expander.triggerTyped(as: insert("\n"))
         case .backspace:
             punctuationSpacing.reset()
             if let edit = expander.revert(before: textBeforeCaret, selected: selectedText) {
@@ -330,7 +330,8 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         punctuationSpacing.reset()
     }
 
-    private func insert(_ value: String) {
+    @discardableResult
+    private func insert(_ value: String) -> String {
         let selection = editor.selectedRange
         if selection.length > 0 { punctuationSpacing.reset() }
         let context = (editor.text as NSString).substring(to: selection.location)
@@ -340,5 +341,6 @@ final class PreviewContainer: UIView, UITextViewDelegate {
                                            shortcutStarts: keyboard.preferences.shownExpansions.shortcutStarts)
         if edit.deleteBackward { editor.deleteBackward() }
         if !edit.text.isEmpty { editor.insertText(edit.text) }
+        return edit.text
     }
 }
