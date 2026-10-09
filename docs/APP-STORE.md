@@ -178,14 +178,15 @@ New languages and layouts:
 
 ## Submission status
 
-Version **0.6.0 (21)** and the in-app purchase **Ortholinear Pro** were submitted to App Review together on October 6, 2026, with automatic release after approval. App Store Connect reports **Waiting for Review** for both. Version 0.5.0 (20) is live (Ready for Distribution).
+Version **0.6.1 (22)** was submitted to App Review on October 9, 2026, with automatic release after approval; App Store Connect reports **Waiting for Review**. Version 0.6.0 (21) is live (Ready for Distribution). Build 22 is the Pro edition archived in Release from `OrtholinearPro` at public commit `ddf8bd3`, then uploaded with the Admin API key; the version, its What's New, the build, the review details carried over from 0.6.0, and the submission were all created through the API. Submission ID: `21267706-45b6-4c76-bf21-f8b7d4bfaacf`. Version ID: `96b429fb-1742-4cab-835b-9994f70b1cb7`. Build ID: `9f2a85b4-e5e8-40ee-afdc-5b442bb1a766`.
 
-Build 21 is the private Pro edition, archived in Release from `OrtholinearPro` (`project.pro.yml`, public commit `25fd695`), then signed and uploaded with the team's Admin App Store Connect API key; it processed as valid. The in-app purchase, its price, availability, localizations and review screenshot, the version, its listing text and review notes, and the draft review submission were all created through the API. Apple accepts a first non-consumable only alongside an app version and offers no API to attach it, so the purchase was added to the draft with **Add for Review** on its App Store Connect page (driven through Chrome's DevTools protocol), then submitted there.
+Version 0.6.0 (21) and the in-app purchase **Ortholinear Pro** were submitted to App Review together on October 6, 2026, with automatic release after approval. Build 21 is the private Pro edition, archived in Release from `OrtholinearPro` (`project.pro.yml`, public commit `25fd695`), then signed and uploaded with the team's Admin App Store Connect API key; it processed as valid. The in-app purchase, its price, availability, localizations and review screenshot, the version, its listing text and review notes, and the draft review submission were all created through the API. Apple accepts a first non-consumable only alongside an app version and offers no API to attach it, so the purchase was added to the draft with **Add for Review** on its App Store Connect page (driven through Chrome's DevTools protocol), then submitted there.
 
 Submission ID: `59c93210-9f3e-47f2-9bf9-fa1dd97bf714`. Version ID: `f36aea49-221c-476a-8c03-f52b8abe9de8`. Build ID: `c1687c40-c11a-49d9-ad64-5ce4e046ee54`. In-app purchase: `6819696774`. Version 0.5.0 (20): version `694585a5-a059-469a-9c2d-960aa5e5036c`, submission `73258f3a-28cf-42eb-8f3d-637fa92e36b2`. Version 0.4.0 (19): version `77413922-4c88-43eb-893c-ca2566bd0f0c`, submission `05f0752b-139b-4da8-85bd-8537da50c1e3`.
 
 ## Prepared artifacts
 
+- `build/release-061-22/Ortholinear.xcarchive`: signed Release archive of the Pro edition for 0.6.1 (22).
 - `build/release-050-20/Ortholinear.xcarchive`: signed Release archive for 0.5.0 (20).
 - `build/release-040-19/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (19).
 - `build/release-040-18/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (18), withdrawn.
