@@ -197,24 +197,6 @@ enum TaughtWordStore {
     }
 }
 
-/// Text replacements and contact names from requestSupplementaryLexicon, which needs no Full Access.
-struct SupplementaryWords: Sendable {
-    var shortcuts: [String: String] = [:]
-    var names: [String] = []
-
-    init() {}
-    /// Entries whose input equals their text are names; the others are text replacements.
-    init(entries: [(input: String, text: String)]) {
-        for (input, text) in entries {
-            if input == text {
-                if SuggestionText.isWord(text) { names.append(text) }
-            } else if SuggestionText.isWord(input) {
-                shortcuts[SuggestionText.normalize(input)] = text
-            }
-        }
-    }
-}
-
 private struct SuggestionResponse: Sendable {
     var words: [WordSuggestion]
     var diagnostics: String = ""
@@ -247,8 +229,8 @@ private actor SuggestionWorker {
         return engine
     }
 
-    func suggest(snapshot: SuggestionSnapshot, learned: [String], names: [String], preferences: KeyboardPreferences, width: Double,
-                 alternate: KeyboardLanguage?, shortcut: String?) throws -> SuggestionResponse {
+    func suggest(snapshot: SuggestionSnapshot, learned: [String], supplementary: SupplementaryWords, preferences: KeyboardPreferences, width: Double,
+                 alternate: KeyboardLanguage?) throws -> SuggestionResponse {
         try Task.checkCancellation()
         let engine = try engine(snapshot.language)
         try Task.checkCancellation()
@@ -271,16 +253,7 @@ private actor SuggestionWorker {
                 words = [WordSuggestion(word: cased, kind: .correction, language: alternate)] + words.prefix(2)
             }
         }
-        // Contact names fill spare slots as completions, keeping their capitals; they never correct.
-        if words.count < 3, query.count >= 2, !target.selected, target.rightCount == 0 {
-            let taken = Set(words.map { SuggestionText.normalize($0.word) })
-            let matches = names.filter {
-                let name = SuggestionText.normalize($0)
-                return name.hasPrefix(query) && name != query && !taken.contains(name)
-            }
-            words += matches.sorted().prefix(3 - words.count).map { WordSuggestion(word: $0, kind: .completion) }
-        }
-        if let shortcut { words = [WordSuggestion(word: shortcut, kind: .replacement)] + words.prefix(2) }
+        words = supplementary.merged(into: words, target: target, language: snapshot.language)
         var response = SuggestionResponse(words: words)
         #if DEBUG
         timings.append((Date.timeIntervalSinceReferenceDate - began) * 1000)
@@ -445,6 +418,7 @@ final class SuggestionCoordinator {
         let teachable = word.flatMap { SuggestionText.belongs($0, to: current.language) ? $0 : nil }
         let tip = tip(for: current, preferences: preferences)
         let token = generation, width = keyboard.bounds.width
+        let supplementary = self.supplementary
         guard current.language.dictionaryCode != nil else {
             // Apple's checker covers the other layouts, on the main actor it requires.
             task = Task { [weak self] in
@@ -452,7 +426,8 @@ final class SuggestionCoordinator {
                 guard let self, token == self.generation, self.snapshot?() == current, let keyboard = self.keyboard else { return }
                 let geometry = SuggestionGeometry(language: current.language, preferences: preferences, width: width)
                 let words = current.target.map {
-                    SystemSuggestions.suggest(target: $0, language: current.language, learned: learned, geometry: geometry)
+                    supplementary.merged(into: SystemSuggestions.suggest(target: $0, language: current.language, learned: learned, geometry: geometry),
+                                         target: $0, language: current.language)
                 } ?? []
                 self.offered = current
                 keyboard.suggestionBar.show(words, word: teachable, learned: learned, tip: tip)
@@ -460,13 +435,11 @@ final class SuggestionCoordinator {
             return
         }
         let alternate = alternate(to: current.language, preferences: preferences)
-        let shortcut = word.flatMap { supplementary.shortcuts[SuggestionText.normalize($0)] }
-        let names = supplementary.names.filter { SuggestionText.belongs($0, to: current.language) }
         task = Task { [weak self, worker] in
             do {
                 try await Task.sleep(for: .milliseconds(30))
-                let result = try await worker.suggest(snapshot: current, learned: learned, names: names, preferences: preferences,
-                                                      width: width, alternate: alternate, shortcut: shortcut)
+                let result = try await worker.suggest(snapshot: current, learned: learned, supplementary: supplementary, preferences: preferences,
+                                                      width: width, alternate: alternate)
                 try Task.checkCancellation()
                 guard let self, token == self.generation, self.snapshot?() == current else { return }
                 self.offered = current

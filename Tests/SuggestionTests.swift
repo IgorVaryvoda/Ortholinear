@@ -32,6 +32,22 @@ final class SuggestionTests: XCTestCase {
         XCTAssertNil(snapshot("abc123").target)
         XCTAssertNil(snapshot(String(repeating: "a", count: 25)).target)
     }
+    func testSupplementaryWordsJoinAnyLanguage() throws {
+        let words = SupplementaryWords(entries: [("omw", "On my way!"), ("Marie", "Marie")])
+        let shortcut = try XCTUnwrap(snapshot("omw", language: .french).target)
+        let replacements = words.merged(into: [WordSuggestion(word: "omg", kind: .correction)],
+                                        target: shortcut, language: .french)
+        XCTAssertEqual(replacements.first, WordSuggestion(word: "On my way!", kind: .replacement))
+
+        let french = try XCTUnwrap(snapshot("mar", language: .french).target)
+        XCTAssertTrue(words.merged(into: [], target: french, language: .french)
+            .contains(WordSuggestion(word: "Marie", kind: .completion)))
+
+        let ukrainian = try XCTUnwrap(snapshot("mar", language: .ukrainian).target)
+        XCTAssertFalse(words.merged(into: [], target: ukrainian, language: .ukrainian)
+            .contains { $0.word == "Marie" })
+    }
+
     func testMovementCountsUTF16Units() throws {
         let current = snapshot("ca", after: "fe\u{301}")
         _ = try XCTUnwrap(current.target)

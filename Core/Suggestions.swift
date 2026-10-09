@@ -376,3 +376,40 @@ enum SuggestionResources {
         return SuggestionEngine(lexicon: try SuggestionLexicon(url: lexiconURL), context: model)
     }
 }
+
+/// Text replacements and contact names from requestSupplementaryLexicon, which needs no Full Access.
+struct SupplementaryWords: Sendable {
+    var shortcuts: [String: String] = [:]
+    var names: [String] = []
+
+    init() {}
+    /// Entries whose input equals their text are names; the others are text replacements.
+    init(entries: [(input: String, text: String)]) {
+        for (input, text) in entries {
+            if input == text {
+                if SuggestionText.isWord(text) { names.append(text) }
+            } else if SuggestionText.isWord(input) {
+                shortcuts[SuggestionText.normalize(input)] = text
+            }
+        }
+    }
+
+    /// Adds contact names to spare slots and puts a text replacement first, in any language.
+    func merged(into words: [WordSuggestion], target: SuggestionTarget, language: KeyboardLanguage) -> [WordSuggestion] {
+        var words = words
+        let query = SuggestionText.normalize(target.word)
+        let shortcut = shortcuts[query]
+        let names = self.names.filter { SuggestionText.belongs($0, to: language) }
+        // Contact names fill spare slots as completions, keeping their capitals; they never correct.
+        if words.count < 3, query.count >= 2, !target.selected, target.rightCount == 0 {
+            let taken = Set(words.map { SuggestionText.normalize($0.word) })
+            let matches = names.filter {
+                let name = SuggestionText.normalize($0)
+                return name.hasPrefix(query) && name != query && !taken.contains(name)
+            }
+            words += matches.sorted().prefix(3 - words.count).map { WordSuggestion(word: $0, kind: .completion) }
+        }
+        if let shortcut { words = [WordSuggestion(word: shortcut, kind: .replacement)] + words.prefix(2) }
+        return words
+    }
+}
