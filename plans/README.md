@@ -9,7 +9,7 @@ or `Core/Suggestions.swift`. Reviewers maintain this index; executors don't edit
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001 | Typing over selected text replaces it | P1 | S | — | TODO |
+| 001 | Typing over selected text replaces it | P1 | S | — | DONE (dbaac78) |
 | 002 | Expansions and closing quotes work with auto-spacing | P1 | S | 001 | TODO |
 | 003 | Accepting a suggestion replaces exactly the intended text | P1 | M | 002 | TODO |
 | 004 | A glided word is never typed after its moment has passed | P2 | M | 003 | BLOCKED — retired after 2 scrutiny rounds; snapshot comparison can't prove the insertion point. Replaced by 009 |

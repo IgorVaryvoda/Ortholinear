@@ -157,9 +157,9 @@ It has a stable `documentID`. It has no `textViewDidEndEditing`. Plan 001 may ha
 - `SharedUI/SuggestionBar.swift` (`SuggestionCoordinator`, and a new small `GlideContext` struct)
 - `KeyboardExtension/KeyboardViewController.swift` (`suggestionSnapshot()`, `glideContext()`, new
   `documentIdentifier` property, and one-line `cancelGlide()` calls in `handle`, `onCursor`,
-  `textDidChange`, `selectionDidChange`)
+  `textDidChange`, `selectionDidChange`, `onDismiss`)
 - `App/PreviewSurface.swift` (the `glideContext` closure, one-line `cancelGlide()` calls in
-  `handle`, `onCursor`, `onDismiss`, `textViewDidChangeSelection`, and a new `textViewDidEndEditing`)
+  `handle`, `onCursor`, `onDismiss`, `textViewDidChangeSelection`, `clear()`, and a new `textViewDidEndEditing`)
 
 **Out of scope**: `KeyboardView.swift`, the decoder, `SuggestionWorker`, `suspend()`/`cancel()`/
 `refresh()` bodies (beyond the `glideContext` type change), `insertGlided`.
@@ -226,17 +226,20 @@ In `SharedUI/SuggestionBar.swift`:
   require `!Task.isCancelled` and `self.glideContext?() == current`; otherwise return without
   inserting. Keep the rest of the body unchanged.
 
-**Verify**: xcodebuild → exit 0.
+No build yet: the providers still return tuples until step 3. Do steps 2 and 3, then build.
 
 ### Step 3: Providers return the full context
 
 - Extension `glideContext()` → `GlideContext(language: inputState.language,
   before: textDocumentProxy.documentContextBeforeInput ?? "", selection: textDocumentProxy.selectedText ?? "",
   document: documentIdentifier)`, same guards as today.
-- Preview closure → `guard let self, self.isActive, self.editor.isFirstResponder else { return nil }`, then
+- Preview closure → keep today's `guard let self, self.isActive else { return nil }` (do NOT require
+  `editor.isFirstResponder`: the preview glides without focusing the editor, and
+  `UITests/KeyboardUITests.swift` relies on that), then
   `GlideContext(language: state.language, before: textBeforeCaret, selection: <selected text>, document: documentID)`.
+  Preview dismissal is handled by explicit cancellation in step 4.
 
-**Verify**: xcodebuild → exit 0.
+**Verify** (covers steps 2 and 3): xcodebuild → exit 0.
 
 ### Step 4: Every input cancels
 
@@ -245,6 +248,8 @@ Extension (`KeyboardViewController.swift`):
 - In the `keyboard.onCursor` closure: `self?.suggestions.cancelGlide()` first.
 - `textDidChange`: `if !applyingSuggestion { suggestions.cancelGlide(); synchronize() }`.
 - `selectionDidChange`: after its `guard !applyingSuggestion`, call `suggestions.cancelGlide()`.
+- `keyboard.onDismiss` closure (the header dismiss button calls it directly, bypassing `handle`):
+  `self?.suggestions.cancelGlide(); self?.dismissKeyboard()`.
 
 Preview (`PreviewSurface.swift`):
 - First line of `handle(_:)`: `suggestions.cancelGlide()`.
@@ -252,6 +257,7 @@ Preview (`PreviewSurface.swift`):
 - `onDismiss` closure: `self?.suggestions.cancelGlide(); self?.editor.resignFirstResponder()`.
 - `textViewDidChangeSelection`: after its guard, `suggestions.cancelGlide()`.
 - Add `func textViewDidEndEditing(_ textView: UITextView) { suggestions.cancelGlide() }`.
+- `clear()` (the Clear button's reset path): `suggestions.cancelGlide()` first.
 
 **Verify**: xcodebuild → exit 0; `swift test --filter GlideTests` → exit 0.
 
@@ -265,16 +271,16 @@ No unit-test target covers these files. In NOTES, for each case cite the line th
 the late insertion: (1) tap before the result, even on a host hiding context — `handle` cancels;
 (2) other field, both empty, nil or equal ids — `textDidChange` cancels; (3) selection made
 meanwhile — `selectionDidChange`/`textViewDidChangeSelection` cancels and `selection` differs;
-(4) system keyboard dismissed — `releaseMemory` cancels, `glideContext()` nil without a window;
-(5) preview dismissed — `onDismiss`/`textViewDidEndEditing` cancel, provider nil when not first
-responder; (6) a second glide — cancelled at `glide(_:)` start; (7) suggestions turned off —
+(4) system keyboard dismissed — `onDismiss`/`.dismiss` in `handle` cancel immediately, `releaseMemory`
+cancels on disappearance, `glideContext()` nil without a window; (5) preview dismissed —
+`onDismiss`/`textViewDidEndEditing` cancel; (6) a second glide — cancelled at `glide(_:)` start; (7) suggestions turned off —
 glides still insert, since nothing in `suspend()`/`refresh()` cancels them.
 
 ## Done criteria
 
 - [ ] xcodebuild exits 0
 - [ ] `grep -n "textDocumentProxy.documentIdentifier" KeyboardExtension/KeyboardViewController.swift` → no matches
-- [ ] `grep -c "cancelGlide()" KeyboardExtension/KeyboardViewController.swift` → 4; `App/PreviewSurface.swift` → 5
+- [ ] `grep -c "cancelGlide()" KeyboardExtension/KeyboardViewController.swift` → 5; `App/PreviewSurface.swift` → 6
 - [ ] `grep -n "cancelGlide()" SharedUI/SuggestionBar.swift` shows calls in `releaseMemory`, `beginSession`, `glide`, `onSelect`
 - [ ] `git diff 56c6fc1 -- SharedUI/SuggestionBar.swift` shows no edit inside `suspend()`
 - [ ] Only in-scope files changed by this plan's commits; `git status --porcelain` empty
