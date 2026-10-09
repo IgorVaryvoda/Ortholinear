@@ -129,8 +129,15 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         keyboard.onCursor = { [weak self] offset in
             guard let self else { return }
             self.suggestions.cancelGlide()
+            let text = self.editor.text as NSString
+            let location = self.editor.selectedRange.location
+            guard location != NSNotFound, location <= text.length else { return }
+            let before = text.substring(to: location)
+            let after = text.substring(from: location)
             guard let selection = self.editor.selectedTextRange,
-                  let position = self.editor.position(from: selection.start, offset: offset) else { return }
+                  let position = self.editor.position(from: selection.start, offset: TextNavigation.offset(
+                    steps: offset, before: before, after: after
+                  )) else { return }
             self.punctuationSpacing.reset()
             self.editor.selectedTextRange = self.editor.textRange(from: position, to: position)
             self.updateAutoShift()

@@ -50,7 +50,12 @@ final class KeyboardViewController: UIInputViewController {
         keyboard.onCursor = { [weak self] in
             self?.suggestions.cancelGlide()
             self?.punctuationSpacing.reset()
-            self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0)
+            guard let proxy = self?.textDocumentProxy else { return }
+            proxy.adjustTextPosition(byCharacterOffset: TextNavigation.offset(
+                steps: $0,
+                before: proxy.documentContextBeforeInput ?? "",
+                after: proxy.documentContextAfterInput ?? ""
+            ))
             self?.updateAutoShift()
             self?.suggestions.refresh()
         }
