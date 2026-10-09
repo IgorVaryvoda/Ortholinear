@@ -16,7 +16,7 @@ or `Core/Suggestions.swift`. Reviewers maintain this index; executors don't edit
 | 009 | Any input cancels a glide that hasn't been typed yet | P2 | M | 003 | DONE (b3772dd, 6be72d9) |
 | 005 | Dragging on Space moves by whole characters | P3 | S | 009 | DONE (4c97140) |
 | 006 | Text replacements and contact names in every language | P2 | S | 009 | DONE (b60134c) |
-| 007 | Letters held on any custom key are placed | P3 | S | 006 | TODO |
+| 007 | Letters held on any custom key are placed | P3 | S | 006 | DONE (ede5d11) |
 | 008 | Wrong-layout example and suggestion-row docs match | P2 | S | 006 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (reason) | REJECTED (rationale)
@@ -28,6 +28,12 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (reason) | REJECTED (rational
 - Dependencies are file-overlap ordering, not logical: 001→002 share `TextExpansion.swift`
   and the typing paths; 003→004→006 share `SuggestionCoordinator`; 003/006/007/008 share
   `Core/Suggestions.swift` or `Tests/SuggestionTests.swift`.
+
+## Follow-ups
+
+- Glide can't start on a non-letter key that holds a letter (`SharedUI/KeyboardView.swift` touchesBegan requires `value.first?.isLetter`). Out of scope for 007 because it touches punctuation long-press handling; Astra's 007 review flagged it [MAJOR], accepted as a scoped limitation, not a diff defect.
+- Device checks: Space-drag over emoji (005); late `textDidChange` cancelling a glide (009).
+- `GlideTests.testDecodeTiming` (250 ms budget, debug build) fails under heavy machine load on pre-fix code too.
 
 ## Findings considered and rejected
 
