@@ -48,12 +48,13 @@ final class KeyboardViewController: UIInputViewController {
         suggestions.switchLanguage = { [weak self] in self?.switchLanguage(to: $0) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
         keyboard.onCursor = { [weak self] in
+            self?.suggestions.cancelGlide()
             self?.punctuationSpacing.reset()
             self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: $0)
             self?.updateAutoShift()
             self?.suggestions.refresh()
         }
-        keyboard.onDismiss = { [weak self] in self?.dismissKeyboard() }
+        keyboard.onDismiss = { [weak self] in self?.suggestions.cancelGlide(); self?.dismissKeyboard() }
         adoptLanguageSettings(PreferenceStore.load())
         inputState.language = Self.memory.fallback
         keyboard.inputState = inputState
@@ -88,9 +89,10 @@ final class KeyboardViewController: UIInputViewController {
         if keyboard.needsGlobe != needsInputModeSwitchKey { keyboard.needsGlobe = needsInputModeSwitchKey }
     }
 
-    override func textDidChange(_ textInput: (any UITextInput)?) { if !applyingSuggestion { synchronize() } }
+    override func textDidChange(_ textInput: (any UITextInput)?) { if !applyingSuggestion { suggestions.cancelGlide(); synchronize() } }
     override func selectionDidChange(_ textInput: (any UITextInput)?) {
         guard !applyingSuggestion else { return }
+        suggestions.cancelGlide()
         updateAutoShift()
         keyboard.inputState = inputState
         suggestions.refresh()
@@ -122,12 +124,14 @@ final class KeyboardViewController: UIInputViewController {
         return textDocumentProxy.perform(getter)?.takeUnretainedValue() as? UUID
     }
 
-    private func glideContext() -> (language: KeyboardLanguage, before: String)? {
+    private func glideContext() -> GlideContext? {
         guard isViewLoaded, view.window != nil, lastKeyboardType != nil else { return nil }
         let allowed = Self.suggestionTypes
         guard allowed.contains(textDocumentProxy.keyboardType ?? .default),
               textDocumentProxy.isSecureTextEntry != true else { return nil }
-        return (inputState.language, textDocumentProxy.documentContextBeforeInput ?? "")
+        return GlideContext(language: inputState.language,
+                            before: textDocumentProxy.documentContextBeforeInput ?? "",
+                            selection: textDocumentProxy.selectedText ?? "", document: documentIdentifier)
     }
 
     private func applySuggestion(_ edit: SuggestionEdit, snapshot: SuggestionSnapshot) {
@@ -296,6 +300,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func handle(_ action: KeyAction) {
+        suggestions.cancelGlide()
         switch action {
         case .text, .space, .enter, .backspace: break
         default: expander.forget()

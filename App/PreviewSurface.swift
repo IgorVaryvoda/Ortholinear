@@ -114,7 +114,8 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         suggestions.insertWord = { [weak self] in self?.insertGlided($0) }
         suggestions.glideContext = { [weak self] in
             guard let self, self.isActive else { return nil }
-            return (self.state.language, self.textBeforeCaret)
+            return GlideContext(language: self.state.language, before: self.textBeforeCaret,
+                                selection: self.selectedText, document: self.documentID)
         }
         suggestions.switchLanguage = { [weak self] language in
             guard let self, self.keyboard.preferences.validated.languages.contains(language) else { return }
@@ -124,9 +125,11 @@ final class PreviewContainer: UIView, UITextViewDelegate {
         }
         keyboard.onGesture = { [weak self] in self?.onGesture?($0) }
         keyboard.onAction = { [weak self] in self?.handle($0) }
-        keyboard.onDismiss = { [weak self] in self?.editor.resignFirstResponder() }
+        keyboard.onDismiss = { [weak self] in self?.suggestions.cancelGlide(); self?.editor.resignFirstResponder() }
         keyboard.onCursor = { [weak self] offset in
-            guard let self, let selection = self.editor.selectedTextRange,
+            guard let self else { return }
+            self.suggestions.cancelGlide()
+            guard let selection = self.editor.selectedTextRange,
                   let position = self.editor.position(from: selection.start, offset: offset) else { return }
             self.punctuationSpacing.reset()
             self.editor.selectedTextRange = self.editor.textRange(from: position, to: position)
@@ -169,6 +172,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
 
     @objc private func clear() {
+        suggestions.cancelGlide()
         punctuationSpacing.reset()
         editor.text = ""
         placeholder.isHidden = false
@@ -183,11 +187,14 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
     func textViewDidChangeSelection(_ textView: UITextView) {
         guard !applyingSuggestion else { return }
+        suggestions.cancelGlide()
         punctuationSpacing.reset()
         updateAutoShift()
         keyboard.inputState = state
         suggestions.refresh()
     }
+
+    func textViewDidEndEditing(_ textView: UITextView) { suggestions.cancelGlide() }
 
     private var textBeforeCaret: String {
         let range = editor.selectedRange
@@ -267,6 +274,7 @@ final class PreviewContainer: UIView, UITextViewDelegate {
     }
 
     private func handle(_ action: KeyAction) {
+        suggestions.cancelGlide()
         applyingSuggestion = true
         defer { applyingSuggestion = false }
         switch action {

@@ -312,11 +312,20 @@ private actor SuggestionWorker {
     func unload() { engines.removeAll() }
 }
 
+/// Where a glide will type. A decoded word goes in only if all of this is unchanged.
+struct GlideContext: Equatable {
+    var language: KeyboardLanguage
+    var before: String
+    var selection: String
+    var document: UUID?
+}
+
 @MainActor
 final class SuggestionCoordinator {
     private let worker = SuggestionWorker()
     private weak var keyboard: KeyboardView?
     private var task: Task<Void, Never>?
+    private var glideTask: Task<Void, Never>?
     private var generation = 0
     private var offered: SuggestionSnapshot?
     private var requested: SuggestionSnapshot?
@@ -328,7 +337,7 @@ final class SuggestionCoordinator {
     var snapshot: (() -> SuggestionSnapshot?)?
     /// Glide needs only the language and the text before the caret. Hosts report no context
     /// at all in an empty field, which rules out a suggestion snapshot but not a glide.
-    var glideContext: (() -> (language: KeyboardLanguage, before: String)?)?
+    var glideContext: (() -> GlideContext?)?
     var apply: ((SuggestionEdit, SuggestionSnapshot) -> Void)?
     /// Inserts a glided word with the host's spacing and Shift state; returns the text inserted.
     var insertWord: ((String) -> String?)?
@@ -338,7 +347,9 @@ final class SuggestionCoordinator {
     init(keyboard: KeyboardView) {
         self.keyboard = keyboard
         keyboard.suggestionBar.onSelect = { [weak self] suggestion in
-            guard let self, let offered = self.offered, let current = self.snapshot?() else { return }
+            guard let self else { return }
+            self.cancelGlide()
+            guard let offered = self.offered, let current = self.snapshot?() else { return }
             let edit: SuggestionEdit?
             if let offer = self.glideOffer, offer.snapshot == offered, offer.words.contains(suggestion) {
                 edit = SuggestionEdit.replacingGlide(suggestion, inserted: offer.inserted, offered: offered, current: current)
@@ -368,7 +379,10 @@ final class SuggestionCoordinator {
     }
 
     /// A new keyboard appearance may show a tip again, up to its limit.
-    func beginSession() { tipChosen = false; sessionTip = nil }
+    func beginSession() { cancelGlide(); tipChosen = false; sessionTip = nil }
+
+    /// Any input, or the keyboard leaving, makes a glide still being decoded land in the wrong place.
+    func cancelGlide() { glideTask?.cancel(); glideTask = nil }
 
     func suspend() {
         task?.cancel(); task = nil; generation += 1; offered = nil; requested = nil
@@ -378,6 +392,7 @@ final class SuggestionCoordinator {
         keyboard?.suggestionBar.show([], word: nil, learned: [])
     }
     func releaseMemory() {
+        cancelGlide()
         suspend()
         glideOffer = nil
         Task { await worker.unload() }
@@ -465,16 +480,17 @@ final class SuggestionCoordinator {
     }
 
     private func glide(_ points: [CGPoint]) {
+        cancelGlide()
         guard let keyboard, let current = glideContext?(), current.language.dictionaryCode != nil else { return }
         let learned = TaughtWordStore.words(current.language)
         let preferences = keyboard.preferences, width = keyboard.bounds.width
         suspend()
         glideOffer = nil
-        Task { [weak self, worker] in
+        glideTask = Task { [weak self, worker] in
             guard let words = try? await worker.glide(points, language: current.language, learned: learned,
                                                       context: SuggestionText.context(current.before),
                                                       preferences: preferences, width: width),
-                  let self, let best = words.first,
+                  !Task.isCancelled, let self, self.glideContext?() == current, let best = words.first,
                   let inserted = self.insertWord?(best.word) else { return }
             // Alternatives need a snapshot to replace safely; without host context, only the word goes in.
             guard let after = self.snapshot?() else { self.refresh(force: true); return }
