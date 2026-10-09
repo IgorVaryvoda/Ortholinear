@@ -59,8 +59,10 @@ struct WordSuggestion: Equatable, Sendable {
 }
 
 struct SuggestionEdit: Equatable, Sendable {
-    var moveRight: Int
-    var deleteCount: Int
+    var left: String
+    var right: String
+    var moveRight: Int { right.utf16.count }
+    var deleteCount: Int { left.count + right.count }
     var replaceSelection: Bool
     var text: String
 
@@ -78,9 +80,19 @@ struct SuggestionEdit: Equatable, Sendable {
         // the document when explicitly accepting a completion or a next word.
         let addSpace = current.after.isEmpty && !target.selected && target.rightCount == 0
             && suggestion.kind != .correction
-        return .init(moveRight: target.rightCount,
-                     deleteCount: target.selected ? 0 : target.leftCount + target.rightCount,
+        return .init(left: target.selected ? "" : String(current.before.suffix(target.leftCount)),
+                     right: target.selected ? "" : String(current.after.prefix(target.rightCount)),
                      replaceSelection: target.selected, text: suggestion.word + (addSpace ? " " : ""))
+    }
+
+    /// Swaps the word a glide just inserted for another reading, leaving text on either side alone.
+    static func replacingGlide(_ suggestion: WordSuggestion, inserted: String,
+                               offered: SuggestionSnapshot, current: SuggestionSnapshot) -> Self? {
+        guard offered == current, current.selection.isEmpty, !inserted.isEmpty,
+              SuggestionText.isWord(suggestion.word) else { return nil }
+        let left = String(current.before.suffix(inserted.count))
+        guard left.unicodeScalars.elementsEqual(inserted.unicodeScalars) else { return nil }
+        return .init(left: left, right: "", replaceSelection: false, text: suggestion.word)
     }
 }
 
@@ -148,9 +160,13 @@ struct SuggestionGeometry: Sendable {
             unit = cell.hitFrame.width
             letterCells.append((ch, cell))
         }
-        for (ch, cell) in letterCells {
+        let nonLetterCells = cells.filter { cell in
+            guard case .text(let text) = cell.key.action else { return false }
+            return text.first?.isLetter != true
+        }
+        for cell in letterCells.map(\.1) + nonLetterCells {
             for held in cell.key.alternatives.compactMap(\.first) where held.isLetter && centers[held] == nil {
-                centers[held] = centers[ch]
+                centers[held] = CGPoint(x: cell.hitFrame.midX, y: cell.hitFrame.midY)
                 heldLetters.insert(held)
             }
         }
@@ -362,5 +378,42 @@ enum SuggestionResources {
               let lexiconURL = bundle.url(forResource: code, withExtension: "orthlex") else { throw CocoaError(.fileNoSuchFile) }
         let model = bundle.url(forResource: code + "-context", withExtension: "json").flatMap { try? SuggestionContextModel(url: $0) }
         return SuggestionEngine(lexicon: try SuggestionLexicon(url: lexiconURL), context: model)
+    }
+}
+
+/// Text replacements and contact names from requestSupplementaryLexicon, which needs no Full Access.
+struct SupplementaryWords: Sendable {
+    var shortcuts: [String: String] = [:]
+    var names: [String] = []
+
+    init() {}
+    /// Entries whose input equals their text are names; the others are text replacements.
+    init(entries: [(input: String, text: String)]) {
+        for (input, text) in entries {
+            if input == text {
+                if SuggestionText.isWord(text) { names.append(text) }
+            } else if SuggestionText.isWord(input) {
+                shortcuts[SuggestionText.normalize(input)] = text
+            }
+        }
+    }
+
+    /// Adds contact names to spare slots and puts a text replacement first, in any language.
+    func merged(into words: [WordSuggestion], target: SuggestionTarget, language: KeyboardLanguage) -> [WordSuggestion] {
+        var words = words
+        let query = SuggestionText.normalize(target.word)
+        let shortcut = shortcuts[query]
+        let names = self.names.filter { SuggestionText.belongs($0, to: language) }
+        // Contact names fill spare slots as completions, keeping their capitals; they never correct.
+        if words.count < 3, query.count >= 2, !target.selected, target.rightCount == 0 {
+            let taken = Set(words.map { SuggestionText.normalize($0.word) })
+            let matches = names.filter {
+                let name = SuggestionText.normalize($0)
+                return name.hasPrefix(query) && name != query && !taken.contains(name)
+            }
+            words += matches.sorted().prefix(3 - words.count).map { WordSuggestion(word: $0, kind: .completion) }
+        }
+        if let shortcut { words = [WordSuggestion(word: shortcut, kind: .replacement)] + words.prefix(2) }
+        return words
     }
 }

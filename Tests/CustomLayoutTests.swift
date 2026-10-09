@@ -54,6 +54,38 @@ final class CustomLayoutTests: XCTestCase {
                        texts(KeyboardLayout.rows(state: state, needsGlobe: false)), "Other pages are unchanged")
     }
 
+    func testLettersHeldOnPunctuationKeysArePlaced() {
+        var layout = CustomLetterLayout(builtIn: .english)
+        layout.rows[0][0] = CustomKey("#", alternatives: ["q"])
+        XCTAssertTrue(layout.isUsable(for: .english))
+        let builtIn = SuggestionGeometry(language: .english, preferences: .init(), width: 393)
+        var custom = SuggestionGeometry(language: .english,
+                                        preferences: KeyboardPreferences(customLayouts: [.english: layout]), width: 393)
+        XCTAssertEqual(custom.centers["q"], builtIn.centers["q"])
+        XCTAssertTrue(custom.isAlternative("q"))
+        XCTAssertNotNil(GlideDecoder.keyPath("quit", geometry: custom))
+
+        layout.rows[0][0] = CustomKey("#", alternatives: ["q", "e"])
+        custom = SuggestionGeometry(language: .english,
+                                    preferences: KeyboardPreferences(customLayouts: [.english: layout]), width: 393)
+        XCTAssertEqual(custom.centers["e"], builtIn.centers["e"])
+        XCTAssertFalse(custom.isAlternative("e"))
+
+        layout = CustomLetterLayout(builtIn: .english)
+        layout.rows[0][0] = CustomKey("@", alternatives: ["q", "x"])
+        for row in layout.rows.indices {
+            layout.rows[row].removeAll { $0.output == "x" }
+            if let column = layout.rows[row].firstIndex(where: { $0.output == "m" }) {
+                layout.rows[row][column] = CustomKey("m", alternatives: ["m", "x"])
+            }
+        }
+        XCTAssertTrue(layout.isUsable(for: .english))
+        custom = SuggestionGeometry(language: .english,
+                                    preferences: KeyboardPreferences(customLayouts: [.english: layout]), width: 393)
+        XCTAssertNotNil(custom.centers["m"])
+        XCTAssertEqual(custom.centers["x"], custom.centers["m"])
+    }
+
     func testGheWithItsOwnKeyIsNoLongerTreatedAsHeld() throws {
         let builtIn = SuggestionGeometry(language: .ukrainian, preferences: .init(), width: 393)
         XCTAssertEqual(builtIn.centers["ґ"], builtIn.centers["г"])

@@ -42,6 +42,20 @@ enum TextEdit: Equatable, Sendable {
 }
 
 enum TextNavigation {
+    /// The UTF-16 offset for moving the caret `steps` whole characters, negative to the left.
+    /// Past the text the host shares, each step counts as one unit, as before.
+    static func offset(steps: Int, before: String, after: String) -> Int {
+        if steps < 0 {
+            let known = before.suffix(-steps)
+            return -(String(known).utf16.count + (-steps - known.count))
+        }
+        if steps > 0 {
+            let known = after.prefix(steps)
+            return String(known).utf16.count + (steps - known.count)
+        }
+        return 0
+    }
+
     /// The edit for `command`, given the text either side of the cursor. Text the host doesn't
     /// share counts as absent, so commands stop where the known text ends.
     static func edit(for command: KeyCommand, before: String, after: String) -> TextEdit? {
