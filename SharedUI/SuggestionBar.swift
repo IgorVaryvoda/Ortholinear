@@ -322,7 +322,7 @@ final class SuggestionCoordinator {
     private var requested: SuggestionSnapshot?
     private var preferences: KeyboardPreferences?
     /// Alternatives to a glided word, offered while the text is exactly as it was inserted.
-    private var glideOffer: (snapshot: SuggestionSnapshot, words: [WordSuggestion])?
+    private var glideOffer: (snapshot: SuggestionSnapshot, inserted: String, words: [WordSuggestion])?
     private var sessionTip: KeyboardTip?
     private var tipChosen = false
     var snapshot: (() -> SuggestionSnapshot?)?
@@ -338,8 +338,14 @@ final class SuggestionCoordinator {
     init(keyboard: KeyboardView) {
         self.keyboard = keyboard
         keyboard.suggestionBar.onSelect = { [weak self] suggestion in
-            guard let self, let offered = self.offered, let current = self.snapshot?(),
-                  let edit = SuggestionEdit.make(suggestion: suggestion, offered: offered, current: current) else { return }
+            guard let self, let offered = self.offered, let current = self.snapshot?() else { return }
+            let edit: SuggestionEdit?
+            if let offer = self.glideOffer, offer.snapshot == offered, offer.words.contains(suggestion) {
+                edit = SuggestionEdit.replacingGlide(suggestion, inserted: offer.inserted, offered: offered, current: current)
+            } else {
+                edit = SuggestionEdit.make(suggestion: suggestion, offered: offered, current: current)
+            }
+            guard let edit else { return }
             self.cancel()
             self.glideOffer = nil
             self.apply?(edit, current)
@@ -475,7 +481,7 @@ final class SuggestionCoordinator {
             let alternatives = words.dropFirst().map {
                 WordSuggestion(word: SuggestionText.cased($0.word, like: inserted, language: current.language), kind: .correction)
             }
-            if !alternatives.isEmpty { self.glideOffer = (after, Array(alternatives.prefix(3))) }
+            if !alternatives.isEmpty { self.glideOffer = (after, inserted, Array(alternatives.prefix(3))) }
             self.refresh(force: true)
         }
     }

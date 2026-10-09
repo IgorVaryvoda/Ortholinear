@@ -131,7 +131,7 @@ final class KeyboardViewController: UIInputViewController {
         if edit.moveRight != 0 {
             textDocumentProxy.adjustTextPosition(byCharacterOffset: edit.moveRight)
             // Some hosts don't honor cursor movement. Never delete from the old caret.
-            let expected = snapshot.before + snapshot.after.prefix(edit.moveRight)
+            let expected = snapshot.before + edit.right
             guard textDocumentProxy.documentContextBeforeInput?.hasSuffix(expected.suffix(24)) == true else { return }
         }
         for _ in 0..<edit.deleteCount { textDocumentProxy.deleteBackward() }

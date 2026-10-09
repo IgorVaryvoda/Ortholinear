@@ -59,8 +59,10 @@ struct WordSuggestion: Equatable, Sendable {
 }
 
 struct SuggestionEdit: Equatable, Sendable {
-    var moveRight: Int
-    var deleteCount: Int
+    var left: String
+    var right: String
+    var moveRight: Int { right.utf16.count }
+    var deleteCount: Int { left.count + right.count }
     var replaceSelection: Bool
     var text: String
 
@@ -78,9 +80,19 @@ struct SuggestionEdit: Equatable, Sendable {
         // the document when explicitly accepting a completion or a next word.
         let addSpace = current.after.isEmpty && !target.selected && target.rightCount == 0
             && suggestion.kind != .correction
-        return .init(moveRight: target.rightCount,
-                     deleteCount: target.selected ? 0 : target.leftCount + target.rightCount,
+        return .init(left: target.selected ? "" : String(current.before.suffix(target.leftCount)),
+                     right: target.selected ? "" : String(current.after.prefix(target.rightCount)),
                      replaceSelection: target.selected, text: suggestion.word + (addSpace ? " " : ""))
+    }
+
+    /// Swaps the word a glide just inserted for another reading, leaving text on either side alone.
+    static func replacingGlide(_ suggestion: WordSuggestion, inserted: String,
+                               offered: SuggestionSnapshot, current: SuggestionSnapshot) -> Self? {
+        guard offered == current, current.selection.isEmpty, !inserted.isEmpty,
+              SuggestionText.isWord(suggestion.word) else { return nil }
+        let left = String(current.before.suffix(inserted.count))
+        guard left.unicodeScalars.elementsEqual(inserted.unicodeScalars) else { return nil }
+        return .init(left: left, right: "", replaceSelection: false, text: suggestion.word)
     }
 }
 

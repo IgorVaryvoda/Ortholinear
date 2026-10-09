@@ -239,13 +239,20 @@ final class PreviewContainer: UIView, UITextViewDelegate {
                      after: text.substring(from: NSMaxRange(range)), selection: text.substring(with: range), language: state.language)
     }
     private func applySuggestion(_ edit: SuggestionEdit, snapshot: SuggestionSnapshot) {
-        guard suggestionSnapshot() == snapshot, let target = snapshot.target else { return }
+        guard suggestionSnapshot() == snapshot,
+              snapshot.before.unicodeScalars.reversed().starts(with: edit.left.unicodeScalars.reversed()),
+              snapshot.after.unicodeScalars.starts(with: edit.right.unicodeScalars) else { return }
         applyingSuggestion = true
         defer { applyingSuggestion = false }
         punctuationSpacing.reset()
         expander.forget()
-        let prefix = String(snapshot.before.dropLast(target.leftCount))
-        let range = NSRange(location: prefix.utf16.count, length: target.word.utf16.count)
+        let range: NSRange
+        if edit.replaceSelection {
+            range = NSRange(location: snapshot.before.utf16.count, length: snapshot.selection.utf16.count)
+        } else {
+            range = NSRange(location: snapshot.before.utf16.count - edit.left.utf16.count,
+                            length: edit.left.utf16.count + edit.right.utf16.count)
+        }
         guard let start = editor.position(from: editor.beginningOfDocument, offset: range.location),
               let end = editor.position(from: start, offset: range.length),
               let selection = editor.textRange(from: start, to: end) else { return }

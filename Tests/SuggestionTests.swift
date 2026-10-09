@@ -32,6 +32,31 @@ final class SuggestionTests: XCTestCase {
         XCTAssertNil(snapshot("abc123").target)
         XCTAssertNil(snapshot(String(repeating: "a", count: 25)).target)
     }
+    func testMovementCountsUTF16Units() throws {
+        let current = snapshot("ca", after: "fe\u{301}")
+        _ = try XCTUnwrap(current.target)
+        let correction = WordSuggestion(word: "cafe", kind: .correction)
+        let edit = try XCTUnwrap(SuggestionEdit.make(suggestion: correction, offered: current, current: current))
+        XCTAssertEqual(edit.moveRight, 3)
+        XCTAssertEqual(edit.deleteCount, 4)
+        XCTAssertEqual(edit.right, "fe\u{301}")
+        XCTAssertEqual(edit.left, "ca")
+    }
+    func testGlideAlternativesReplaceOnlyTheGlidedWord() throws {
+        let s = snapshot("the hello", after: "cat")
+        let correction = WordSuggestion(word: "help", kind: .correction)
+        let edit = try XCTUnwrap(SuggestionEdit.replacingGlide(correction, inserted: "hello", offered: s, current: s))
+        XCTAssertEqual(edit.deleteCount, 5)
+        XCTAssertEqual(edit.moveRight, 0)
+        XCTAssertEqual(edit.left, "hello")
+        XCTAssertEqual(edit.text, "help")
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "world", offered: s, current: s))
+        let selected = snapshot("the hello", after: "cat", selected: "word")
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "hello", offered: selected, current: selected))
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "hello", offered: s, current: snapshot("hello")))
+        let decomposed = snapshot("the \u{0456}\u{0308}де")
+        XCTAssertNil(SuggestionEdit.replacingGlide(correction, inserted: "\u{0457}де", offered: decomposed, current: decomposed))
+    }
     func testSpacesAndPunctuationStayExplicit() throws {
         let typo = snapshot("teh", after: ".")
         let correction = WordSuggestion(word: "the", kind: .correction)
