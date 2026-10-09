@@ -169,6 +169,17 @@ final class SuggestionTests: XCTestCase {
         }
     }
 
+    func testDocumentedWrongLayoutExampleRecovers() throws {
+        let ukrainian = try SuggestionResources.engine(language: .ukrainian)
+        let preferences = KeyboardPreferences()
+        for width in [375.0, 393.0, 430.0, 820.0] {
+            let en = SuggestionGeometry(language: .english, preferences: preferences, width: width)
+            let uk = SuggestionGeometry(language: .ukrainian, preferences: preferences, width: width)
+            XCTAssertEqual(LayoutRecovery.recover("ghvdsb", from: en, to: uk, lexicon: ukrainian.lexicon), "привіт",
+                           "Documented example should recover at width \(width)")
+        }
+    }
+
     func testWordsTypedOnTheOtherLayoutAreRecovered() throws {
         let english = try SuggestionResources.engine(language: .english)
         let ukrainian = try SuggestionResources.engine(language: .ukrainian)

@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// Recovers a word typed with the other layout active, such as “ghbdsn” for “привіт”:
+/// Recovers a word typed with the other layout active, such as “ghvdsb” for “привіт”:
 /// the same finger positions, read through the other language's keys.
 enum LayoutRecovery {
     /// Each typed letter maps to the nearest keys of the other layout. A second
