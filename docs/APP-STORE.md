@@ -5,7 +5,7 @@
 - Primary language: English (U.S.)
 - Bundle ID: com.varyvoda.Ortholinear
 - SKU: ortholinear-ios
-- Version: 0.6.0 (21)
+- Version: 0.6.1 (22)
 - Primary category: Utilities
 - Secondary category: Productivity
 - Support URL: https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md
@@ -99,6 +99,17 @@ The extension does not request Full Access (RequestsOpenAccess=false). The app w
 Version 0.6.0: Keyboard settings > Layout Workshop (free) rearranges a language's letters: tap a key, change what it types and holds, move or swap it, Try it, then Apply. Keyboard settings > Ortholinear Pro offers one non-consumable in-app purchase, com.varyvoda.Ortholinear.pro ("Unlock Pro"), with Restore purchases on the same screen; nothing that was free before is locked. Pro adds: flicks (Layout Workshop > Fill swipe-up with symbols, then Apply; swipe a letter up in the test drive), keycap colorways (Theme and colors), layers including a Navigate layer with word and line movement (Layers > add Navigate, turn on Layer key), text expansions (Text expansions > ;ty, then type ;ty and Space), and saved setups. Without Pro these rows show a PRO label and open the purchase screen. Purchases use StoreKit in the containing app only; the keyboard extension still has no Full Access (RequestsOpenAccess=false), no StoreKit and no network access. Layers and text expansions the user creates are stored on the device in the App Group and are only read by the keyboard.
 
 Version 0.5.0: in the app's test drive and in the installed keyboard, sentences start with a capital automatically (following the text field's own capitalization setting; email and web address fields stay lowercase), two Spaces type a period, and the row above the keys shows punctuation between words. Flick a top-row key down to type its digit (Keyboard settings > Letters · Digits offers a number row instead). Glide typing works in English and Ukrainian: slide across a word's letters and lift; other readings appear above the keys. Suggestions still change text only when tapped. Other layouts get suggestions from UITextChecker, and the keyboard reads the user's text replacements and contact names with requestSupplementaryLexicon. Both work without Full Access. There is still no network access, and nothing leaves the device.
+
+## What’s New in 0.6.1
+
+Fixes:
+• The keyboard no longer closes when you move between fields, such as into a number field, while a suggestion is loading.
+• Typing next to selected text no longer deletes the text beside it.
+• A chosen suggestion replaces only the word it was offered for.
+• A glide still being read no longer lands after you have typed something else.
+• Text expansions and closing quotes work with automatic punctuation spacing.
+• Dragging on Space moves the cursor by whole characters.
+• Your text replacements and contact names are suggested in every language.
 
 ## What’s New in 0.6.0
 
