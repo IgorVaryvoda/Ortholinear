@@ -109,9 +109,17 @@ final class KeyboardViewController: UIInputViewController {
         let after = textDocumentProxy.documentContextAfterInput
         let selected = textDocumentProxy.selectedText ?? ""
         // A completely unavailable context is not a safe replacement target.
-        guard before != nil || after != nil || !selected.isEmpty else { return nil }
-        return .init(document: textDocumentProxy.documentIdentifier, before: before ?? "", after: after ?? "",
+        guard before != nil || after != nil || !selected.isEmpty, let document = documentIdentifier else { return nil }
+        return .init(document: document, before: before ?? "", after: after ?? "",
                      selection: selected, language: inputState.language)
+    }
+
+    /// documentIdentifier is nil while the proxy is between documents, despite its nonoptional
+    /// Swift type, and bridging that nil to UUID traps. Asking through Objective-C allows nil.
+    private var documentIdentifier: UUID? {
+        let getter = #selector(getter: UITextDocumentProxy.documentIdentifier)
+        guard textDocumentProxy.responds(to: getter) else { return nil }
+        return textDocumentProxy.perform(getter)?.takeUnretainedValue() as? UUID
     }
 
     private func glideContext() -> (language: KeyboardLanguage, before: String)? {
