@@ -160,9 +160,13 @@ struct SuggestionGeometry: Sendable {
             unit = cell.hitFrame.width
             letterCells.append((ch, cell))
         }
-        for (ch, cell) in letterCells {
+        let nonLetterCells = cells.filter { cell in
+            guard case .text(let text) = cell.key.action else { return false }
+            return text.first?.isLetter != true
+        }
+        for cell in letterCells.map(\.1) + nonLetterCells {
             for held in cell.key.alternatives.compactMap(\.first) where held.isLetter && centers[held] == nil {
-                centers[held] = centers[ch]
+                centers[held] = CGPoint(x: cell.hitFrame.midX, y: cell.hitFrame.midY)
                 heldLetters.insert(held)
             }
         }
