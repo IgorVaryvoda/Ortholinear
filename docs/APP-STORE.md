@@ -184,6 +184,8 @@ New languages and layouts:
 
 ## Submission status
 
+Version **0.7.0 (23)** was submitted to App Review on October 27, 2026, with automatic release after approval; App Store Connect reports **Waiting for Review**. It adds 14 listing localizations (docs/listing) with per-locale screenshots, captured with `Tools/store-capture.py` and framed by goldie, all uploaded with `Tools/asc-listing.py`. Build 23 is the Pro edition archived in Release from `OrtholinearPro` at public commit `032a7ba`. Submission ID: `50f998df-af70-4f5f-9ddf-6cdb800e91d3`. Version ID: `7d65dba7-0b47-4556-827e-c9221bcbe699`. Build ID: `6f6d5be0-63a2-4e0e-9965-0951423d4a84`. The Ortholinear Pro display name and description were added in the same 13 new locales; they wait in Prepare for Submission until they're submitted from the in-app purchase's page.
+
 Version **0.6.1 (22)** was submitted to App Review on October 9, 2026, with automatic release after approval; App Store Connect reports **Waiting for Review**. Version 0.6.0 (21) is live (Ready for Distribution). Build 22 is the Pro edition archived in Release from `OrtholinearPro` at public commit `ddf8bd3`, then uploaded with the Admin API key; the version, its What's New, the build, the review details carried over from 0.6.0, and the submission were all created through the API. Submission ID: `21267706-45b6-4c76-bf21-f8b7d4bfaacf`. Version ID: `96b429fb-1742-4cab-835b-9994f70b1cb7`. Build ID: `9f2a85b4-e5e8-40ee-afdc-5b442bb1a766`.
 
 Version 0.6.0 (21) and the in-app purchase **Ortholinear Pro** were submitted to App Review together on October 6, 2026, with automatic release after approval. Build 21 is the private Pro edition, archived in Release from `OrtholinearPro` (`project.pro.yml`, public commit `25fd695`), then signed and uploaded with the team's Admin App Store Connect API key; it processed as valid. The in-app purchase, its price, availability, localizations and review screenshot, the version, its listing text and review notes, and the draft review submission were all created through the API. Apple accepts a first non-consumable only alongside an app version and offers no API to attach it, so the purchase was added to the draft with **Add for Review** on its App Store Connect page (driven through Chrome's DevTools protocol), then submitted there.
@@ -192,6 +194,7 @@ Submission ID: `59c93210-9f3e-47f2-9bf9-fa1dd97bf714`. Version ID: `f36aea49-221
 
 ## Prepared artifacts
 
+- `build/release-070-23/Ortholinear.xcarchive`: signed Release archive of the Pro edition for 0.7.0 (23).
 - `build/release-061-22/Ortholinear.xcarchive`: signed Release archive of the Pro edition for 0.6.1 (22).
 - `build/release-050-20/Ortholinear.xcarchive`: signed Release archive for 0.5.0 (20).
 - `build/release-040-19/Ortholinear.xcarchive`: signed Release archive for 0.4.0 (19).
