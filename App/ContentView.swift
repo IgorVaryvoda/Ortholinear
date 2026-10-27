@@ -101,7 +101,7 @@ struct ContentView: View {
                     Link("Support", destination: URL(string: "https://github.com/IgorVaryvoda/Ortholinear/blob/main/SUPPORT.md")!)
                 }
                 .font(.system(size: 13, weight: .medium))
-                Text("BUILT FOR YOUR HANDS.  /  V0.6.1")
+                Text("BUILT FOR YOUR HANDS.  /  V0.7.0")
                     .font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(1.5)
                     .foregroundStyle(.tertiary).padding(.bottom, 20)
             }
@@ -423,7 +423,7 @@ struct GeometrySettings: View {
                 Text("Capitals follow each text field, so email and web addresses stay lowercase. Automatic spacing adds a space after punctuation; apostrophes and numbers such as 3.14 stay together. Glide typing works in English and Ukrainian: slide across the letters of a word and lift, and other readings appear above the keys. Hold Delete to gradually delete faster.")
             }
             Section {
-                Button("Reset to defaults") { preferences = KeyboardPreferences() }
+                Button("Reset to defaults") { preferences = PreferenceStore.suggested }
             } footer: {
                 Text("Settings save on this device. Dismiss and reopen the system keyboard to apply changes. The language key switches languages as you type.")
             }
@@ -456,7 +456,9 @@ struct GeometrySettings: View {
 
     private var languageSummary: String {
         preferences.validated.languages.map { language in
-            language == .english && preferences.englishLayout != .qwerty ? "EN \(preferences.englishLayout.title)" : language.badge
+            if language == .english, preferences.englishLayout != .qwerty { return "EN \(preferences.englishLayout.title)" }
+            if language == .french, preferences.frenchLayout != .azerty { return "FR QWERTY" }
+            return language.badge
         }.joined(separator: " · ")
     }
 

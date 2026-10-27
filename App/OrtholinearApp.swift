@@ -7,6 +7,8 @@ struct OrtholinearApp: App {
         #if PRO
         ProEdition.install()
         #endif
+        // The extension may not see the device's keyboards, so a new install shares the app's starting languages.
+        if PreferenceStore.isEmpty { try? KeyboardPublisher.publish(PreferenceStore.suggested) }
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         var preferences = PreferenceStore.load()

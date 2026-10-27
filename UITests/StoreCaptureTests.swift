@@ -4,8 +4,11 @@ import XCTest
 /// STORE_CAPTURE_DIR, e.g. `TEST_RUNNER_STORE_CAPTURE_DIR=… xcodebuild test -only-testing:…`.
 /// Screens are saved as <scene id>.png; the preview test prints STORE_MARK lines that
 /// Tools/store-capture.py uses to cut its screen recording into segments.
+/// STORE_LANGUAGE (such as "pl-PL") launches the app in that language, after English, as a new
+/// install on a phone in that language would; STORE_TYPE lists the keys the typing scene taps.
 final class StoreCaptureTests: XCTestCase {
     private var directory: URL!
+    private let environment = ProcessInfo.processInfo.environment
 
     override func setUpWithError() throws {
         guard let path = ProcessInfo.processInfo.environment["STORE_CAPTURE_DIR"] else {
@@ -20,6 +23,9 @@ final class StoreCaptureTests: XCTestCase {
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-no-keyboard-tips"]
+        if let language = environment["STORE_LANGUAGE"] {
+            app.launchArguments += ["-AppleLanguages", "(\(language), en-US)", "-AppleLocale", language.replacingOccurrences(of: "-", with: "_")]
+        }
         app.launch()
         XCUIDevice.shared.orientation = .portrait
         XCTAssertTrue(app.buttons["clear-preview"].waitForExistence(timeout: 10))
@@ -48,8 +54,14 @@ final class StoreCaptureTests: XCTestCase {
         let app = launch()
         app.buttons["clear-preview"].tap()
         // Automatic capitals put Shift on in the empty field.
-        type(["П", "р", "и", "в", "і", "т", "Space", "я", "к", "Space", "с", "п", "р", "а", "в"], in: app)
-        XCTAssertTrue(app.buttons["suggestion-0"].waitForExistence(timeout: 5))
+        if let keys = environment["STORE_TYPE"] {
+            type(keys.components(separatedBy: ","), in: app)
+            // The iOS spell checker may have no suggestions for this language on the simulator.
+            _ = app.buttons["suggestion-0"].waitForExistence(timeout: 5)
+        } else {
+            type(["П", "р", "и", "в", "і", "т", "Space", "я", "к", "Space", "с", "п", "р", "а", "в"], in: app)
+            XCTAssertTrue(app.buttons["suggestion-0"].waitForExistence(timeout: 5))
+        }
         try save("type")
     }
 

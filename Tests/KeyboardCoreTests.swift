@@ -397,9 +397,56 @@ final class KeyboardCoreTests: XCTestCase {
         XCTAssertEqual(KeyboardLanguage(languageCode: "de_DE"), .german)
         XCTAssertEqual(KeyboardLanguage(languageCode: "FR-ca"), .french)
         XCTAssertEqual(KeyboardLanguage(languageCode: "sr-Cyrl"), .serbianCyrillic)
+        XCTAssertEqual(KeyboardLanguage(languageCode: "sr-Latn-RS"), .bcms)
+        XCTAssertEqual(KeyboardLanguage(languageCode: "bs-BA"), .bcms)
+        XCTAssertEqual(KeyboardLanguage(languageCode: "nn"), .norwegian)
         XCTAssertNil(KeyboardLanguage(languageCode: "ja-JP"))
+        XCTAssertNil(KeyboardLanguage(languageCode: "emoji"))
         XCTAssertNil(KeyboardLanguage(languageCode: ""))
         for language in KeyboardLanguage.allCases { XCTAssertEqual(KeyboardLanguage(languageCode: language.code), language) }
+    }
+
+    func testNewInstallsStartWithTheDevicesLanguages() {
+        let english = KeyboardPreferences.suggested(for: ["en-US", "emoji", "en-GB"])
+        XCTAssertEqual(english, KeyboardPreferences(), "English alone keeps Ukrainian + English")
+        XCTAssertEqual(KeyboardPreferences.suggested(for: []), KeyboardPreferences())
+        XCTAssertEqual(KeyboardPreferences.suggested(for: ["ja-JP"]), KeyboardPreferences())
+
+        let polish = KeyboardPreferences.suggested(for: ["pl-PL", "emoji", "pl-PL"])
+        XCTAssertEqual(polish.languages, [.polish], "A Latin layout types email and web addresses itself")
+        XCTAssertEqual(polish.defaultLanguage, .polish)
+
+        let german = KeyboardPreferences.suggested(for: ["en-US", "de-DE", "en-DE", "de-DE"])
+        XCTAssertEqual(german.languages, [.english, .german])
+        XCTAssertEqual(german.defaultLanguage, .german, "An English interface doesn't outrank the language someone adds")
+
+        let ukrainian = KeyboardPreferences.suggested(for: ["uk-UA"])
+        XCTAssertEqual(ukrainian.languages, [.ukrainian, .english], "Cyrillic alone gets English for addresses")
+        XCTAssertEqual(ukrainian.defaultLanguage, .ukrainian)
+
+        let several = KeyboardPreferences.suggested(for: ["sv-SE", "uk-UA", "ru-RU", "en-SE"])
+        XCTAssertEqual(several.languages, [.ukrainian, .english, .swedish], "Russian waits behind its question")
+        XCTAssertEqual(several.defaultLanguage, .swedish)
+        XCTAssertEqual(KeyboardPreferences.suggested(for: ["ru-RU"]), KeyboardPreferences())
+        XCTAssertEqual(KeyboardPreferences.suggested(for: ["sr-Latn-RS"]).languages, [.bcms])
+        XCTAssertEqual(KeyboardPreferences.suggested(for: ["fr-CA"]).validated, KeyboardPreferences.suggested(for: ["fr-CA"]))
+        XCTAssertEqual(KeyboardPreferences.suggested(for: ["en-CA", "fr-CA"]).frenchLayout, .qwerty, "Canada types French on QWERTY")
+        XCTAssertEqual(KeyboardPreferences.suggested(for: ["fr_CA"]).frenchLayout, .qwerty)
+        XCTAssertEqual(KeyboardPreferences.suggested(for: ["fr-FR", "en-CA"]).frenchLayout, .azerty)
+    }
+
+    func testCanadianFrenchTypesOnQwertyWithItsApostrophe() throws {
+        var p = KeyboardPreferences(defaultLanguage: .french, languages: [.french], frenchLayout: .qwerty)
+        XCTAssertEqual(KeyboardLayout.letterRows(.french, preferences: p), ["qwertyuiop", "asdfghjkl'", "zxcvbnm"])
+        XCTAssertEqual(KeyboardLayout.letterRows(.french, preferences: KeyboardPreferences()).first, "azertyuiop")
+        XCTAssertEqual(try JSONDecoder().decode(KeyboardPreferences.self, from: JSONEncoder().encode(p)).frenchLayout, .qwerty)
+        p.apply(.balanced)
+        XCTAssertEqual(p.frenchLayout, .qwerty, "Presets keep the layout")
+        let older = try JSONDecoder().decode(KeyboardPreferences.self, from: Data(#"{"frenchLayout":"bepo"}"#.utf8))
+        XCTAssertEqual(older.frenchLayout, .azerty)
+        var state = InputState(); state.language = .french
+        let keys = KeyboardLayout.rows(state: state, needsGlobe: false, preferences: p).flatMap { $0 }
+        XCTAssertEqual(keys.first { $0.action == .text("e") }?.alternatives, ["é", "è", "ê", "ë"])
     }
 
     func testRussianIsOfferedOnlyToThoseWhoOpposeTheInvasion() throws {

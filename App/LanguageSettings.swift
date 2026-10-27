@@ -31,6 +31,16 @@ struct LanguageSettings: View {
             } footer: {
                 Text("Colemak, Colemak-DH, Dvorak and Workman rearrange the English letters. Colemak-DH uses the ortholinear bottom row. Suggestions follow the layout you choose." + (preferences.customLayouts[.english] == nil ? "" : " Your English layout from the Layout Workshop is in use instead."))
             }
+            if languages.contains(.french) {
+                Section {
+                    Picker("French layout", selection: $preferences.frenchLayout) {
+                        ForEach(FrenchLayout.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .accessibilityIdentifier("french-layout")
+                } footer: {
+                    Text("AZERTY is French as typed in France; QWERTY (Canada) is French as typed in Canada, with the apostrophe after L." + (preferences.customLayouts[.french] == nil ? "" : " Your French layout from the Layout Workshop is in use instead."))
+                }
+            }
             Section {
                 switch preferences.invasionAnswer {
                 case .unanswered:
@@ -98,7 +108,7 @@ struct LanguageSettings: View {
         case .english: preferences.englishLayout.title
         case .polish: "QWERTY · hold for ą ć ę ł ń ó ś ź ż"
         case .german: "QWERTZ with ä ö ü · hold s for ß"
-        case .french: "AZERTY · hold for é è ê à ç and more"
+        case .french: "\(preferences.frenchLayout.title) · hold for é è ê à ç and more"
         case .spanish: "QWERTY with ñ · hold for á é í ó ú ü"
         case .czech: "QWERTZ · hold for ě š č ř ž ý á í é ů and more"
         case .slovak: "QWERTZ · hold for á ä č ď é í ľ ň ô š ť ž and more"

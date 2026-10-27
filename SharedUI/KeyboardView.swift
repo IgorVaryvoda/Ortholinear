@@ -175,8 +175,9 @@ final class KeyboardView: UIControl {
         case .backspace: return "⌫"
         case .space:
             let language = displayState.language
-            let layout = preferences.englishLayout
-            return language == .english && layout != .qwerty ? "\(language.title) · \(layout.title)" : language.title
+            if language == .english, preferences.englishLayout != .qwerty { return "\(language.title) · \(preferences.englishLayout.title)" }
+            if language == .french, preferences.frenchLayout != .azerty { return "\(language.title) · QWERTY" }
+            return language.title
         case .enter: return returnTitle
         case .language: return nextLanguage.badge
         case .page: return displayState.page == .letters ? "123" : "ABC"

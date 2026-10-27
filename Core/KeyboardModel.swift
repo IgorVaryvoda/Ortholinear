@@ -93,11 +93,18 @@ enum KeyboardLanguage: String, Codable, CodingKeyRepresentable, CaseIterable, Se
         }
     }
 
-    /// Accepts BCP 47 identifiers such as "en-GB" or "uk".
+    /// Accepts BCP 47 identifiers such as "en-GB", "uk" or "sr-Latn".
     init?(languageCode: String) {
-        let prefix = languageCode.lowercased().prefix { $0.isLetter }
-        guard let language = Self.allCases.first(where: { $0.code.hasPrefix(prefix + "-") }) else { return nil }
-        self = language
+        let parts = languageCode.lowercased().split { $0 == "-" || $0 == "_" }
+        guard let prefix = parts.first else { return nil }
+        switch prefix {
+        case "bs", "cnr": self = .bcms
+        case "sr" where parts.contains("latn"): self = .bcms
+        case "no", "nn": self = .norwegian
+        default:
+            guard let language = Self.allCases.first(where: { $0.code.hasPrefix(prefix + "-") }) else { return nil }
+            self = language
+        }
     }
 }
 
@@ -122,6 +129,17 @@ enum EnglishLayout: String, Codable, CaseIterable, Sendable {
         case .colemakDH: ["qwfpbjluy", "arstgmneio", "zxcdvkh"]
         case .dvorak: ["pyfgcrl", "aoeuidhtns", "qjkxbmwvz"]
         case .workman: ["qdrwbjfup", "ashtgyneoi", "zxmcvkl"]
+        }
+    }
+}
+
+/// France types on AZERTY; Canada, like iOS's French (Canada) keyboard, on QWERTY.
+enum FrenchLayout: String, Codable, CaseIterable, Sendable {
+    case azerty, qwerty
+    var title: String {
+        switch self {
+        case .azerty: "AZERTY"
+        case .qwerty: "QWERTY (Canada)"
         }
     }
 }
@@ -379,6 +397,7 @@ enum KeyboardLayout {
         case .polish: return ["qwertyuiop", "asdfghjkl", "zxcvbnm" + punctuation]
         case .german: return ["qwertzuiopü", "asdfghjklöä", "yxcvbnm" + punctuation]
         // French needs its apostrophe (l'eau, j'ai), so it is always on the letter page.
+        case .french where preferences.frenchLayout == .qwerty: return ["qwertyuiop", "asdfghjkl'", "zxcvbnm" + punctuation]
         case .french: return ["azertyuiop", "qsdfghjklm", "wxcvbn'" + punctuation]
         case .spanish: return ["qwertyuiop", "asdfghjklñ", "zxcvbnm" + punctuation]
         // Czech and Slovak use so many accents that iOS, too, keeps them on held keys.
@@ -497,6 +516,7 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     /// The languages the language key cycles through, in `allCases` order.
     var languages: [KeyboardLanguage] = [.ukrainian, .english]
     var englishLayout: EnglishLayout = .qwerty
+    var frenchLayout: FrenchLayout = .azerty
     var rememberLanguage: Bool = true
     /// Bumped to make the keyboard forget remembered languages; see LanguageMemory.
     var languageMemoryGeneration: Int = 0
@@ -522,7 +542,7 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         case yiOnLongPress, autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping
         case theme, accent, showLongPressHints
         case suggestionsEnabled, nextWordSuggestions, contextualSuggestions
-        case languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer
+        case languages, englishLayout, frenchLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer
         case customLayouts, layers, showLayerKey, keycaps, expansions, extrasEnabled
     }
 
@@ -565,14 +585,14 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
     }
 
     mutating func apply(_ preset: KeyboardPreset) {
-        let language = (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer)
+        let language = (defaultLanguage, languages, englishLayout, frenchLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer)
         let appearance = (theme, accent, showLongPressHints)
         let suggestions = (suggestionsEnabled, nextWordSuggestions, contextualSuggestions)
         let typing = (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping)
         let custom = (customLayouts, layers, showLayerKey, keycaps, expansions, extrasEnabled)
         self = preset.preferences
         (customLayouts, layers, showLayerKey, keycaps, expansions, extrasEnabled) = custom
-        (defaultLanguage, languages, englishLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer) = language
+        (defaultLanguage, languages, englishLayout, frenchLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer) = language
         (theme, accent, showLongPressHints) = appearance
         (suggestionsEnabled, nextWordSuggestions, contextualSuggestions) = suggestions
         (autoCapitalize, doubleSpacePeriod, digitAccess, glideTyping) = typing
@@ -580,6 +600,27 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
 }
 
 extension KeyboardPreferences {
+    /// A new install's settings, starting from the languages the device already types: a Polish iPhone
+    /// starts in Polish, and a Canadian French one in French on QWERTY. `deviceLanguages` are BCP 47 codes, the
+    /// iOS keyboards' first, then the preferred languages. With nothing but English to go on, the keyboard keeps
+    /// its own Ukrainian + English.
+    static func suggested(for deviceLanguages: [String]) -> Self {
+        var preferences = Self()
+        // Russian waits behind its question, as it does in settings.
+        let matched = deviceLanguages.compactMap(KeyboardLanguage.init(languageCode:)).filter { $0 != .russian }
+        guard let first = matched.first(where: { $0 != .english }) else { return preferences }
+        var languages = Set(matched)
+        // Email and web addresses need Latin letters.
+        if !languages.contains(where: \.isLatin) { languages.insert(.english) }
+        preferences.languages = KeyboardLanguage.allCases.filter(languages.contains)
+        preferences.defaultLanguage = first
+        let french = deviceLanguages.first { KeyboardLanguage(languageCode: $0) == .french }
+        if french?.uppercased().split(whereSeparator: { $0 == "-" || $0 == "_" }).contains("CA") == true {
+            preferences.frenchLayout = .qwerty
+        }
+        return preferences
+    }
+
     init(from decoder: any Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -612,6 +653,7 @@ extension KeyboardPreferences {
             languages = codes.compactMap(KeyboardLanguage.init(rawValue:))
         }
         englishLayout = (try? c.decodeIfPresent(EnglishLayout.self, forKey: .englishLayout)) ?? englishLayout
+        frenchLayout = (try? c.decodeIfPresent(FrenchLayout.self, forKey: .frenchLayout)) ?? frenchLayout
         rememberLanguage = try c.decodeIfPresent(Bool.self, forKey: .rememberLanguage) ?? rememberLanguage
         languageMemoryGeneration = try c.decodeIfPresent(Int.self, forKey: .languageMemoryGeneration) ?? languageMemoryGeneration
         invasionAnswer = (try? c.decodeIfPresent(InvasionAnswer.self, forKey: .invasionAnswer)) ?? invasionAnswer

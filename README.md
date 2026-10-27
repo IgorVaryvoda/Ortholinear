@@ -1,6 +1,6 @@
 # Ortholinear
 
-A native, private Ukrainian + English keyboard for iPhone and iPad, with 13 optional layouts: Polish, German, French, Spanish, Czech, Slovak, Croatian/Bosnian/Montenegrin/Serbian (Latin and Cyrillic), Swedish, Norwegian, Danish, Dutch, and Russian. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party runtime code dependencies; bundled language data has separate licenses.
+A native, private Ukrainian + English keyboard for iPhone and iPad, with 13 optional layouts: Polish, German, French (AZERTY or Canadian QWERTY), Spanish, Czech, Slovak, Croatian/Bosnian/Montenegrin/Serbian (Latin and Cyrillic), Swedish, Norwegian, Danish, Dutch, and Russian. Straight rows, equal character cells, and configurable geometry. Swift 6, iOS 17+, UIKit keyboard extension, SwiftUI containing app. No third-party runtime code dependencies; bundled language data has separate licenses.
 
 [Support](SUPPORT.md) · [Privacy](PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [MIT license](LICENSE)
 
@@ -60,6 +60,7 @@ xcodegen generate
 - Letter-key height: 36–88 pt; control-row height: 36–72 pt; letter size: 18–36 pt; Return/Delete relative width: 1.25–3.5; horizontal spacing: 0–8 pt; vertical spacing: 0–12 pt.
 - **Fill gaps between keys** keeps the visible gutters but partitions the whole grid into adjoining touch targets. Turning it off restricts touches to visible rectangles.
 - VoiceOver key labels, shift state, and alternative-character actions; system light and dark appearance.
+- A new install starts with the languages the device already uses, from its iOS keyboards and preferred languages, in the first one that isn't English: a Polish iPhone starts with Polish, a Canadian French one with French on QWERTY (Canada), and Cyrillic alone also gets English. With nothing but English to go on, it starts with Ukrainian + English. Reset to defaults does the same.
 - Numeric input traits start on numbers; email, URL, and ASCII traits start in a Latin layout (English, unless you are already typing in another Latin language). Return labels reflect the host field.
 
 ```text
