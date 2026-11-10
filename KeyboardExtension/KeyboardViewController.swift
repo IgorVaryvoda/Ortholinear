@@ -77,7 +77,7 @@ final class KeyboardViewController: UIInputViewController {
         let preferences = PreferenceStore.load()
         adoptLanguageSettings(preferences)
         keyboard.preferences = preferences
-        heightConstraint?.constant = preferences.keyboardHeight
+        updateHeight()
         lastKeyboardType = nil
         suggestions.beginSession()
         synchronize()
@@ -87,6 +87,18 @@ final class KeyboardViewController: UIInputViewController {
         keyboard.cancelTouches()
         suggestions.releaseMemory()
         super.viewWillDisappear(animated)
+    }
+
+    /// Rotation arrives here as a new width, without a transition callback.
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        updateHeight()
+    }
+
+    private func updateHeight() {
+        let screen = view.window?.windowScene?.screen ?? UIScreen.main
+        let height = CGFloat(keyboard.preferences.keyboardHeight(onScreen: screen.bounds.size))
+        if heightConstraint?.constant != height { heightConstraint?.constant = height }
     }
 
     override func viewDidLayoutSubviews() {

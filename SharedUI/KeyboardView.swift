@@ -123,7 +123,7 @@ final class KeyboardView: UIControl {
         super.layoutSubviews()
         // Only physical geometry changes cancel a slide. Switching pages is part of it.
         if layoutSize != bounds.size { cancelTouches(); layoutSize = bounds.size }
-        cells = KeyboardGeometry.cells(width: bounds.width, state: displayState,
+        cells = KeyboardGeometry.cells(width: bounds.width, height: bounds.height, state: displayState,
                                        preferences: preferences, needsGlobe: needsGlobe)
         globeButton.isHidden = !needsGlobe
         globeButton.frame = cells.first(where: { $0.key.action == .globe })?.hitFrame ?? .zero
@@ -347,7 +347,7 @@ final class KeyboardView: UIControl {
             let label = flicked ?? cell.key.label ?? (action == .space && sessions.values.contains(where: \.cursorMode) ? "↔" : title(action))
             var size: CGFloat = label.count > 2 ? 13 : 19
             if case .text = action, cell.key.label == nil {
-                size = min(preferences.validated.letterSize, max(14, frame.width - 3))
+                size = min(preferences.validated.letterSize, max(14, min(frame.width - 3, frame.height - 2)))
             }
             drawText(label, in: face, font: palette.legend(ofSize: size, weight: isText ? .regular : .medium),
                      color: flicked == nil ? color : palette.accent)
@@ -422,21 +422,34 @@ final class KeyboardView: UIControl {
                 drawSymbol("return", in: frame, size: 23, color: color)
             } else {
                 let name = returnTitle == "search" ? "magnifyingglass" : (returnTitle == "send" ? "paperplane" : (returnTitle == "done" ? "checkmark" : "arrow.right"))
-                drawSymbol(name, in: frame.offsetBy(dx: 0, dy: -7), size: 17, color: color)
-                drawText(returnTitle, in: CGRect(x: frame.minX + 2, y: frame.midY + 5, width: frame.width - 4, height: 13),
-                         font: .systemFont(ofSize: 11, weight: .medium), color: color)
+                drawSymbol(name, size: 17, lift: 7, caption: returnTitle, font: .systemFont(ofSize: 11, weight: .medium),
+                           in: frame.insetBy(dx: 2, dy: 0), color: color)
             }
         case .language:
-            drawSymbol("arrow.left.arrow.right", in: frame.offsetBy(dx: 0, dy: -8), size: 16, color: color)
-            drawText(nextLanguage.badge,
-                     in: CGRect(x: frame.minX, y: frame.midY + 5, width: frame.width, height: 13),
-                     font: .systemFont(ofSize: 10, weight: .semibold), color: color)
+            drawSymbol("arrow.left.arrow.right", size: 16, lift: 8, caption: nextLanguage.badge,
+                       font: .systemFont(ofSize: 10, weight: .semibold), in: frame, color: color)
         case .dismiss:
             drawSymbol("keyboard.chevron.compact.down", in: frame, size: 21, color: color)
         case .globe: break // Native button keeps Apple's tap-and-hold behavior.
         default: return false
         }
         return true
+    }
+
+    /// A symbol above its caption, or beside it on a key too short to stack them, as on a screen on its side.
+    private func drawSymbol(_ name: String, size: CGFloat, lift: CGFloat, caption: String, font: UIFont,
+                            in frame: CGRect, color: UIColor) {
+        guard frame.height < 36 else {
+            drawSymbol(name, in: frame.offsetBy(dx: 0, dy: -lift), size: size, color: color)
+            drawText(caption, in: CGRect(x: frame.minX, y: frame.midY + 5, width: frame.width, height: 13), font: font, color: color)
+            return
+        }
+        // The symbol's box includes the margin drawSymbol keeps around it.
+        let symbol = size + 12
+        let text = min(ceil((caption as NSString).size(withAttributes: [.font: font]).width), max(0, frame.width - symbol - 4))
+        let x = frame.midX - (symbol + text) / 2
+        drawSymbol(name, in: CGRect(x: x, y: frame.minY, width: symbol, height: frame.height), size: size, color: color)
+        drawText(caption, in: CGRect(x: x + symbol, y: frame.minY, width: text, height: frame.height), font: font, color: color)
     }
 
     private func drawSymbol(_ name: String, in frame: CGRect, size: CGFloat, color: UIColor) {
