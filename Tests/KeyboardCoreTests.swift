@@ -185,6 +185,40 @@ final class KeyboardCoreTests: XCTestCase {
         }
     }
 
+    func testSidewaysScreenGetsShorterRowsThatStillCoverTheKeyboard() {
+        let p = KeyboardPreferences()
+        XCTAssertEqual(p.keyboardHeight(onScreen: CGSize(width: 393, height: 852)), p.keyboardHeight, "Upright keeps the chosen size")
+        XCTAssertEqual(p.keyboardHeight(onScreen: CGSize(width: 1366, height: 1024)), p.keyboardHeight, "A big screen has room for it")
+        var tallest = KeyboardPreferences(keyHeight: 88, rowSpacing: 12, controlHeight: 72, showHeader: true)
+        tallest.digitAccess = .numberRow
+        var row = p; row.digitAccess = .numberRow
+        for preferences in [p, row, tallest, KeyboardPreset.original.preferences] {
+            for screen in [CGSize(width: 667, height: 375), CGSize(width: 852, height: 393), CGSize(width: 956, height: 440)] {
+                let height = preferences.keyboardHeight(onScreen: screen)
+                XCTAssertLessThan(height, preferences.keyboardHeight)
+                XCTAssertLessThanOrEqual(height, screen.height * 0.6, "The text being typed stays in view")
+                for page in [KeyboardPage.letters, .numbers, .symbols] {
+                    var state = InputState(); state.page = page
+                    let cells = KeyboardGeometry.cells(width: screen.width, height: height, state: state,
+                                                       preferences: preferences, needsGlobe: true)
+                    XCTAssertEqual(cells.first!.hitFrame.minY, preferences.headerHeight)
+                    XCTAssertEqual(cells.last!.hitFrame.maxY, height, accuracy: 0.001)
+                    XCTAssertGreaterThanOrEqual(cells.map(\.hitFrame.height).min()!, 28 - 0.001, "No row too short to hit")
+                    for y in stride(from: preferences.headerHeight, to: height, by: 1.9) {
+                        XCTAssertEqual(cells.filter { $0.hitFrame.contains(CGPoint(x: 200, y: y)) }.count, 1)
+                    }
+                }
+            }
+        }
+        // Rows keep their proportions while none is too short: letters stay taller than the control row.
+        let cells = KeyboardGeometry.cells(width: 852, height: p.keyboardHeight(onScreen: CGSize(width: 852, height: 393)),
+                                           state: InputState(), preferences: p, needsGlobe: true)
+        XCTAssertEqual(cells[0].visualFrame.height / cells.last!.visualFrame.height, 72.0 / 56, accuracy: 0.001)
+        XCTAssertEqual(KeyboardGeometry.squeezed([46, 75, 75, 75, 59], into: 172).map { ($0 * 10).rounded() / 10 },
+                       [28, 38, 38, 38, 29.9], "The short number row stops at the floor")
+        XCTAssertEqual(KeyboardGeometry.squeezed([50, 50], into: 120), [50, 50], "Rows never grow")
+    }
+
     func testLetterAndControlSizesAreIndependentAndHeaderIsOptional() {
         var p = KeyboardPreferences()
         let originalHeight = p.keyboardHeight

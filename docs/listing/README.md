@@ -43,10 +43,10 @@ Writing rules:
 - Keywords are in the listing's language, never repeat a word already in the name or subtitle, and name no other apps or trademarks.
 - Ortholinear and Ortholinear Pro are never translated.
 
-## What's New for the next version
+## What's New for the version being prepared
 
-The English source:
+The English source, for 0.7.1:
 
-> • A new install starts with the languages your iPhone or iPad already uses: on a Polish iPhone, Ortholinear starts with the Polish layout. Change them any time in Settings > Languages and layouts.
+> • In landscape, the keyboard no longer covers almost the whole iPhone screen. It now takes about half, as the system keyboard does, and the rows get shorter to fit. Upright, it keeps the height you set.
 
-Each locale names its own language in place of Polish. Add the release's other changes to every locale before submitting.
+Replace `whatsNew` in every locale with the next release's changes before submitting it.

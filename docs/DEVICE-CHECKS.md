@@ -17,6 +17,7 @@ The simulator verifies layout and interaction. Signing and installation have als
 - Swipe space in both directions in text containing emoji and Ukrainian; verify insertion at the resulting cursor. Test document boundaries and selections.
 - Exercise numeric, email, URL, return-action, empty/disabled return, and multiline fields. Verify selection replacement and backspace across emoji.
 - Verify native globe tap/hold where required, and the system-provided globe on Face ID devices. Switch away and back.
+- Rotate an iPhone to landscape in a host app: the keyboard takes about half the screen and the text being typed stays visible, including with the number row and the header on. Rotate back and confirm the chosen height returns.
 - Verify portrait, landscape, iPad docked and floating keyboards, light/dark appearance, and large accessibility text in the containing app.
 - Use VoiceOver to type letters, select punctuation alternatives, switch language, and dismiss.
 - Confirm iOS switches to its own keyboard for passwords and phone-pad fields.

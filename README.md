@@ -37,6 +37,7 @@ xcodegen generate
 - Softer key corners, subtle borders, a calm tinted press state, and consistent Shift/Delete/Return/language icons. Optional small ґ/ї hints reveal long-press letters. Theme changes preserve key geometry.
 - Tap г for г; hold it for ґ. With Shift, hold Г for Ґ. There is no separate ґ key.
 - Larger default letters: 72 pt keys, 28 pt labels, no header, and no period or comma on the letter page. The remaining letters expand across the row.
+- On an iPhone turned on its side, the keyboard takes at most 55% of the screen's height, about what the system keyboard does: the rows get shorter, none below 28 pt, and the suggestions keep their size. Upright, it stays the height you set.
 - Shift sits immediately before Я / Z on the third letter row. Its position is configurable.
 - Substantial Delete immediately after M / Ю on the third letter row, 72 pt tall by default. Return stays on the control row at 56 pt. Both share a dedicated width setting. Numbers and symbols keep Delete on the control row.
 - Big letters, Balanced, and Original grid presets; optional letter-page punctuation and header.

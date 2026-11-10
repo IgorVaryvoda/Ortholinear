@@ -583,6 +583,14 @@ struct KeyboardPreferences: Codable, Equatable, Sendable {
         let numberRow = p.numberRowHeight > 0 ? p.numberRowHeight + p.rowSpacing : 0
         return p.headerHeight + numberRow + 3 * (p.keyHeight + p.rowSpacing) + p.controlHeight + p.rowSpacing
     }
+    /// The height on a screen of `size`. A screen on its side spares the keyboard about what the system
+    /// one takes there, so the rows get shorter; an upright screen gets the height the person chose.
+    func keyboardHeight(onScreen size: CGSize) -> Double {
+        guard size.width > size.height else { return keyboardHeight }
+        let rows = numberRowHeight > 0 ? 5.0 : 4.0
+        let shortest = headerHeight + rows * KeyboardGeometry.shortestRow
+        return min(keyboardHeight, max(size.height * KeyboardGeometry.landscapeShare, shortest))
+    }
 
     mutating func apply(_ preset: KeyboardPreset) {
         let language = (defaultLanguage, languages, englishLayout, frenchLayout, rememberLanguage, languageMemoryGeneration, invasionAnswer)
@@ -715,7 +723,14 @@ struct KeyCell {
 enum KeyboardGeometry {
     static let ribbonHeight: Double = 38
 
-    static func cells(width: Double, state: InputState, preferences: KeyboardPreferences,
+    /// The most of a sideways screen's height the keyboard takes.
+    static let landscapeShare: Double = 0.55
+    /// A row, with its spacing, isn't squeezed below this while the others can give instead.
+    static let shortestRow: Double = 28
+
+    /// `height` is the keyboard's whole height when it is shorter than the preferences ask for, as on a
+    /// screen on its side: the rows share what is left under the header.
+    static func cells(width: Double, height: Double? = nil, state: InputState, preferences: KeyboardPreferences,
                       needsGlobe: Bool) -> [KeyCell] {
         guard width > 0 else { return [] }
         let p = preferences.validated
@@ -723,11 +738,15 @@ enum KeyboardGeometry {
         // Pages without the number row share its height, so the keyboard never jumps.
         let letterHeight = rows.count == 5 || p.numberRowHeight == 0 ? p.keyHeight
             : p.keyHeight + (p.numberRowHeight + p.rowSpacing) / 3
+        let natural = rows.indices.map { row in
+            (row == rows.count - 1 ? p.controlHeight : (rows.count == 5 && row == 0 ? p.numberRowHeight : letterHeight)) + p.rowSpacing
+        }
+        let heights = height.map { squeezed(natural, into: $0 - p.headerHeight) } ?? natural
         var rowY = p.headerHeight
         return rows.enumerated().flatMap { row, keys in
             let unit = width / keys.reduce(0) { $0 + $1.weight }
-            let keyHeight = row == rows.count - 1 ? p.controlHeight : (rows.count == 5 && row == 0 ? p.numberRowHeight : letterHeight)
-            let rowHeight = keyHeight + p.rowSpacing
+            let rowHeight = heights[row]
+            let rowSpacing = p.rowSpacing * rowHeight / natural[row]
             defer { rowY += rowHeight }
             var x = 0.0
             return keys.enumerated().map { column, key in
@@ -736,10 +755,29 @@ enum KeyboardGeometry {
                 x = right
                 let leftGap = column == 0 ? 0 : p.columnSpacing / 2
                 let rightGap = column == keys.count - 1 ? 0 : p.columnSpacing / 2
-                let visual = CGRect(x: frame.minX + leftGap, y: frame.minY + p.rowSpacing / 2,
-                                    width: frame.width - leftGap - rightGap, height: keyHeight)
+                let visual = CGRect(x: frame.minX + leftGap, y: frame.minY + rowSpacing / 2,
+                                    width: frame.width - leftGap - rightGap, height: rowHeight - rowSpacing)
                 return KeyCell(key: key, hitFrame: p.fillGaps ? frame : visual, visualFrame: visual)
             }
+        }
+    }
+
+    /// Row heights that fill `total` when it is less than they need. They shrink in proportion, except
+    /// that a row which would fall below `shortestRow` stops there and the taller ones give up the rest.
+    static func squeezed(_ rows: [Double], into total: Double) -> [Double] {
+        let natural = rows.reduce(0, +)
+        guard total > 0, total < natural else { return rows }
+        var result = rows.map { $0 * total / natural }
+        let floors = rows.map { min($0, shortestRow) }
+        guard floors.reduce(0, +) <= total else { return result }
+        var held = Set<Int>()
+        while true {
+            let short = rows.indices.filter { !held.contains($0) && result[$0] < floors[$0] }
+            if short.isEmpty { return result }
+            held.formUnion(short)
+            let rest = total - held.reduce(0) { $0 + floors[$1] }
+            let free = rows.indices.filter { !held.contains($0) }.reduce(0) { $0 + rows[$1] }
+            for row in rows.indices { result[row] = held.contains(row) ? floors[row] : rows[row] * rest / free }
         }
     }
 

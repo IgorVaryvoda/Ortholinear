@@ -44,6 +44,56 @@ final class SystemExtensionTests: XCTestCase {
         surface.buttons["key-Delete"].press(forDuration: 2)
     }
 
+    /// Uses the already enabled extension. On its side an iPhone is barely taller than the upright keyboard.
+    @MainActor
+    func testInstalledKeyboardLeavesRoomOnItsSide() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-no-auto-capitals", "-no-keyboard-tips"]
+        app.launch()
+        XCUIDevice.shared.orientation = .portrait
+        defer { XCUIDevice.shared.orientation = .portrait }
+        tapOnMainPage("system-test", in: app)
+        let editor = app.textViews["system-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        editor.tap()
+        let surface = app.otherElements["system-keyboard-surface"]
+        if !surface.waitForExistence(timeout: 2) {
+            let globe = app.buttons["Next keyboard"]
+            XCTAssertTrue(globe.waitForExistence(timeout: 3), app.debugDescription)
+            globe.press(forDuration: 1)
+            let option = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Ortholinear'")).firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
+            option.tap()
+        }
+        XCTAssertTrue(surface.waitForExistence(timeout: 8), app.debugDescription)
+        if surface.buttons["key-Switch to English"].exists { surface.buttons["key-Switch to English"].tap() }
+        func wait(_ message: String, for check: @escaping () -> Bool) {
+            let expectation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in check() }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 8), .completed,
+                           "\(message): keyboard \(surface.frame) on screen \(app.frame)")
+        }
+        let upright = surface.frame.height
+        XCUIDevice.shared.orientation = .landscapeLeft
+        wait("The keyboard takes most of a sideways screen") {
+            app.frame.width > app.frame.height && surface.frame.height <= app.frame.height * 0.56
+        }
+        let sideways = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        sideways.name = "System keyboard on its side"
+        sideways.lifetime = .keepAlways
+        add(sideways)
+        XCTAssertEqual(surface.buttons["key-Space"].frame.maxY, surface.frame.maxY, accuracy: 1, "The rows fill the shorter keyboard")
+        XCTAssertGreaterThanOrEqual(surface.buttons["key-q"].frame.height, 28)
+        surface.buttons["key-q"].tap()
+        surface.buttons["key-Space"].tap()
+        surface.buttons["key-m"].tap()
+        XCTAssertEqual(editor.value as? String, "q m")
+        XCUIDevice.shared.orientation = .portrait
+        wait("The keyboard returns to its chosen height") {
+            app.frame.width < app.frame.height && abs(surface.frame.height - upright) < 1
+        }
+        surface.buttons["key-Delete"].press(forDuration: 2)
+    }
+
     @MainActor
     func testInstalledSuggestionsAreTapOnly() throws {
         let app = XCUIApplication()
